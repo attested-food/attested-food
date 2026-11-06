@@ -68,9 +68,10 @@ Since non-span bytes are identical, the redacted file's structure is the origina
 
 `node scripts/build-opt.mjs` (after `build.mjs`), for the zkVM guest (cost scales with bytes and content tokens):
 - `out/opt/template/`: template with `--input opt=1`: QR as raster Image XObject (sized like the vector one), no kerning, no bold face
-- `out/opt/full/`: template + `optimize.mjs`: one BT per page with Td moves, Tf / colour only on change, Tj, `q cm ... Q` table strokes flattened into one group, numbers rounded (coords 2 dp, colours 3 dp), ICC -> Device colour spaces, no XMP, no /ProcSet, unreachable objects dropped
+- `out/opt/full/`: template + `optimize.mjs`: one BT per page with Td moves, Tf / colour only on change, Tj, non-PII text as literal strings (2 B per glyph; PII stays hex), `q cm ... Q` table strokes flattened into one group, rects as `re`, shared paint ops, numbers rounded (coords 1 dp, colours 3 dp), ToUnicode as bfrange, ICC -> Device colour spaces, no XMP, no /ProcSet, unreachable objects dropped
 - Checked per file: text-show runs (trimmed) equal the original's, redact + check pass; pixel diff vs `template` only anti-aliasing plus one 0.4pt border shifted 1 px
-- On S3 under `reports/2026/opt/<variant>/`; manifests carry `original.s3`; choco: 90,718 B -> 69,426 B (template) -> 49,577 B (full), content ops 4,123 -> 686
+- On S3 under `reports/2026/opt/<variant>/`; manifests carry `original.s3`; `opt-keys.json` `superseded` lists older objects left in place; choco: 90,718 B -> 69,426 B (template) -> 41,381 B (full)
+- Guest cost (OpenVM execute, with guest patch, choco): original 1,236,571, template 966,663, full v1 (49,577 B) 652,494 instructions
 - ToUnicode CMaps are already uncompressed in Typst output; remaining Flate streams: 2 font files, 2 CIDSets, QR image + SMask
 
 ## Known leaks / limits

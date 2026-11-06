@@ -4,9 +4,16 @@
     "multigrain-atta": "reports/2026/opt/template/multigrain-atta-e4bf0a2f9c26ca2c.pdf",
     "peanut-butter-crunchy": "reports/2026/opt/template/peanut-butter-crunchy-ac0e3e5726babb5e.pdf"
   },
+  "superseded": {
+    "full-v1": {
+      "choco-millet-muesli": "reports/2026/opt/full/choco-millet-muesli-d4c4bc52b43a8f67.pdf",
+      "multigrain-atta": "reports/2026/opt/full/multigrain-atta-bdc218204624363c.pdf",
+      "peanut-butter-crunchy": "reports/2026/opt/full/peanut-butter-crunchy-9ee5c6977ff59afa.pdf"
+    }
+  },
   "full": {
-    "choco-millet-muesli": "reports/2026/opt/full/choco-millet-muesli-d4c4bc52b43a8f67.pdf",
-    "multigrain-atta": "reports/2026/opt/full/multigrain-atta-bdc218204624363c.pdf",
-    "peanut-butter-crunchy": "reports/2026/opt/full/peanut-butter-crunchy-9ee5c6977ff59afa.pdf"
+    "choco-millet-muesli": "reports/2026/opt/full/choco-millet-muesli-194eef83e0016247.pdf",
+    "multigrain-atta": "reports/2026/opt/full/multigrain-atta-fb0918a16d2f1cc5.pdf",
+    "peanut-butter-crunchy": "reports/2026/opt/full/peanut-butter-crunchy-9ff35cead7b05a1a.pdf"
   }
 }
