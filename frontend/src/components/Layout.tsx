@@ -4,8 +4,8 @@ import { SignIn } from './SignIn';
 
 export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
 	const links = overlay
-		? [['/products', 'Marketplace'], ['/about', 'How it works']]
-		: [['/products', 'Marketplace'], ['/tests', 'Tests'], ['/about', 'How it works']];
+		? [['/products', 'Browse Products'], ['/about', 'How it works']]
+		: [['/products', 'Browse Products'], ['/tests', 'Tests'], ['/about', 'How it works']];
 	return (
 		<header className={`site-header${overlay ? ' overlay' : ''}`}>
 			<div className="inner">

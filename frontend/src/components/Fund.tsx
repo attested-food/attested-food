@@ -71,7 +71,7 @@ export function Fund({ requestId }: { requestId: string }) {
 		<section className="fund card" aria-labelledby="fund-h">
 			<h2 id="fund-h" className="fund-title">Fund this test</h2>
 			<p className="muted fund-lede">
-				Anyone can chip in. Anyone can also be the tester by putting down a refundable stake; it comes back when the report is posted.
+				Anyone can contribute. Anyone can also be the tester by putting down a refundable stake; it comes back when the report is posted.
 				If the report isn't posted in time, the stake goes to the pool and the job reopens.
 			</p>
 			{!fundAddress ? (
@@ -91,7 +91,7 @@ export function Fund({ requestId }: { requestId: string }) {
 						<p className="small muted">Report due {c.deadline.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}{late && <strong className="late"> · overdue</strong>}</p>
 					)}
 					{!wallet.address ? (
-						<p className="notice">Sign in (top right) to chip in or be the tester.</p>
+						<p className="notice">Sign in (top right) to contribute or be the tester.</p>
 					) : (
 						<>
 							<p className="small muted">
@@ -106,7 +106,7 @@ export function Fund({ requestId }: { requestId: string }) {
 									})}
 									<form className="fund-row" onSubmit={(e: FormEvent) => { e.preventDefault(); contribute(customAmount); }}>
 										<input className="fund-amount" inputMode="decimal" placeholder="Other $" aria-label="Other amount in dollars" value={custom} onChange={(e) => setCustom(e.target.value)} />
-										<button className="btn sm outline" disabled={!!busy || !customAmount || customAmount > remaining}>Chip in</button>
+										<button className="btn sm outline" disabled={!!busy || !customAmount || customAmount > remaining}>Contribute</button>
 									</form>
 								</div>
 							)}

@@ -13,7 +13,7 @@ export default function About() {
 			</div>
 			<ol className="ab-steps">
 				<li><b>1</b><div><h2>Request</h2><p>Paste an Amazon link or type in the product. We list the tests that matter for its category: nutrition vs label, heavy metals, aflatoxins, pesticides, protein spiking.</p></div></li>
-				<li><b>2</b><div><h2>Fund</h2><p>Anyone can chip in toward the lab’s quote. Anyone can also be the tester by putting down a refundable stake and taking the product to an accredited (NABL) lab.</p></div></li>
+				<li><b>2</b><div><h2>Fund</h2><p>Anyone can contribute toward the lab’s quote. Anyone can also be the tester by putting down a refundable stake and taking the product to an accredited (NABL) lab.</p></div></li>
 				<li><b>3</b><div><h2>Test and publish</h2><p>The tester posts the full lab report before the deadline and gets the stake back. The buyer’s personal details on the report stay private; only the findings are published.</p></div></li>
 			</ol>
 			<section className="ab-sec">

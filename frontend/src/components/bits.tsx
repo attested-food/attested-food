@@ -67,13 +67,26 @@ export function Photo({ src, alt, className = '', style }: { src: string | null 
 	);
 }
 
-export function Logo() {
+/**
+ * OpenLabel mark: a white label with its top-right corner folded, carrying a green "O" and a
+ * flipped tick that reads as "L" (OL).
+ */
+export function LogoMark({ size = 32, outline = false }: { size?: number; outline?: boolean }) {
+	return (
+		<svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" className="logo-mark">
+			<path d="M2 4a2 2 0 0 1 2-2h25l9 9v25a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" fill="#FFFFFF" stroke={outline ? '#1D4A37' : 'none'} strokeWidth={outline ? 1.4 : 0} />
+			<path d="M29 2v7a2 2 0 0 0 2 2h7z" fill="#D9D6CC" />
+			<path d="M29 9a2 2 0 0 0 2 2h7" fill="none" stroke="rgba(0,0,0,0.12)" strokeWidth="0.8" />
+			<circle cx="12.6" cy="22.5" r="6.4" fill="none" stroke="#1D4A37" strokeWidth="3.6" />
+			<path d="M23.6 13.4l3.4 15.6 7.4-4.6" fill="none" stroke="#1D4A37" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round" />
+		</svg>
+	);
+}
+
+export function Logo({ outline = false }: { outline?: boolean }) {
 	return (
 		<>
-			<svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
-				<rect x="1" y="1" width="28" height="28" rx="3" fill="#1D4A37" />
-				<path d="M8 15.5l4.5 4.5L22 10" fill="none" stroke="#C6A26B" strokeWidth="3.2" strokeLinecap="square" />
-			</svg>
+			<LogoMark outline={outline} />
 			<span>OpenLabel</span>
 		</>
 	);

@@ -163,7 +163,7 @@ export default function Request() {
 
 			{done ? (
 				<div className="rq-done">
-					<p className="notice">Request received for <strong>{form.brand} {form.name}</strong>. Once others chip in and someone takes it on as the tester, it goes to an accredited lab.</p>
+					<p className="notice">Request received for <strong>{form.brand} {form.name}</strong>. Once others contribute and someone takes it on as the tester, it goes to an accredited lab.</p>
 					<h2 className="section-title" style={{ marginTop: 28 }}>Tests we'll run</h2>
 					<ul className="rq-tests">{done.tests.map((t) => <li key={t}><span>{t}</span></li>)}</ul>
 					<div className="rq-row" style={{ marginTop: 20 }}>
@@ -267,7 +267,7 @@ export default function Request() {
 									{error && <p className="error">{error}</p>}
 									<div className="rq-submit">
 										<button className="btn lg" type="submit" disabled={submitting}>{submitting ? 'Sending…' : 'Request this test'}</button>
-										<span className="muted small">Next you can chip in, or put down a refundable stake and be the tester yourself.</span>
+										<span className="muted small">Next you can contribute, or put down a refundable stake and be the tester yourself.</span>
 									</div>
 								</fieldset>
 							</form>
@@ -291,7 +291,7 @@ export default function Request() {
 							<h2 className="section-title">After you send it</h2>
 							<ol className="rq-next">
 								<li><b>1</b><span>It shows up on the Tests board as Requested.</span></li>
-								<li><b>2</b><span>Anyone can chip in toward the lab’s quote. You can too.</span></li>
+								<li><b>2</b><span>Anyone can contribute toward the lab’s quote. You can too.</span></li>
 								<li><b>3</b><span>Whoever puts down the stake becomes the tester, takes it to an accredited lab and posts the report before the deadline.</span></li>
 							</ol>
 						</section>

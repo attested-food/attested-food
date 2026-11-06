@@ -21,9 +21,9 @@ const ON_LABEL = [
 function gradeLine(p: ProductCard) {
 	const l = p.latest;
 	if (!l) return 'Not tested yet';
-	if (l.kind === 'user') return 'Lab-tested · no grade yet';
+	if (l.kind === 'user') return 'Tested through OpenLabel';
 	const who = nameOf(l.publisher) ?? 'a testing website';
-	return sourceGrade(l) ? `Grade by ${who}` : `${who} · no grade`;
+	return sourceGrade(l) ? `Graded by ${who}` : `Tested for ${who}`;
 }
 
 function Tile({ to, img, alt, state, brand, name, grade, line, buy }: { to: string; img: string | null; alt: string; state: 'tested' | 'requested'; brand: string; name: string; grade: string | null; line: string; buy: string }) {
@@ -90,11 +90,11 @@ export default function Marketplace() {
 
 	return (
 		<div className="page">
-			<title>Marketplace · OpenLabel</title>
+			<title>Browse Products · OpenLabel</title>
 			<div className="page-head">
 				<div style={{ flex: '1 1 420px', minWidth: 0 }}>
 					<div className="eyebrow">{r ? `${r.total.toLocaleString('en-IN')} products` : ' '}</div>
-					<h1 style={{ marginTop: 10 }}>Marketplace</h1>
+					<h1 style={{ marginTop: 10 }}>Browse Products</h1>
 					<p className="lede">What the label says, what the lab found, and where to buy it.</p>
 				</div>
 				<form role="search" className="search" onSubmit={search}>
@@ -193,7 +193,7 @@ export default function Marketplace() {
 					<section className="m-cta" aria-label="Request a test">
 						<div>
 							<div className="m-cta-title">Not on the shelf?</div>
-							<p className="muted">Paste an Amazon link. Others can chip in, and anyone can be the tester and take it to an accredited lab.</p>
+							<p className="muted">Paste an Amazon link. Others can help fund it, and anyone can be the tester and take it to an accredited lab.</p>
 						</div>
 						<Link className="btn lg" to="/request">Request a test</Link>
 					</section>

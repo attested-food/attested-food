@@ -43,10 +43,10 @@ export function LabelCard({ item, theme, peeled, onPeel, onUnpeel }: { item: Wal
 	const gradeLabel = isRequest
 		? 'Not tested yet'
 		: item.grade && item.grade_source
-			? `Grade by ${item.grade_source}`
+			? `Graded by ${item.grade_source}`
 			: item.report_kind === 'user'
 				? 'Lab results · OpenLabel grade coming soon'
-				: 'Not enough data to grade';
+				: `Tested for ${item.grade_source ?? item.lab ?? 'a testing website'}`;
 	const source = isRequest
 		? 'From the label · requested for testing'
 		: [item.lab, item.report_kind === 'fallback' && item.grade_source && item.grade_source !== item.lab ? `via ${item.grade_source}` : null, month(item.tested_on)].filter(Boolean).join(' · ');

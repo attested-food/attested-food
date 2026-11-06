@@ -106,7 +106,7 @@ export default function Tests() {
 
 	const COLS = [
 		['requested', '1', 'Requested', 'Waiting for the first backer.'],
-		['funding', '2', 'Funding', 'People are chipping in toward the lab’s quote.'],
+		['funding', '2', 'Funding', 'People are contributing toward the lab’s quote.'],
 		['funded', '3', 'Funded', 'Fully funded, or a tester has taken it to a lab.'],
 		['tested', '4', 'Tested', 'Report published.']
 	] as const;
@@ -118,13 +118,13 @@ export default function Tests() {
 			<div className="page-head">
 				<div style={{ flex: '1 1 520px', minWidth: 0 }}>
 					<h1>Requested &amp; Funded Tests</h1>
-					<p className="lede">Ask for a product to be tested, chip in, or be the tester yourself. Every finished report is published in full.</p>
+					<p className="lede">Ask for a product to be tested, contribute to a test, or be the tester yourself. Every finished report is published in full.</p>
 				</div>
 				<Link className="btn lg" to="/request">Request a test</Link>
 			</div>
 
 			<ol className="t-rules" aria-label="How a test gets paid for">
-				<li><b>1</b><span><strong>Chip in</strong><span className="muted">Each test is priced from the lab’s quote. Anyone can put in any amount.</span></span></li>
+				<li><b>1</b><span><strong>Contribute</strong><span className="muted">Each test is priced from the lab’s quote. Anyone can put in any amount.</span></span></li>
 				<li><b>2</b><span><strong>Be the tester</strong><span className="muted">Put down a refundable stake and take the product to an accredited lab. The stake comes back when the report is posted.</span></span></li>
 				<li><b>3</b><span><strong>Deliver in time</strong><span className="muted">Miss the deadline and the stake goes to the pool. The job reopens for someone else.</span></span></li>
 			</ol>

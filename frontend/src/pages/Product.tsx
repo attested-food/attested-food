@@ -25,7 +25,7 @@ function offClaim(r: Result) {
 }
 
 function summary(r: Report | undefined) {
-	if (!r) return 'Not tested yet. Request a test and others can chip in.';
+	if (!r) return 'Not tested yet. Request a test and others can help fund it.';
 	const when = month(r.tested_on ?? r.issued_on);
 	if (r.kind === 'user') return `Bought by a member and tested at ${r.lab?.name ?? 'an accredited lab'}${r.lab?.accreditation ? ` (${r.lab.accreditation})` : ''}${when ? ` in ${when}` : ''}.`;
 	return `Tested${r.lab?.name ? ` by ${r.lab.name}` : ''} for ${r.publisher?.name ?? 'a testing website'}${when ? ` in ${when}` : ''}.`;
@@ -34,7 +34,7 @@ function summary(r: Report | undefined) {
 function gradeLabel(r: Report | undefined) {
 	if (!r) return 'Not tested yet';
 	if (r.kind === 'user') return 'Lab results · OpenLabel grade coming soon';
-	return sourceGrade(r) ? `Grade by ${r.publisher?.name ?? 'the source'}` : `Tested for ${r.publisher?.name ?? 'a testing website'} · no grade given`;
+	return sourceGrade(r) ? `Graded by ${r.publisher?.name ?? 'the source'}` : `Tested for ${r.publisher?.name ?? 'a testing website'}`;
 }
 
 function LabelVsLab({ findings }: { findings: Finding[] }) {
@@ -67,85 +67,101 @@ function LabelVsLab({ findings }: { findings: Finding[] }) {
 	);
 }
 
-function ReportBlock({ r }: { r: Report }) {
-	const facts = [
-		r.kind === 'user' && r.report_number ? ['Report no.', r.report_number, true] : null,
-		r.kind === 'user' && r.ulr_number ? ['ULR', r.ulr_number, true] : null,
-		r.batch_no ? ['Batch', r.batch_no, true] : null,
-		r.mfg_date ? ['Manufactured', day(r.mfg_date), false] : null,
-		r.expiry_date ? ['Best before', day(r.expiry_date), false] : null,
-		r.tested_on ? ['Tested', day(r.tested_on), false] : null,
-		r.issued_on ? ['Issued', day(r.issued_on), false] : null,
-		verdictText(r) ? ['Verdict', verdictText(r), false] : null
-	].filter(Boolean) as [string, string, boolean][];
+function ReportBlock({ r, findings }: { r: Report; findings: Finding[] }) {
 	const pdf = httpUrl(r.pdf_url);
 	const source = httpUrl(r.source_url);
+	const off = Math.max(findings.filter((f) => f.kind === 'bad').length, r.results.filter(offClaim).length);
+	const failed = r.results.filter((x) => x.status === 'fail').length;
+	const passed = r.results.filter((x) => x.status === 'pass').length;
+	// The few things worth reading first: label mismatches, then failed/passed limits.
+	const highlights = [
+		...findings.filter((f) => f.kind !== 'info').map((f) => ({ kind: f.kind, t: f.parameter, r: f.text })),
+		...r.results.filter((x) => x.status === 'fail').map((x) => ({ kind: 'bad' as const, t: x.parameter, r: `${x.value_raw}${x.unit ? ` ${x.unit}` : ''}, over the limit` }))
+	]
+		.sort((x, y) => (x.kind === 'bad' ? 0 : 1) - (y.kind === 'bad' ? 0 : 1))
+		.slice(0, 4);
+	const keyFacts = [
+		r.tested_on ? ['Tested', day(r.tested_on)] : r.issued_on ? ['Issued', day(r.issued_on)] : null,
+		r.batch_no ? ['Batch', r.batch_no] : null,
+		r.kind === 'user' && r.report_number ? ['Report no.', r.report_number] : null
+	].filter(Boolean) as [string, string][];
+	const moreFacts = [
+		r.kind === 'user' && r.ulr_number ? ['ULR', r.ulr_number] : null,
+		r.mfg_date ? ['Manufactured', day(r.mfg_date)] : null,
+		r.expiry_date ? ['Best before', day(r.expiry_date)] : null,
+		r.tested_on && r.issued_on ? ['Issued', day(r.issued_on)] : null,
+		verdictText(r) ? ['Verdict', verdictText(r)] : null
+	].filter(Boolean) as [string, string][];
+	const summary = [`${r.results.length} ${r.results.length === 1 ? 'result' : 'results'}`, off ? `${off} off the label` : null, failed ? `${failed} over the limit` : passed ? `${passed} within limits` : null].filter(Boolean).join(' · ');
 
 	return (
 		<article className="rp card">
 			<header className="rp-head">
-				<span className="rp-mark" aria-hidden="true">
-					<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3h6M10 3v6.2L4.8 18.4A1.8 1.8 0 0 0 6.4 21h11.2a1.8 1.8 0 0 0 1.6-2.6L14 9.2V3" /><path d="M7.5 14h9" /></svg>
-				</span>
 				<div className="rp-title">
-					<span className="rp-kind">{r.kind === 'user' ? 'OpenLabel lab report' : 'Published test'}</span>
-					<h3>{r.lab?.name ?? r.publisher?.name ?? 'Report'}</h3>
-					<span className="rp-sub">
-						{[r.lab?.accreditation, r.kind === 'fallback' && r.publisher?.name ? `for ${r.publisher.name}` : null].filter(Boolean).join(' · ') || ' '}
-					</span>
+					<span className="rp-kind">{r.kind === 'user' ? 'OpenLabel lab report' : 'Third-party test'}</span>
+					<h3>{r.lab?.name ?? r.publisher?.name ?? 'Report'}{r.lab?.accreditation && <span className="rp-acc">{r.lab.accreditation}</span>}</h3>
+					<span className="rp-sub">{r.kind === 'fallback' ? `Published by ${r.publisher?.name ?? 'a testing website'}. OpenLabel hasn't verified it independently.` : summary}</span>
 				</div>
 				<div className="rp-actions">
-					{r.kind === 'user' && <span className={`rp-pill ${r.verified ? 'ok' : 'wait'}`}>{r.verified ? `Verified · ${r.verification.replace(/_/g, ' ')}` : 'Source check pending'}</span>}
-					{pdf && <a className="btn sm outline" href={pdf} rel="noopener">Download PDF</a>}
-					{source && r.kind === 'fallback' && <a className="btn sm outline" href={source} rel="noopener">View on {r.publisher?.name ?? 'source'} ↗</a>}
+					{r.kind === 'user' && <span className={`rp-pill ${r.verified ? 'ok' : 'wait'}`}>{r.verified ? 'Verified' : 'Source check pending'}</span>}
+					{pdf && <a className="link" href={pdf} rel="noopener">Download PDF</a>}
+					{source && r.kind === 'fallback' && <a className="link" href={source} rel="noopener">View on {r.publisher?.name ?? 'source'} ↗</a>}
 				</div>
 			</header>
 
-			{r.kind === 'fallback' && (
-				<p className="rp-attrib">Shown as published by {r.publisher?.name ?? 'the source'}{r.lab?.name ? `, tested by ${r.lab.name}` : ''}. OpenLabel hasn't verified this data independently.</p>
+			{highlights.length > 0 && (
+				<ul className="rp-highlights">
+					{highlights.map((h, i) => (
+						<li key={i}><ResultIcon kind={h.kind} size={18} /><span className="rp-h-t">{h.t}</span><span className={h.kind === 'bad' ? 'off' : 'ok'}>{h.r}</span></li>
+					))}
+				</ul>
 			)}
 
-			{facts.length > 0 && (
-				<dl className="rp-facts">
-					{facts.map(([k, v, mono]) => (
-						<div key={k}><dt>{k}</dt><dd className={mono ? 'mono' : undefined}>{v}</dd></div>
-					))}
+			{keyFacts.length > 0 && (
+				<dl className="rp-key">
+					{keyFacts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
 				</dl>
 			)}
 
-			<div className="rp-results">
-				{r.verdict === 'fail' && !r.results.some((x) => x.status === 'fail') && (
-					<p className="notice">{r.publisher?.name ?? 'The source'} marks this product as failed but publishes the failing values only as images.</p>
+			<details className="rp-more">
+				<summary>
+					<span>Show all {r.results.length} results{moreFacts.length ? ' and report details' : ''}</span>
+					<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+				</summary>
+				{moreFacts.length > 0 && (
+					<dl className="rp-key rp-key-more">
+						{moreFacts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+					</dl>
 				)}
-				{r.results.length ? (
-					grouped(r.results).map(([group, rows]) => (
-						<div key={group} className="rp-group">
-							<h4>{label(group)}<span>{rows.length} {rows.length === 1 ? 'result' : 'results'}</span></h4>
-							<div className="rp-table-wrap">
+				<div className="rp-results">
+					{r.verdict === 'fail' && !r.results.some((x) => x.status === 'fail') && (
+						<p className="notice">{r.publisher?.name ?? 'The source'} marks this product as failed but publishes the failing values only as images.</p>
+					)}
+					{r.results.length ? (
+						grouped(r.results).map(([group, rows]) => (
+							<div key={group} className="rp-group">
+								<h4>{label(group)}</h4>
 								<table className="rp-table">
-									<thead><tr><th>Parameter</th><th className="r">Result</th><th className="r">Label claim</th><th>Limit / LOQ</th><th>Method</th><th>Status</th></tr></thead>
 									<tbody>
 										{rows.map((row, i) => (
 											<tr key={i}>
-												<td className="rp-param">{row.parameter}</td>
+												<td className="rp-param">{row.parameter}{row.method && <span className="rp-method">{row.method}</span>}</td>
 												<td className={`r rp-val${offClaim(row) ? ' off' : ''}`} title={offClaim(row) ? 'More than 10% away from the label claim' : undefined}>
 													{dash(row.value_raw)}<span className="rp-unit">{row.unit ? ` ${row.unit}` : ''}</span>
+													{row.label_claim !== null && <span className="rp-claim">label {row.label_claim}</span>}
 												</td>
-												<td className="r muted">{row.label_claim ?? '—'}</td>
-												<td className="muted">{row.limit !== null ? row.limit : row.detection_limit !== null ? `LOQ ${row.detection_limit}` : '—'}</td>
-												<td className="rp-method">{dash(row.method)}</td>
-												<td>{row.status ? <span className={`rp-pill ${row.status === 'pass' ? 'ok' : 'bad'}`}>{row.status === 'pass' ? 'Pass' : 'Fail'}</span> : <span className="muted">—</span>}</td>
+												<td className="rp-status">{row.status ? <span className={`rp-pill ${row.status === 'pass' ? 'ok' : 'bad'}`}>{row.status === 'pass' ? 'Pass' : 'Fail'}</span> : null}</td>
 											</tr>
 										))}
 									</tbody>
 								</table>
 							</div>
-						</div>
-					))
-				) : (
-					<p className="muted">No results recorded for this report.</p>
-				)}
-			</div>
+						))
+					) : (
+						<p className="muted">No results recorded for this report.</p>
+					)}
+				</div>
+			</details>
 			{r.kind === 'user' && <p className="rp-foot">The buyer's name and contact details on the report are hidden. Only the findings are published.</p>}
 		</article>
 	);
@@ -155,9 +171,9 @@ function ReportBlock({ r }: { r: Report }) {
 export function shelfLine(x: ProductCard) {
 	const l = x.latest;
 	if (!l) return 'Not tested yet';
-	if (l.kind === 'user') return 'Lab-tested · no grade yet';
+	if (l.kind === 'user') return 'Tested through OpenLabel';
 	const who = nameOf(l.publisher) ?? 'a testing website';
-	return sourceGrade(l) ? `Grade by ${who}` : `${who} · no grade`;
+	return sourceGrade(l) ? `Graded by ${who}` : `Tested for ${who}`;
 }
 
 function Others({ product }: { product: P }) {
@@ -193,7 +209,7 @@ export default function Product() {
 		return (
 			<div className="page narrow">
 				<p className="error">{error === 'Not found' ? 'Product not found.' : `Couldn't load the product: ${error}`}</p>
-				<p><Link className="link" to="/products">Back to the marketplace</Link></p>
+				<p><Link className="link" to="/products">Back to Browse Products</Link></p>
 			</div>
 		);
 	}
@@ -209,7 +225,7 @@ export default function Product() {
 		<div className="page">
 			<title>{`${p.brand} ${name} · OpenLabel`}</title>
 			<nav className="crumbs" aria-label="Breadcrumb">
-				<Link to="/products">Marketplace</Link>
+				<Link to="/products">Browse Products</Link>
 				{p.category && <><span aria-hidden="true">/</span><Link to={`/products?category=${p.category}`}>{label(p.category)}</Link></>}
 			</nav>
 
@@ -309,13 +325,13 @@ export default function Product() {
 							</li>
 						))}
 					</ul>
-					<p className="small muted">Want more checked? <Link className="link" to="/request">Request a test</Link> and others can chip in.</p>
+					<p className="small muted">Want more checked? <Link className="link" to="/request">Request a test</Link> and others can help fund it.</p>
 				</section>
 			</div>
 
 			<section className="p-section" aria-labelledby="rep">
 				<h2 id="rep" className="section-title">{p.reports.length === 1 ? 'Lab report' : `Reports (${p.reports.length})`}</h2>
-				{p.reports.length ? p.reports.map((r) => <ReportBlock key={r.id} r={r} />) : <p className="muted">No reports yet.</p>}
+				{p.reports.length ? p.reports.map((r, i) => <ReportBlock key={r.id} r={r} findings={i === 0 ? compared : []} />) : <p className="muted">No reports yet.</p>}
 			</section>
 
 			<Others product={p} />

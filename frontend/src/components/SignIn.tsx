@@ -101,7 +101,7 @@ export function SignIn() {
 					<button type="button" className="si-close" onClick={close} aria-label="Close">
 						<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
 					</button>
-					<div className="si-logo"><Logo /></div>
+					<div className="si-logo"><Logo outline /></div>
 					<h2 id="si-title" className="si-title">Sign in to OpenLabel</h2>
 					<p className="si-lede">Fund tests, be the tester, and follow the products you care about.</p>
 
