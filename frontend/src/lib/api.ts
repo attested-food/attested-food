@@ -16,6 +16,7 @@ export type Result = {
 	value_raw: string;
 	label_claim: number | null;
 	limit: number | null;
+	detection_limit: number | null;
 	method: string | null;
 	status: 'pass' | 'fail' | null;
 };

@@ -11,7 +11,7 @@ DETAIL_KEYS = {"id", "brand", "name", "variant", "category", "manufacturer", "fs
 REPORT_KEYS = {"id", "kind", "lab", "publisher", "source_url", "report_number", "ulr_number", "batch_no", "mfg_date",
                "expiry_date", "tested_on", "issued_on", "verdict", "grade", "pdf_url", "pdf_sha256", "verification",
                "verified", "chain_tx", "fetched_at", "results"}
-RESULT_KEYS = {"parameter", "group", "unit", "value", "value_raw", "label_claim", "limit", "method", "status"}
+RESULT_KEYS = {"parameter", "group", "unit", "value", "value_raw", "label_claim", "limit", "detection_limit", "method", "status"}
 SOURCE_KEYS = {"id", "name", "url", "accreditation"}
 
 

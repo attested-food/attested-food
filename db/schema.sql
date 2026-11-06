@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS results (
     value_raw   text NOT NULL,
     label_claim numeric,
     "limit"     numeric,
+    detection_limit numeric,
     method      text,
     status      text CHECK (status IN ('pass', 'fail'))
 );

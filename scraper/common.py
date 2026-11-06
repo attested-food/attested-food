@@ -188,7 +188,7 @@ REPORT_FIELDS = (
     "lab_id", "report_number", "batch_no", "mfg_date", "expiry_date", "tested_on", "issued_on",
     "verdict", "grade", "pdf_url",
 )
-RESULT_FIELDS = ("parameter", "group", "unit", "value", "value_raw", "label_claim", "limit", "method", "status")
+RESULT_FIELDS = ("parameter", "group", "unit", "value", "value_raw", "label_claim", "limit", "detection_limit", "method", "status")
 
 
 def save_report(
@@ -207,9 +207,9 @@ def save_report(
     conn.execute("DELETE FROM results WHERE report_id = %s", (rid,))
     with conn.cursor() as cur:
         cur.executemany(
-            'INSERT INTO results (report_id, parameter, "group", unit, value, value_raw, label_claim, "limit",'
+            'INSERT INTO results (report_id, parameter, "group", unit, value, value_raw, label_claim, "limit", detection_limit,'
             " method, status) VALUES (%(report_id)s, %(parameter)s, %(group)s, %(unit)s, %(value)s,"
-            " %(value_raw)s, %(label_claim)s, %(limit)s, %(method)s, %(status)s)",
+            " %(value_raw)s, %(label_claim)s, %(limit)s, %(detection_limit)s, %(method)s, %(status)s)",
             [{**{k: r.get(k) for k in RESULT_FIELDS}, "report_id": rid} for r in results],
         )
     return rid

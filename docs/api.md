@@ -76,7 +76,7 @@ Product plus every report (user reports first, then newest first), each with all
       "fetched_at": null,
       "results": [
         {"parameter": "Protein", "group": "nutrition", "unit": "g/100g", "value": 8.31, "value_raw": "8.31",
-         "label_claim": null, "limit": null, "method": "SOP-CHM-137-00", "status": null}
+         "label_claim": null, "limit": null, "detection_limit": null, "method": "SOP-CHM-137-00", "status": null}
       ]
     }
   ]

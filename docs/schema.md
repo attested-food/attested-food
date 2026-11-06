@@ -61,7 +61,8 @@ User lab reports and fallback data from trusted websites share the same tables, 
     "value": "numeric | null",
     "value_raw": "text, as printed e.g. <1.0, Not detected",
     "label_claim": "numeric | null",
-    "limit": "numeric | null",
+    "limit": "numeric | null, regulatory or spec limit",
+    "detection_limit": "numeric | null, lab LOQ/LOD (not a safety limit)",
     "method": "text | null",
     "status": "pass | fail | null"
   }

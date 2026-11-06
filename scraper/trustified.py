@@ -141,7 +141,7 @@ def parse(html: str) -> dict | None:
             narrative = " ".join(b for b in body if not RESULT_RE.match(b) and not LIMIT_RE.match(b))
             results.append({
                 "parameter": param, "group": group_for(param), "unit": unit, "value": number(raw), "value_raw": raw,
-                "limit": limit, "status": status_for(narrative or result_raw),
+                "detection_limit": limit, "status": status_for(narrative or result_raw),
             })
         else:
             results.append({"parameter": param, "group": group_for(param), "value_raw": text, "status": status_for(text)})

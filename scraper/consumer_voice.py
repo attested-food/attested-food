@@ -387,8 +387,17 @@ def fetch(http: httpx.Client, url: str, state: dict) -> bytes | None:
     return None
 
 
+BRAND_FIXES = {"Haldiram'sTakatak": ("Haldiram's", "Takatak"), "hAFEd": ("HAFED", None), "JeevanAmrit": ("Jeevan Amrit", None)}
+PAREN_RE = re.compile(r"^(.+?)\s*\((.+)\)$")
+
+
 def split_brand(label: str, known: list[str]) -> tuple[str, str | None]:
-    """'Britannia Marie Gold' -> ('Britannia', 'Marie Gold') when 'Britannia' is a known brand; the rest is the variant."""
+    """'Britannia Marie Gold' -> ('Britannia', 'Marie Gold') when 'Britannia' is a known brand; the rest is the variant.
+    'Horlicks (MaltBased)' -> ('Horlicks', 'Malt Based')."""
+    if label in BRAND_FIXES:
+        return BRAND_FIXES[label]
+    if m := PAREN_RE.match(label):
+        return m.group(1).strip(), re.sub(r"([a-z])([A-Z])", r"\1 \2", m.group(2)).strip()
     for b in sorted(known, key=len, reverse=True):
         if norm(label).startswith(norm(b)) and norm(b):
             words = label.split()

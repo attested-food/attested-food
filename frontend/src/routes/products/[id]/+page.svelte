@@ -86,11 +86,18 @@
 				{/if}
 			</dl>
 
+			{#if r.verdict === 'fail' && !r.results.some((x) => x.status === 'fail')}
+				<p class="notice">
+					{r.publisher?.name ?? 'The source'} marks this product as failed, but publishes the failing values only as images.
+					{#if httpUrl(r.source_url)}<a href={httpUrl(r.source_url)} rel="noopener">See the full result on {r.publisher?.name ?? 'the source'}</a>.{/if}
+				</p>
+			{/if}
+
 			{#if r.results.length}
 				<div class="table-wrap">
 					<table>
 						<thead>
-							<tr><th>Parameter</th><th>Label claim</th><th>Tested</th><th>Unit</th><th>Limit</th><th>Method</th><th>Status</th></tr>
+							<tr><th>Parameter</th><th>Label claim</th><th>Tested</th><th>Unit</th><th>Limit / LOQ</th><th>Method</th><th>Status</th></tr>
 						</thead>
 						<tbody>
 							{#each grouped(r.results) as [group, rows] (group)}
@@ -101,7 +108,7 @@
 										<td>{dash(row.label_claim)}</td>
 										<td class:off={offClaim(row)} title={offClaim(row) ? 'Differs from label claim by more than 10%' : undefined}>{dash(row.value_raw)}</td>
 										<td>{dash(row.unit)}</td>
-										<td>{dash(row.limit)}</td>
+										<td title={row.detection_limit !== null ? 'Limit of quantification: lowest amount the lab can measure, not a safety limit' : undefined}>{row.limit !== null ? row.limit : row.detection_limit !== null ? `LOQ ${row.detection_limit}` : '—'}</td>
 										<td>{dash(row.method)}</td>
 										<td class={row.status ?? ''}>{row.status ? row.status.toUpperCase() : '—'}</td>
 									</tr>

@@ -70,7 +70,7 @@ SELECT p.id, p.brand, p.name, p.variant, p.category, p.manufacturer, p.fssai_lic
                           SELECT json_agg(json_build_object(
                               'parameter', x.parameter, 'group', x."group", 'unit', x.unit,
                               'value', x.value, 'value_raw', x.value_raw, 'label_claim', x.label_claim,
-                              'limit', x."limit", 'method', x.method, 'status', x.status
+                              'limit', x."limit", 'detection_limit', x.detection_limit, 'method', x.method, 'status', x.status
                           ) ORDER BY x."group", x.parameter)
                           FROM results x WHERE x.report_id = r.id
                       ), '[]'::json) AS results,
