@@ -18,12 +18,12 @@ One OpenVM 2.1 STARK proving: notary-signed TLS session with the lab's S3 bucket
 - `backend2-rs/`: `core/` (copy of backend equinox-core, rev in `core/UPSTREAM_REV`), `guest/` (OpenVM, format byte: 0 Equinox, 1 Eurekha), `server/` (axum, `POST /prove?mode=stark|execute`, multipart `pdf`, `format=equinox|eurekha`, `labels`, `blinder`; `/verify`, `/program`, `/health`; prove lock `/tmp/equinox-prove.lock.d`).
 - `core/src/eurekha.rs`: spans = PII-font (`XXXXXX+DejaVuSansMono`) hex strings shown by Tj/TJ in uncompressed content; redacted = spans zeroed to `0`; commits `sha256(redacted)`; extracts kv (`Key : Value` runs, `Key`,`:`,`Value` grid, ULR, dates table, lab, accreditation, signatory) and result rows; dedups repeated page headers, panics on conflicts; asserts no customer line (decoded PII string) appears in any output.
 - `core/tests/eurekha.rs`: spans + redacted hash match `mock-pdfs` manifests for all 3 reports; redacted bytes equal `out/redacted/*.pdf`.
-- Measured (execute only): Eurekha 2,305,288 instructions; Equinox 1,672,873. No Eurekha STARK timing yet.
+- Measured: Eurekha STARK 42.4 s end to end (prove 36.3 s, 2,305,288 instructions, proof 534,601 B), verified, tamper rejected; Equinox 1,672,873 instructions.
 - Commits: `2a93eba`, `7966de8`, `055034a`, `a4ad157`.
 
 ## Steps
 
-1. STARK-prove Eurekha now (no TLS yet): `curl -X POST 'localhost:8793/prove?mode=stark' -F format=eurekha -F pdf=@../../mock-pdfs/out/raw/choco-millet-muesli.pdf`. Record keygen/prove/verify/proof size in README. Optimize if needed: guest hashes original AND redacted (two 90 KB SHAs), and copies the PDF.
+1. [done] STARK-prove Eurekha now (no TLS yet): `curl -X POST 'localhost:8793/prove?mode=stark' -F format=eurekha -F pdf=@../../mock-pdfs/out/raw/choco-millet-muesli.pdf`. Record keygen/prove/verify/proof size in README. Optimize if needed: guest hashes original AND redacted (two 90 KB SHAs), and copies the PDF.
 2. TLS binding in core (copy, do not edit `../backend`):
    - Port into `core/src/tlsn.rs`: host list instead of const `SERVER_NAME` (accept `eurekhalabs.s3.amazonaws.com` and its regional form), expose matched host.
    - Add path opening: `OnchainTlsn` += `path_index: u32`, `path_preimage: Vec<u8>` (53 B, `0x00|0x00 Sent|0x01|4u64LE|path_end u64LE|0x01|0x20|hash32`, leaf = `SHA256(DOMAIN_TRANSCRIPT_COMMITMENT || preimage)`, domain `bd0ab9ac6ea93ebda2500e8769e63a9e`). Guest private: path bytes + path blinder; check `SHA256(path || blinder) == hash`, range length == path len; output `sha256(key)` (key = path without leading `/`). Verify the preimage layout against a real attestation before trusting it.

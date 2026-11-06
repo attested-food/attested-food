@@ -43,7 +43,21 @@ This Mac (M2 Max, 12 cores, 96 GB), the sample report (393,722 B), CPU prover, o
 | verify | 17 ms |
 | `/prove?mode=stark` end to end | 36.7 s |
 
-Proof 534,601 B. Program `appExeCommit 007539b8...d3e3b2`, `appVmCommit 00773b10...ba0f93` (pinned by the guest toolchain and source).
+Proof 534,601 B.
+
+Eurekha report (`format=eurekha`, `mock-pdfs/out/raw/choco-millet-muesli.pdf`, 90,718 B), same machine, one run:
+
+| Step | Time |
+|---|---|
+| execute (2,305,288 instructions) | 2.4 s |
+| app + aggregation keygen (first STARK only) | 3.6 s |
+| prove | 36.3 s |
+| verify | 21 ms |
+| `/prove?mode=stark` end to end | 42.4 s |
+
+Proof 534,601 B (aggregation output, independent of the guest run). Public values: 5 redaction spans, `redacted_sha256 0f3af67c...e426cc` (matches the `mock-pdfs` manifest), 22 key-value pairs, 11 result rows. `/verify` accepts it and rejects a one-byte change to the public values.
+
+Program (format-dispatch guest): `appExeCommit 0097bec6...3b3fee`, `appVmCommit 00773b10...ba0f93` (pinned by the guest toolchain and source).
 
 ## On-chain verification
 
