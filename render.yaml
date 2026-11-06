@@ -3,7 +3,7 @@ services:
     name: attested-food
     runtime: python
     region: singapore
-    plan: starter
+    plan: pro
     autoDeploy: true
     branch: main
     buildCommand: uv sync --frozen --no-dev && cd frontend && npm ci && npm run build
