@@ -7,3 +7,5 @@
 	<input type="search" id="q" name="q" placeholder="Brand or product, e.g. Kellogg's muesli" />
 	<button type="submit">Search</button>
 </form>
+
+<p><a class="button" href="/request">Request a test</a> <span class="muted">Can't find a product? Ask us to get it lab tested.</span></p>

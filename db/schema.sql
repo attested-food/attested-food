@@ -64,3 +64,21 @@ CREATE TABLE IF NOT EXISTS results (
 CREATE INDEX IF NOT EXISTS reports_product_idx ON reports(product_id);
 CREATE INDEX IF NOT EXISTS results_report_idx ON results(report_id);
 CREATE INDEX IF NOT EXISTS products_search_idx ON products USING gin (to_tsvector('simple', brand || ' ' || name || ' ' || coalesce(variant, '')));
+
+CREATE TABLE IF NOT EXISTS test_requests (
+    id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    brand         text NOT NULL,
+    name          text NOT NULL,
+    variant       text,
+    category      text NOT NULL,
+    net_quantity  text,
+    manufacturer  text,
+    fssai_license text,
+    barcode       text,
+    buy_url       text,
+    image_url     text,
+    image         bytea,
+    image_type    text,
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    CHECK ((image_url IS NULL) <> (image IS NULL))
+);

@@ -2,12 +2,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend import main
+from backend.category_tests import coverage
 
 client = TestClient(main.app)
 
 PRODUCT_KEYS = {"id", "brand", "name", "variant", "category", "image_url", "report_count", "has_user_report", "latest"}
 DETAIL_KEYS = {"id", "brand", "name", "variant", "category", "manufacturer", "fssai_license", "barcode",
-               "net_quantity", "image_url", "reports"}
+               "net_quantity", "image_url", "reports", "tests"}
 REPORT_KEYS = {"id", "kind", "lab", "publisher", "source_url", "report_number", "ulr_number", "batch_no", "mfg_date",
                "expiry_date", "tested_on", "issued_on", "verdict", "grade", "pdf_url", "pdf_sha256", "verification",
                "verified", "chain_tx", "fetched_at", "results"}
@@ -107,8 +108,69 @@ def test_sources():
 
 def test_categories():
     body = client.get("/api/categories").json()
-    assert {"category", "product_count"} == set(body[0])
-    assert any(c["category"] == "breakfast_cereal" and c["product_count"] >= 1 for c in body)
+    assert {"category", "product_count", "tests"} == set(body[0])
+    assert all(c["tests"] for c in body)
+    cereal = next(c for c in body if c["category"] == "breakfast_cereal")
+    assert cereal["product_count"] >= 1 and cereal["tests"] == ["Nutrition vs label claims"]
+
+
+def test_product_tests_coverage(kelloggs):
+    body = client.get(f"/api/products/{kelloggs['id']}").json()
+    assert body["tests"] == [{"name": "Nutrition vs label claims", "tested": True}]
+
+
+@pytest.mark.parametrize(("category", "results", "expected"), [
+    ("protein_powder", [{"group": "heavy_metal", "parameter": "Lead"}], {"Heavy metals (lead, arsenic, cadmium, mercury)"}),
+    ("ghee", [{"group": "other", "parameter": "Beta-sitosterol"}], {"Foreign fat adulteration (vegetable / animal fat)"}),
+    ("honey", [{"group": "other", "parameter": "Hydroxymethylfurfural (HMF)"}], {"Freshness (HMF, diastase)"}),
+    ("bread", [{"group": "toxin", "parameter": "Listeria"}], {"Microbiology (E. coli, Salmonella, Listeria)"}),
+    ("vitamin_d_supplement", [], set()),
+    ("zz_unknown", [{"group": "toxin", "parameter": "Total Aflatoxins"}], {"Aflatoxins"}),
+])
+def test_coverage(category, results, expected):
+    assert {t["name"] for t in coverage(category, results) if t["tested"]} == expected
+
+
+GOOD_REQUEST = {"brand": "Zzqq Test Brand", "name": "Zzqq Test Product", "category": "peanut_butter",
+                "image_url": "https://example.com/p.jpg"}
+PNG_1PX = ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk"
+           "YPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")
+
+
+@pytest.mark.parametrize("extra", [{}, {"image_url": None, "image_data": PNG_1PX, "fssai_license": "10012345678901",
+                                        "barcode": "8901234567890", "buy_url": "https://amazon.in/x"}])
+def test_test_request_created(extra):
+    resp = client.post("/api/test-requests", json={**GOOD_REQUEST, **extra})
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["tests"][0] == "Nutrition vs label claims"
+    main.fetch("DELETE FROM test_requests WHERE id = %s RETURNING id", (body["id"],))
+
+
+@pytest.mark.parametrize("change", [
+    {"brand": ""},
+    {"image_url": None},
+    {"image_data": PNG_1PX},
+    {"image_url": "ftp://x"},
+    {"category": "Not A Category"},
+    {"fssai_license": "123"},
+    {"barcode": "abc"},
+    {"unknown": "x"},
+])
+def test_test_request_invalid(change):
+    assert client.post("/api/test-requests", json={**GOOD_REQUEST, **change}).status_code == 422
+
+
+def test_test_request_bad_image():
+    body = {**GOOD_REQUEST, "image_url": None, "image_data": "data:image/gif;base64,R0lGOD"}
+    assert client.post("/api/test-requests", json=body).status_code == 422
+
+
+def test_test_request_duplicate(kelloggs):
+    body = {**GOOD_REQUEST, "brand": "KELLOGG'S", "name": "millet muesli", "variant": "choco"}
+    resp = client.post("/api/test-requests", json=body)
+    assert resp.status_code == 409
+    assert resp.json()["detail"]["product_id"] == kelloggs["id"]
 
 
 @pytest.mark.parametrize(("path", "status", "content"), [

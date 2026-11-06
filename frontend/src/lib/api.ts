@@ -54,7 +54,10 @@ export type Product = {
 	net_quantity: string | null;
 	image_url: string | null;
 	reports: Report[];
+	tests: { name: string; tested: boolean }[];
 };
+
+export type Category = { category: string; product_count: number; tests: string[] };
 
 export type ProductCard = {
 	id: string;
@@ -79,6 +82,23 @@ export async function api<T>(path: string): Promise<T> {
 	const res = await fetch(path, { headers: { Accept: 'application/json' } });
 	if (!res.ok) throw new Error(res.status === 404 ? 'Not found' : `Request failed (${res.status})`);
 	return res.json();
+}
+
+export class ApiError extends Error {
+	constructor(public status: number, public detail: unknown) {
+		super(typeof detail === 'string' ? detail : `Request failed (${status})`);
+	}
+}
+
+export async function post<T>(path: string, body: unknown): Promise<T> {
+	const res = await fetch(path, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+		body: JSON.stringify(body)
+	});
+	const data = await res.json().catch(() => null);
+	if (!res.ok) throw new ApiError(res.status, data?.detail ?? null);
+	return data;
 }
 
 export const dash = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : String(v));

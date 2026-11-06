@@ -1,5 +1,8 @@
+import base64
+import binascii
 import logging
 import os
+import re
 import uuid
 from pathlib import Path
 
@@ -10,6 +13,9 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, ORJSONResponse
 from psycopg.rows import dict_row
 from psycopg.types.json import set_json_loads
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from backend.category_tests import coverage, names_for
 
 load_dotenv()
 set_json_loads(orjson.loads)
@@ -94,6 +100,47 @@ ORDER BY s.type DESC, s.name
 
 CATEGORIES_SQL = "SELECT category, count(*) AS product_count FROM products GROUP BY category ORDER BY category"
 
+DUPLICATE_SQL = """
+SELECT id FROM products
+WHERE lower(brand) = lower(%(brand)s) AND lower(name) = lower(%(name)s)
+  AND lower(coalesce(variant, '')) = lower(coalesce(%(variant)s::text, ''))
+LIMIT 1
+"""
+
+INSERT_REQUEST_SQL = """
+INSERT INTO test_requests (brand, name, variant, category, net_quantity, manufacturer, fssai_license, barcode,
+                           buy_url, image_url, image, image_type)
+VALUES (%(brand)s, %(name)s, %(variant)s, %(category)s, %(net_quantity)s, %(manufacturer)s, %(fssai_license)s,
+        %(barcode)s, %(buy_url)s, %(image_url)s, %(image)s, %(image_type)s)
+RETURNING id
+"""
+
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+DATA_URL_RE = re.compile(r"^data:(image/(?:png|jpeg|webp));base64,(.+)$", re.S)
+HTTP_URL = r"^https?://\S+$"
+
+
+class TestRequestBody(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    brand: str = Field(min_length=1, max_length=100)
+    name: str = Field(min_length=1, max_length=200)
+    variant: str | None = Field(None, max_length=100)
+    category: str = Field(pattern=r"^[a-z0-9_]{1,64}$")
+    net_quantity: str | None = Field(None, max_length=50)
+    manufacturer: str | None = Field(None, max_length=200)
+    fssai_license: str | None = Field(None, pattern=r"^\d{14}$")
+    barcode: str | None = Field(None, pattern=r"^\d{8,14}$")
+    buy_url: str | None = Field(None, max_length=2000, pattern=HTTP_URL)
+    image_url: str | None = Field(None, max_length=2000, pattern=HTTP_URL)
+    image_data: str | None = Field(None, max_length=MAX_IMAGE_BYTES * 4 // 3 + 100)
+
+    @model_validator(mode="after")
+    def one_image(self):
+        if (self.image_url is None) == (self.image_data is None):
+            raise ValueError("give exactly one of image_url or image_data")
+        return self
+
 
 _conn: psycopg.Connection | None = None
 
@@ -147,7 +194,9 @@ def get_product(product_id: str) -> dict:
     rows = fetch(DETAIL_SQL, (pid,))
     if not rows:
         raise HTTPException(404, "product not found")
-    return rows[0]
+    product = rows[0]
+    product["tests"] = coverage(product["category"], [x for r in product["reports"] for x in r["results"]])
+    return product
 
 
 @app.get("/api/sources")
@@ -157,7 +206,29 @@ def list_sources() -> list[dict]:
 
 @app.get("/api/categories")
 def list_categories() -> list[dict]:
-    return fetch(CATEGORIES_SQL)
+    return [{**c, "tests": names_for(c["category"])} for c in fetch(CATEGORIES_SQL)]
+
+
+@app.post("/api/test-requests", status_code=201)
+def create_test_request(body: TestRequestBody) -> dict:
+    fields = body.model_dump(exclude={"image_data"})
+    existing = fetch(DUPLICATE_SQL, fields)
+    if existing:
+        raise HTTPException(409, {"message": "product already exists", "product_id": str(existing[0]["id"])})
+    image, image_type = None, None
+    if body.image_data:
+        match = DATA_URL_RE.match(body.image_data)
+        if not match:
+            raise HTTPException(422, "image must be a PNG, JPEG or WebP data URL")
+        try:
+            image = base64.b64decode(match[2], validate=True)
+        except binascii.Error:
+            raise HTTPException(422, "image is not valid base64") from None
+        if len(image) > MAX_IMAGE_BYTES:
+            raise HTTPException(413, "image is larger than 5 MB")
+        image_type = match[1]
+    row = fetch(INSERT_REQUEST_SQL, {**fields, "image": image, "image_type": image_type})[0]
+    return {"id": row["id"], "tests": names_for(body.category)}
 
 
 @app.get("/api/{rest:path}", include_in_schema=False)

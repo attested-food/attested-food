@@ -10,6 +10,7 @@
 		<a href="/">Home</a>
 		<a href="/products">Products</a>
 		<a href="/sources">Sources</a>
+		<a href="/request">Request a test</a>
 		<a href="/upload">Upload</a>
 		<a href="/about">About</a>
 	</nav>

@@ -36,3 +36,18 @@ section.report { border-top: 2px solid #ddd; margin-top: 2rem; }
 .redacted { background: #222; color: #222; user-select: none; }
 .hash { font-family: monospace; overflow-wrap: anywhere; }
 .pager { display: flex; gap: 1rem; align-items: center; }
+a.button, button.primary { display: inline-block; background: #0645ad; color: #fff; border: 0; border-radius: 4px; padding: .5rem 1rem; text-decoration: none; cursor: pointer; }
+button.primary:disabled { opacity: .5; cursor: default; }
+ul.tests { list-style: none; padding: 0; }
+ul.tests li { padding: .15rem 0; }
+ul.tests li.tested { color: #0a5d1a; }
+form.request { display: grid; gap: .75rem; max-width: 36rem; }
+form.request fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: .75rem; }
+form.request label { display: grid; gap: .2rem; }
+form.request input, form.request select { width: 100%; }
+.suggest { position: relative; }
+.suggest ul { position: absolute; z-index: 1; left: 0; right: 0; margin: 0; padding: 0; list-style: none; background: #fff; border: 1px solid #999; max-height: 18rem; overflow-y: auto; }
+.suggest li button { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid #eee; cursor: pointer; }
+.suggest li button:hover, .suggest li button:focus { background: #f0f4ff; }
+.tag { font-size: .75rem; color: #6b4e00; border: 1px solid #6b4e00; border-radius: 3px; padding: 0 .3rem; margin-left: .3rem; }
+.preview { max-height: 10rem; border: 1px solid #ddd; }

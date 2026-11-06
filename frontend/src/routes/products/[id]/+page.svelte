@@ -42,6 +42,13 @@
 		<dt>Net quantity</dt><dd>{dash(p.net_quantity)}</dd>
 	</dl>
 
+	<h2>What's been tested</h2>
+	<ul class="tests">
+		{#each p.tests as t (t.name)}
+			<li class:tested={t.tested}>{t.tested ? '✓' : '○'} {t.name} <span class="muted">{t.tested ? 'tested' : 'not tested yet'}</span></li>
+		{/each}
+	</ul>
+
 	<h2>Reports ({p.reports.length})</h2>
 	{#if !p.reports.length}
 		<p>No reports for this product yet. Community-funded testing is coming soon.</p>
