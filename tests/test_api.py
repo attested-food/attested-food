@@ -244,12 +244,12 @@ def test_duplicates_no_match(q):
 @pytest.mark.parametrize(("path", "cache"), [
     ("/", "no-cache"),
     ("/request", "no-cache"),
-    ("/_app/immutable/x.js", "public, max-age=31536000, immutable"),
+    ("/assets/x.js", "public, max-age=31536000, immutable"),
 ])
 def test_frontend_cache_headers(path, cache, tmp_path, monkeypatch):
-    (tmp_path / "_app" / "immutable").mkdir(parents=True)
+    (tmp_path / "assets").mkdir(parents=True)
     (tmp_path / "index.html").write_text("<html>spa</html>")
-    (tmp_path / "_app" / "immutable" / "x.js").write_text("1")
+    (tmp_path / "assets" / "x.js").write_text("1")
     monkeypatch.setattr(main, "BUILD_DIR", tmp_path)
     assert client.get(path).headers["cache-control"] == cache
 
@@ -278,3 +278,27 @@ def test_detail_has_annotations(kelloggs):
     body = client.get(f"/api/products/{kelloggs['id']}").json()
     assert set(body["annotations"]["counts"]) == {"pass", "fail", "untested"}
     assert "ingredients" in body and "label_nutrition" in body
+
+
+def test_evidence_filter():
+    lab = client.get("/api/products", params={"evidence": "lab", "page_size": 100}).json()
+    assert lab["total"] >= 1 and all(p["has_user_report"] for p in lab["items"])
+    pub = client.get("/api/products", params={"evidence": "published", "page_size": 100}).json()
+    assert pub["total"] >= 1 and not any(p["has_user_report"] for p in pub["items"])
+    both = client.get("/api/products", params=[("evidence", "lab"), ("evidence", "published")]).json()
+    assert both["total"] == lab["total"] + pub["total"]
+
+
+@pytest.mark.parametrize(("param", "key", "check"), [
+    ("no_added_sugar", "added_sugars_g", lambda v: v == 0),
+    ("high_fibre", "fiber_g", lambda v: v >= 6),
+    ("high_protein", "protein_g", lambda v: v >= 20),
+])
+def test_label_filters(param, key, check):
+    body = client.get("/api/products", params={param: "true", "page_size": 100}).json()
+    assert body["total"] >= 1
+    assert all(check(p["label_nutrition"][key]) for p in body["items"])
+
+
+def test_unknown_evidence_rejected():
+    assert client.get("/api/products", params={"evidence": "rumour"}).status_code == 422

@@ -5,6 +5,7 @@ import os
 import re
 import uuid
 from pathlib import Path
+from typing import Literal
 
 import httpx
 import orjson
@@ -43,6 +44,13 @@ WITH filtered AS (
            OR {SEARCH_TEXT} ILIKE %(like)s::text)
       AND (%(brand)s::text IS NULL OR lower(p.brand) = lower(%(brand)s::text))
       AND (%(category)s::text IS NULL OR p.category = %(category)s::text)
+      AND (NOT %(any_evidence)s::bool
+           OR (%(lab)s::bool AND EXISTS (SELECT 1 FROM reports r WHERE r.product_id = p.id AND r.kind = 'user'))
+           OR (%(published)s::bool AND EXISTS (SELECT 1 FROM reports r WHERE r.product_id = p.id)
+               AND NOT EXISTS (SELECT 1 FROM reports r WHERE r.product_id = p.id AND r.kind = 'user')))
+      AND (NOT %(no_added_sugar)s::bool OR (p.label_nutrition->>'added_sugars_g')::numeric = 0)
+      AND (NOT %(high_fibre)s::bool OR (p.label_nutrition->>'fiber_g')::numeric >= 6)
+      AND (NOT %(high_protein)s::bool OR (p.label_nutrition->>'protein_g')::numeric >= 20)
 ),
 page AS (
     SELECT f.*, (
@@ -56,7 +64,7 @@ page AS (
         LIMIT 1
     ) AS latest
     FROM filtered f
-    ORDER BY f.has_user_report DESC, f.brand, f.name, f.variant NULLS FIRST, f.id
+    ORDER BY f.has_user_report DESC, (f.image_url IS NOT NULL) DESC, f.brand, f.name, f.variant NULLS FIRST, f.id
     LIMIT %(limit)s OFFSET %(offset)s
 )
 SELECT (SELECT count(*) FROM filtered) AS total,
@@ -226,15 +234,26 @@ def list_products(
     q: str | None = None,
     brand: str | None = None,
     category: str | None = None,
+    evidence: list[Literal["lab", "published"]] = Query(default=[]),
+    no_added_sugar: bool = False,
+    high_fibre: bool = False,
+    high_protein: bool = False,
     page: int = Query(1, ge=1),
     page_size: int = Query(24, ge=1, le=100),
 ) -> dict:
+    """evidence: lab = has an OpenLabel lab report; published = only published third-party tests."""
     q = q.strip() if q and q.strip() else None
     row = fetch(LIST_SQL, {
         "q": q,
         "like": f"%{q}%" if q else None,
         "brand": brand or None,
         "category": category or None,
+        "any_evidence": bool(evidence),
+        "lab": "lab" in evidence,
+        "published": "published" in evidence,
+        "no_added_sugar": no_added_sugar,
+        "high_fibre": high_fibre,
+        "high_protein": high_protein,
         "limit": page_size,
         "offset": (page - 1) * page_size,
     })[0]
@@ -429,7 +448,7 @@ def api_not_found(rest: str) -> None:
 def frontend(path: str) -> FileResponse:
     file = (BUILD_DIR / path).resolve()
     if path and file.is_file() and file.is_relative_to(BUILD_DIR):
-        immutable = path.startswith("_app/immutable/")
+        immutable = path.startswith("assets/")
         return FileResponse(file, headers={"Cache-Control": "public, max-age=31536000, immutable" if immutable else "no-cache"})
     index = BUILD_DIR / "index.html"
     if not index.is_file():

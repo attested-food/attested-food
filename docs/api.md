@@ -6,6 +6,15 @@ All endpoints are JSON. Everything is read-only except `POST /api/test-requests`
 
 Query: `q` (search brand/name/variant), `brand`, `category`, `page` (1-based, default 1), `page_size` (default 24, max 100).
 
+Filters, all optional:
+
+- `evidence`: `lab` (has an OpenLabel lab report) and/or `published` (only third-party published tests). Repeat it to
+  allow both, e.g. `?evidence=lab&evidence=published`. Anything else is a 422.
+- `no_added_sugar=true` (label says 0 g added sugar), `high_fibre=true` (6 g+ fibre), `high_protein=true` (20 g+
+  protein), all per 100 g from `label_nutrition`. Products without that label value are left out.
+
+Order: products with a lab report first, then those with a photo, then by brand and name.
+
 ```json
 {
   "items": [
