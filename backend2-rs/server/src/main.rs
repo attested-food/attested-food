@@ -40,6 +40,7 @@
 //! reports must be signed by, hex; default the public dev notary), `RUST_LOG`.
 
 mod jobs;
+mod lock;
 mod prover;
 mod sp1;
 
@@ -528,14 +529,9 @@ async fn main() {
         )
         .init();
     let prover = Prover::spawn();
-    // Warm both provers in the background: OpenVM keygen, SP1 setup (+ warm-up proof).
-    let warm = prover.clone();
-    tokio::spawn(async move {
-        match warm.program().await {
-            Ok(_) => tracing::info!("openvm keys ready"),
-            Err(e) => tracing::warn!("openvm keygen: {e}"),
-        }
-    });
+    // Warm both provers in the background: OpenVM keygen if the prove lock is
+    // free now; SP1 setup (+ warm-up proof), waiting for the lock.
+    prover.warm();
     std::thread::spawn(|| {
         if let Err(e) = SP1.ensure_started() {
             tracing::warn!("sp1 worker not started: {e}");

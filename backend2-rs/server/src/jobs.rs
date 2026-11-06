@@ -21,8 +21,9 @@ use serde_json::{json, Value};
 /// How long a finished job stays readable.
 pub const JOB_TTL: Duration = Duration::from_secs(3600);
 
-/// Stages that are waiting, not work: left out of the progress estimate.
-const WAITING: [&str; 2] = ["queued", "waiting for prove lock"];
+/// Stages that are waiting, not work: left out of the progress estimate
+/// (prefixes; the lock stage names its holder).
+const WAITING: [&str; 3] = ["queued", "waiting for prove lock", "waiting for sp1 worker"];
 
 /// Reports the current stage of one job. Cheap to clone; a no-op for
 /// synchronous callers that have no job.
@@ -38,6 +39,10 @@ impl Progress {
         if let Some((jobs, id)) = &self.0 {
             jobs.stage(id, name);
         }
+    }
+
+    pub fn job(&self) -> Option<&str> {
+        self.0.as_ref().map(|(_, id)| id.as_str())
     }
 
     /// A result available before the job finishes, under `partial.<name>`.
@@ -79,7 +84,7 @@ impl Job {
     fn work_ms(&self) -> u64 {
         self.stages
             .iter()
-            .filter(|s| !WAITING.contains(&s.name.as_str()))
+            .filter(|s| !WAITING.iter().any(|w| s.name.starts_with(w)))
             .map(|s| s.ms.unwrap_or_else(|| s.started.elapsed().as_millis() as u64))
             .sum()
     }

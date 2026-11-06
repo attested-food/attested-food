@@ -8,7 +8,7 @@
 
 use std::{
     sync::{mpsc, Arc},
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use equinox_core::tlsn::{OnchainRequest, OnchainTlsn, RequestSecret};
@@ -22,7 +22,7 @@ use openvm_sdk_config::SdkVmConfig;
 use openvm_stark_backend::p3_field::PrimeField32;
 use tokio::sync::oneshot;
 
-use crate::jobs::Progress;
+use crate::{jobs::Progress, lock::ProveLock};
 
 mod guest {
     include!(concat!(env!("OUT_DIR"), "/guest.rs"));
@@ -30,75 +30,6 @@ mod guest {
 
 /// App VM config the guest was written for (RV32IM, IO, SHA-2).
 const OPENVM_TOML: &str = include_str!("../../guest/openvm.toml");
-
-/// The backend's machine-wide `mkdir` lock: at most one heavy proof per host
-/// (OpenVM peaks near 19 GB). Released on drop.
-const PROVE_LOCK: &str = "/tmp/equinox-prove.lock.d";
-
-/// The machine-wide prove lock: the `mkdir` lock [`PROVE_LOCK`] or, with
-/// `PROVE_FLOCK=<file>`, an exclusive `flock` on that file (the GPU box's
-/// `heavy` lock, `~/locks/cpugpu.lock`, whose holder line goes to the sibling
-/// `.holder` file). Released on drop.
-pub(crate) enum ProveLock {
-    Dir,
-    Flock { _file: std::fs::File, holder: Option<std::path::PathBuf> },
-}
-
-impl ProveLock {
-    /// Blocks until held; reports `waiting for prove lock` to `progress` if it has to wait.
-    pub(crate) fn acquire(progress: &Progress) -> std::io::Result<Self> {
-        if let Some(path) = std::env::var_os("PROVE_FLOCK") {
-            return Self::flock(std::path::Path::new(&path), progress);
-        }
-        let mut waited = false;
-        loop {
-            match std::fs::create_dir(PROVE_LOCK) {
-                Ok(()) => return Ok(ProveLock::Dir),
-                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-                    if !waited {
-                        tracing::info!("waiting for {PROVE_LOCK} ...");
-                        progress.stage("waiting for prove lock");
-                        waited = true;
-                    }
-                    std::thread::sleep(Duration::from_secs(5));
-                }
-                Err(e) => return Err(e),
-            }
-        }
-    }
-
-    fn flock(path: &std::path::Path, progress: &Progress) -> std::io::Result<Self> {
-        use std::os::fd::AsRawFd;
-        let file = std::fs::OpenOptions::new().create(true).append(true).open(path)?;
-        if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
-            tracing::info!("waiting for {} ...", path.display());
-            progress.stage("waiting for prove lock");
-            if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } != 0 {
-                return Err(std::io::Error::last_os_error());
-            }
-        }
-        let holder = (path.extension().is_some_and(|e| e == "lock")).then(|| path.with_extension("holder"));
-        if let Some(h) = &holder {
-            let _ = std::fs::write(h, format!("backend2-rs prove pid={}\n", std::process::id()));
-        }
-        Ok(ProveLock::Flock { _file: file, holder })
-    }
-}
-
-impl Drop for ProveLock {
-    fn drop(&mut self) {
-        match self {
-            ProveLock::Dir => {
-                let _ = std::fs::remove_dir(PROVE_LOCK);
-            }
-            ProveLock::Flock { holder, .. } => {
-                if let Some(h) = holder {
-                    let _ = std::fs::write(h, "");
-                }
-            }
-        }
-    }
-}
 
 /// `0x || app_exe_commit || app_vm_commit`: the two commitments that pin the
 /// program (and that OpenVM's EVM verifier takes).
@@ -153,9 +84,18 @@ pub struct Attested {
 }
 
 enum Job {
+    /// Keygen ahead of the first job, only if the prove lock is free now.
+    Warm,
     Program(oneshot::Sender<Result<ProgramCommit, String>>),
-    Run { input: GuestInput, progress: Progress, reply: oneshot::Sender<Result<Proved, String>> },
-    Verify { proof: Vec<u8>, reply: oneshot::Sender<Result<Vec<u8>, String>> },
+    Run {
+        input: GuestInput,
+        progress: Progress,
+        reply: oneshot::Sender<Result<Proved, String>>,
+    },
+    Verify {
+        proof: Vec<u8>,
+        reply: oneshot::Sender<Result<Vec<u8>, String>>,
+    },
 }
 
 /// Handle to the prover thread.
@@ -181,6 +121,7 @@ impl Prover {
                 let mut engine = Engine::default();
                 for job in rx {
                     match job {
+                        Job::Warm => engine.warm(),
                         Job::Program(reply) => {
                             let _ = reply.send(engine.program());
                         }
@@ -201,6 +142,12 @@ impl Prover {
         let (reply, rx) = oneshot::channel();
         self.tx.send(job(reply)).map_err(|_| "openvm thread gone".to_string())?;
         rx.await.map_err(|_| "openvm thread dropped the job".to_string())?
+    }
+
+    /// Start keygen now if the prove lock is free; otherwise the first job
+    /// (or `/program`) does it once it holds the lock.
+    pub fn warm(&self) {
+        let _ = self.tx.send(Job::Warm);
     }
 
     /// The pinned program's commitments (runs app + aggregation keygen once).
@@ -257,10 +204,17 @@ impl Engine {
     }
 
     /// App and aggregation keygen, the verification baseline and the program
-    /// commitments. Built once; several GB and tens of seconds.
-    fn ensure_baseline(&mut self) -> Result<(), String> {
+    /// commitments. Built once; several GB and tens of seconds, so it takes the
+    /// prove lock unless the caller (`run`) already holds it.
+    fn ensure_baseline(&mut self, locked: bool) -> Result<(), String> {
         self.ensure_setup()?;
         if self.baseline.is_none() {
+            let _lock = match locked {
+                true => None,
+                false => Some(
+                    ProveLock::acquire("openvm keygen", &Progress::none()).map_err(|e| format!("prove lock: {e}"))?,
+                ),
+            };
             let prover = self.sdk().prover(self.exe()).map_err(err)?;
             let baseline = prover.generate_baseline();
             let c = AppExecutionCommit {
@@ -276,8 +230,22 @@ impl Engine {
         Ok(())
     }
 
+    fn warm(&mut self) {
+        if self.baseline.is_some() {
+            return;
+        }
+        match ProveLock::try_acquire("openvm keygen") {
+            Ok(Some(_lock)) => match self.ensure_baseline(true) {
+                Ok(()) => tracing::info!("openvm keys ready"),
+                Err(e) => tracing::warn!("openvm keygen: {e}"),
+            },
+            Ok(None) => tracing::info!("prove lock busy: openvm keygen deferred to the first job"),
+            Err(e) => tracing::warn!("prove lock: {e}"),
+        }
+    }
+
     fn program(&mut self) -> Result<ProgramCommit, String> {
-        self.ensure_baseline()?;
+        self.ensure_baseline(false)?;
         Ok(self.baseline.as_ref().unwrap().1.clone())
     }
 
@@ -301,6 +269,8 @@ impl Engine {
 
     fn run(&mut self, input: GuestInput, progress: &Progress) -> Result<Proved, String> {
         let mut timings = Timings::default();
+        let label = format!("job {} openvm stark", progress.job().unwrap_or("-"));
+        let _lock = ProveLock::acquire(&label, progress).map_err(|e| format!("prove lock: {e}"))?;
         let t = Instant::now();
         progress.stage("execute");
         self.ensure_setup()?;
@@ -312,12 +282,11 @@ impl Engine {
             .execute_metered_cost(self.exe(), Self::stdin(&input))
             .map_err(|e| format!("openvm execute: {e}"))?;
         timings.execute_ms = ms(t);
-        let _lock = ProveLock::acquire(progress).map_err(|e| format!("prove lock: {e}"))?;
         let t = Instant::now();
         if self.baseline.is_none() {
             progress.stage("keygen");
         }
-        self.ensure_baseline()?;
+        self.ensure_baseline(true)?;
         timings.keygen_ms = ms(t);
 
         progress.stage("prove");
@@ -341,7 +310,8 @@ impl Engine {
     /// Decode and verify a STARK against the pinned program; returns the 32
     /// bytes the guest revealed.
     fn verify(&mut self, proof: &[u8]) -> Result<Vec<u8>, String> {
-        self.ensure_baseline()?;
+        // Inside `run` the baseline exists, so this never re-takes the held lock.
+        self.ensure_baseline(false)?;
         let v: VersionedVmStarkProof = bincode::deserialize(proof).map_err(|e| format!("decode proof: {e}"))?;
         let agg_vk = (*self.sdk().agg_vk()).clone();
         let baseline = &self.baseline.as_ref().unwrap().0;

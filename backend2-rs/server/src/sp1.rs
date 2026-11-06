@@ -16,7 +16,7 @@ use std::{
 use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 use serde_json::{json, Value};
 
-use crate::{jobs::Progress, prover::ProveLock};
+use crate::{jobs::Progress, lock::ProveLock};
 
 /// Prefix of the worker's protocol lines (`eurekha-sp1 serve`).
 const REPLY: &str = "EUREKHA_SP1 ";
@@ -119,7 +119,9 @@ impl Worker {
             cmd.arg("--warm").arg(run);
         }
         progress.stage("starting sp1 worker");
-        let _lock = ProveLock::acquire(progress).map_err(|e| format!("prove lock: {e}"))?;
+        let label =
+            if std::env::var_os("EUREKHA_SP1_WARM_RUN").is_some() { "sp1 start + warm-up" } else { "sp1 start" };
+        let _lock = ProveLock::acquire(label, progress).map_err(|e| format!("prove lock: {e}"))?;
         let mut child = cmd.spawn().map_err(|e| format!("start {bin}: {e}"))?;
         let mut p = Proc {
             stdin: child.stdin.take().expect("piped stdin"),
@@ -174,9 +176,17 @@ impl Worker {
         }
         let out = dir.join("artifact.json");
 
-        let mut proc = self.proc.lock().unwrap();
+        // One job at a time per worker; the start-up warm-up also holds it.
+        let mut proc = match self.proc.try_lock() {
+            Ok(p) => p,
+            Err(_) => {
+                progress.stage("waiting for sp1 worker");
+                self.proc.lock().unwrap()
+            }
+        };
         self.start_locked(&mut proc, progress)?;
-        let _lock = ProveLock::acquire(progress).map_err(|e| format!("prove lock: {e}"))?;
+        let label = format!("job {} sp1-groth16", progress.job().unwrap_or("-"));
+        let _lock = ProveLock::acquire(&label, progress).map_err(|e| format!("prove lock: {e}"))?;
         let p = proc.as_mut().expect("started");
         let job = json!({ "run": dir, "out": out });
         if writeln!(p.stdin, "{job}").and_then(|_| p.stdin.flush()).is_err() {
