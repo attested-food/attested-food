@@ -30,9 +30,9 @@ Candidate fallback sources are tracked in [data-sources.md](data-sources.md).
 
 Target market: **India**. Products, brands, labs and fallback sources are all India-focused.
 
-## Reference report (first user-tested product)
+## Example report
 
-Kellogg's Choco Millet Muesli, tested at **Equinox Labs** (Navi Mumbai, NABL accredited, lab code TC-6820). The PDF is kept out of the repo because it contains personal details.
+User reports can be for any packaged food product. Our first sample is Kellogg's Choco Millet Muesli, tested at **Equinox Labs** (Navi Mumbai, NABL accredited, lab code TC-6820). The PDF is kept out of the repo because it contains personal details.
 
 | Section | Fields | Public? |
 |---|---|---|
