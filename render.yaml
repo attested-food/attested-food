@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: attested-food
+    runtime: python
+    region: singapore
+    plan: starter
+    autoDeploy: true
+    branch: main
+    buildCommand: uv sync --frozen --no-dev && cd frontend && npm ci && npm run build
+    startCommand: uv run --frozen --no-dev uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: attested-food
+          property: connectionString
