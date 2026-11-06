@@ -5,7 +5,7 @@ Rust server that takes an Equinox lab-report PDF and returns an OpenVM 2.1 STARK
 - `core/`: `equinox-core`, the `no_std` PDF logic (xref walk, our own DEFLATE, glyph decoding, row extraction, SHA-256, public-values layout). Copied from the Equinox backend, revision in `core/UPSTREAM_REV`.
 - `guest/`: the OpenVM guest, a thin wrapper over `equinox_core::run`, and `openvm.toml` (RV32IM, IO, SHA-2 extension). It reveals `sha256(PublicValues::encode())`, since OpenVM user public values are a fixed 32 bytes.
 - `zktls/`: TLSNotary server-side prover and in-process notary (copied from the Equinox backend, browser protocol left out), own workspace. `equinox-tls-prove` fetches an allowlisted S3 report URL (Equinox or `eurekhalabs`) and writes `body.pdf`, `blinder.hex`, `onchain.json` (public leaves, incl. the request leaves) and `request.json` (private: the request, whose path is the object key, and its blinders) to `--out-dir`.
-- `server/`: `equinox-openvm-server` (axum). `build.rs` compiles the guest; one thread owns the OpenVM SDK and serves execute, prove and verify jobs.
+- `server/`: `equinox-openvm-server` (axum). `build.rs` compiles the guest; one thread owns the OpenVM SDK and serves prove and verify jobs.
 
 ## Build and run
 
@@ -35,7 +35,7 @@ curl -s localhost:8793/jobs/$(echo $J | jq -r .jobId)
 | `GET /jobs/{id}` | | `{ status: queued\|running\|done\|failed, stage, stages: [{ name, ms \| elapsedMs }], elapsedMs, progress: { fraction, etaMs }, preview: { publicValues, publicValuesHex }, partial, result, error }` |
 | `POST /verify` | JSON `{ proof, publicValues }` | `{ valid, publicValues, program }`, or 400 (OpenVM STARKs) |
 
-Modes: `execute` (no proof), `stark` (OpenVM STARK, `proof` base64 bincode `VersionedVmStarkProof`), `sp1-groth16` (`format=eurekha-attested`: `artifact { vkey, publicValues, proof, notarySignature }`, the arguments of `EurekhaReportRegistry.submit`), `openvm-halo2` (reserved, 501). `result` is `{ mode, format, publicValues, publicValuesHex, notarySignature, redactedPdf, revealed, instructions, program, proof, proofBytes, artifact, timingsMs }`.
+Modes (default `sp1-groth16`): `stark` (OpenVM STARK, `proof` base64 bincode `VersionedVmStarkProof`), `sp1-groth16` (`format=eurekha-attested`: `artifact { vkey, publicValues, proof, notarySignature }`, the arguments of `EurekhaReportRegistry.submit`), `openvm-halo2` (reserved, 501). `result` is `{ mode, format, publicValues, publicValuesHex, notarySignature, redactedPdf, revealed, instructions, program, proof, proofBytes, artifact, timingsMs }`.
 
 Stages: `queued`, `starting sp1 worker`, `waiting for prove lock`, `execute`, `keygen`, `prove`, `verify` (OpenVM); `prove stark`, `verify stark`, `prove groth16`, `verify groth16` (SP1).
 

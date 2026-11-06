@@ -124,7 +124,7 @@ pub struct Proved {
     /// The 32 bytes the guest revealed.
     pub revealed: Vec<u8>,
     pub instructions: u64,
-    /// bincode of `VersionedVmStarkProof`; empty for execute-only.
+    /// bincode of `VersionedVmStarkProof`.
     pub proof: Vec<u8>,
     pub program: Option<ProgramCommit>,
     pub timings: Timings,
@@ -154,7 +154,7 @@ pub struct Attested {
 
 enum Job {
     Program(oneshot::Sender<Result<ProgramCommit, String>>),
-    Run { input: GuestInput, stark: bool, progress: Progress, reply: oneshot::Sender<Result<Proved, String>> },
+    Run { input: GuestInput, progress: Progress, reply: oneshot::Sender<Result<Proved, String>> },
     Verify { proof: Vec<u8>, reply: oneshot::Sender<Result<Vec<u8>, String>> },
 }
 
@@ -184,8 +184,8 @@ impl Prover {
                         Job::Program(reply) => {
                             let _ = reply.send(engine.program());
                         }
-                        Job::Run { input, stark, progress, reply } => {
-                            let _ = reply.send(engine.run(input, stark, &progress));
+                        Job::Run { input, progress, reply } => {
+                            let _ = reply.send(engine.run(input, &progress));
                         }
                         Job::Verify { proof, reply } => {
                             let _ = reply.send(engine.verify(&proof));
@@ -208,9 +208,9 @@ impl Prover {
         self.call(Job::Program).await
     }
 
-    /// Execute (and, with `stark`, prove and verify) the guest on `input`.
-    pub async fn run(&self, input: GuestInput, stark: bool, progress: Progress) -> Result<Proved, String> {
-        self.call(|reply| Job::Run { input, stark, progress, reply }).await
+    /// Execute, prove and verify the guest on `input` (STARK).
+    pub async fn run(&self, input: GuestInput, progress: Progress) -> Result<Proved, String> {
+        self.call(|reply| Job::Run { input, progress, reply }).await
     }
 
     /// Verify a STARK against the pinned program; returns the revealed bytes.
@@ -299,7 +299,7 @@ impl Engine {
         s
     }
 
-    fn run(&mut self, input: GuestInput, stark: bool, progress: &Progress) -> Result<Proved, String> {
+    fn run(&mut self, input: GuestInput, progress: &Progress) -> Result<Proved, String> {
         let mut timings = Timings::default();
         let t = Instant::now();
         progress.stage("execute");
@@ -312,10 +312,6 @@ impl Engine {
             .execute_metered_cost(self.exe(), Self::stdin(&input))
             .map_err(|e| format!("openvm execute: {e}"))?;
         timings.execute_ms = ms(t);
-        if !stark {
-            return Ok(Proved { revealed, instructions, proof: Vec::new(), program: None, timings });
-        }
-
         let _lock = ProveLock::acquire(progress).map_err(|e| format!("prove lock: {e}"))?;
         let t = Instant::now();
         if self.baseline.is_none() {

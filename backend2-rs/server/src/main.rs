@@ -13,7 +13,7 @@
 //!
 //! Modes and fields of `/prove`:
 //!
-//! - `mode=stark|execute`: multipart `pdf` (file), optional
+//! - `mode=stark`: multipart `pdf` (file), optional
 //!   `labels` (comma-separated analytes) and `blinder` (32 hex chars; random
 //!   if absent), `format` (`equinox`, `eurekha`, `eurekha-attested`,
 //!   `eurekha-attested-sig`). The attested ones also take `onchain` and
@@ -21,8 +21,8 @@
 //!   TLS body `blinder`; `eurekha-attested` leaves the notary signature over
 //!   `keccak256(header)` to the verifier, `-sig` checks it in the guest. Runs the
 //!   statement natively first (rejects a bad PDF or attestation and anything
-//!   that would publish customer PII), then executes the guest and, for
-//!   `stark`, proves, verifies and returns the proof.
+//!   that would publish customer PII), then proves, verifies and returns the
+//!   OpenVM STARK.
 //! - `POST /prove?mode=sp1-groth16|openvm-halo2` (`format=eurekha-attested`
 //!   only): an EVM-verifiable proof of the same statement. `sp1-groth16`: SP1,
 //!   wrapped in Groth16 by the warm worker ([`sp1`]). `openvm-halo2`: OpenVM's
@@ -102,7 +102,7 @@ struct ProveQuery {
 }
 
 fn default_mode() -> String {
-    "stark".into()
+    "sp1-groth16".into()
 }
 
 #[derive(Serialize)]
@@ -350,11 +350,9 @@ fn preflight(
 }
 
 async fn prove(State(prover): State<Prover>, Query(q): Query<ProveQuery>, mp: Multipart) -> Result<Response, ApiError> {
-    let stark = match q.mode.as_str() {
-        "stark" | "sp1-groth16" | "openvm-halo2" => true,
-        "execute" => false,
-        m => return Err(bad(format!("unknown mode {m:?} (stark | execute | sp1-groth16 | openvm-halo2)"))),
-    };
+    if !matches!(q.mode.as_str(), "sp1-groth16" | "stark" | "openvm-halo2") {
+        return Err(bad(format!("unknown mode {:?} (sp1-groth16 | stark | openvm-halo2)", q.mode)));
+    }
     let form = read_form(mp).await?;
     let evm = q.mode == "sp1-groth16" || q.mode == "openvm-halo2";
     if evm && form.format != Format::EurekhaAttested {
@@ -389,7 +387,7 @@ async fn prove(State(prover): State<Prover>, Query(q): Query<ProveQuery>, mp: Mu
 
     let preview = json!({ "publicValues": pre.json, "publicValuesHex": hex::encode(&pre.public_values) });
     let id = JOBS.create(&q.mode, format.name(), preview);
-    let job = JobInput { mode: q.mode.clone(), stark, format, form, attested, buffer, pre, preflight_ms, total };
+    let job = JobInput { mode: q.mode.clone(), format, form, attested, buffer, pre, preflight_ms, total };
     let (jid, progress) = (id.clone(), JOBS.progress(&id));
     let done = tokio::spawn(async move {
         let r = run_job(prover, job, progress).await;
@@ -413,7 +411,6 @@ async fn prove(State(prover): State<Prover>, Query(q): Query<ProveQuery>, mp: Mu
 /// Everything a job needs after the preflight.
 struct JobInput {
     mode: String,
-    stark: bool,
     format: Format,
     form: Form,
     attested: Option<Attested>,
@@ -424,7 +421,7 @@ struct JobInput {
 }
 
 async fn run_job(prover: Prover, job: JobInput, progress: jobs::Progress) -> Result<ProveResponse, String> {
-    let JobInput { mode, stark, format, form, attested, buffer, pre, preflight_ms, total } = job;
+    let JobInput { mode, format, form, attested, buffer, pre, preflight_ms, total } = job;
     let public_values = pre.public_values;
     let notary_signature = attested.as_ref().map(|a| hex::encode(&a.tlsn.signature));
     if mode == "sp1-groth16" {
@@ -457,7 +454,7 @@ async fn run_job(prover: Prover, job: JobInput, progress: jobs::Progress) -> Res
         });
     }
     let input = GuestInput { format: format.byte(), labels: form.labels, attested, buffer };
-    let proved = prover.run(input, stark, progress).await?;
+    let proved = prover.run(input, progress).await?;
     if proved.revealed != equinox_core::sha::sha256(&public_values) {
         return Err("guest revealed digest is not sha256(public values)".into());
     }
@@ -473,7 +470,7 @@ async fn run_job(prover: Prover, job: JobInput, progress: jobs::Progress) -> Res
         instructions: proved.instructions,
         program: proved.program,
         proof_bytes: proved.proof.len(),
-        proof: stark.then(|| B64.encode(&proved.proof)),
+        proof: Some(B64.encode(&proved.proof)),
         artifact: None,
         timings_ms: TimingsOut {
             preflight: preflight_ms,
