@@ -69,6 +69,14 @@ function LabelVsLab({ findings }: { findings: Finding[] }) {
 	);
 }
 
+// A failed result's note: "0.9 mg/kg, over the limit" for numbers; the lab's own words when the result is a sentence.
+function overLimit(raw: string | null, unit: string | null): string {
+	const v = (raw ?? '').trim().replace(/[.,;\s]+$/, '');
+	if (!v) return 'Over the limit';
+	if (/^[<>≤≥~]?\s*-?\d[\d.,]*\s*\S{0,12}$/.test(v)) return `${v}${unit ? ` ${unit}` : ''}, over the limit`;
+	return v;
+}
+
 function ReportBlock({ r, findings }: { r: Report; findings: Finding[] }) {
 	const pdf = httpUrl(r.pdf_url);
 	const source = httpUrl(r.source_url);
@@ -78,7 +86,7 @@ function ReportBlock({ r, findings }: { r: Report; findings: Finding[] }) {
 	// The few things worth reading first: label mismatches, then failed/passed limits.
 	const highlights = [
 		...findings.filter((f) => f.kind !== 'info').map((f) => ({ kind: f.kind, t: f.parameter, r: f.text })),
-		...r.results.filter((x) => x.status === 'fail').map((x) => ({ kind: 'bad' as const, t: x.parameter, r: `${x.value_raw}${x.unit ? ` ${x.unit}` : ''}, over the limit` }))
+		...r.results.filter((x) => x.status === 'fail').map((x) => ({ kind: 'bad' as const, t: x.parameter, r: overLimit(x.value_raw, x.unit) }))
 	]
 		.sort((x, y) => (x.kind === 'bad' ? 0 : 1) - (y.kind === 'bad' ? 0 : 1))
 		.slice(0, 4);
@@ -114,7 +122,13 @@ function ReportBlock({ r, findings }: { r: Report; findings: Finding[] }) {
 			{highlights.length > 0 && (
 				<ul className="rp-highlights">
 					{highlights.map((h, i) => (
-						<li key={i}><ResultIcon kind={h.kind} size={18} /><span className="rp-h-t">{h.t}</span><span className={h.kind === 'bad' ? 'off' : 'ok'}>{h.r}</span></li>
+						<li key={i}>
+							<ResultIcon kind={h.kind} size={18} />
+							<div className="rp-h-b">
+								<span className="rp-h-t">{h.t}</span>
+								<span className={`rp-h-r ${h.kind === 'bad' ? 'off' : 'ok'}${h.r.length > 48 ? ' long' : ''}`}>{h.r}</span>
+							</div>
+						</li>
 					))}
 				</ul>
 			)}

@@ -138,8 +138,12 @@
 .rp-pill.bad { background: #fdecec; color: var(--red); }
 .rp-pill.wait { background: #f7f0e2; color: var(--gold-ink); }
 .rp-highlights { margin: 0; padding: 4px 24px 10px; list-style: none; }
-.rp-highlights li { display: flex; align-items: center; gap: 12px; min-height: 44px; border-top: 1px solid var(--line); font-size: 15px; }
-.rp-h-t { flex: 1; min-width: 0; font-weight: 600; }
+.rp-highlights li { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 15px; }
+.rp-highlights li > svg { flex: none; margin-top: 2px; }
+.rp-h-b { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+.rp-h-t { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.rp-h-r { flex: 0 1 auto; text-align: right; font-weight: 600; }
+.rp-h-r.long { flex: 1 1 100%; text-align: left; font-size: 14px; font-weight: 450; line-height: 1.45; }
 .rp-key { margin: 0; padding: 14px 24px 18px; display: flex; flex-wrap: wrap; gap: 10px 40px; }
 .rp-key dt { font-size: 12px; color: var(--sub); }
 .rp-key dd { margin: 2px 0 0; font-size: 14.5px; font-weight: 550; overflow-wrap: anywhere; }
