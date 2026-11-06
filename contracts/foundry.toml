@@ -2,3 +2,9 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+solc_version = "0.8.28"
+optimizer = true
+optimizer_runs = 200
+allow_paths = ["../backend2-rs/contracts"]
+remappings = ["eurekha/=../backend2-rs/contracts/src/", "forge-std/=lib/forge-std/src/"]
+fs_permissions = [{ access = "read", path = "../backend2-rs/contracts/test/fixtures" }]

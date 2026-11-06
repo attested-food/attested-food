@@ -1,0 +1,9 @@
+{
+  "name": "eurekha-mock-pdfs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "upload": "scripts/upload.sh"
+  }
+}

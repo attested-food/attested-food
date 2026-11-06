@@ -208,3 +208,6 @@ a.card:hover, .card.hoverable:hover { border-color: var(--field-line); }
 .gtag { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: var(--r); font-family: var(--mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
 .gtag.ours { background: var(--green); color: var(--gold); }
 .gtag.third { color: var(--sub); box-shadow: inset 0 0 0 1px var(--field-line); }
+
+.post-report { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.post-report input[type=file] { max-width: 100%; }
