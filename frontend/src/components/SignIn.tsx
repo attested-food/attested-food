@@ -3,11 +3,13 @@ import {
 	allowPrivateKey, connectInjected, connectPrivateKey, connectWalletConnect, disconnect,
 	hasWalletConnect, short, useInjected, useWallet
 } from '@/lib/wallet';
+import { useSocialLogin } from '@/lib/privy';
 
-/** Sign in with a wallet. Social sign-in (Privy) plugs in here once the app ID is set. */
+/** Sign in with Google or email (Privy embedded wallet), or with an existing wallet. */
 export function SignIn() {
 	const wallet = useWallet();
 	const injected = useInjected();
+	const social = useSocialLogin();
 	const menu = useRef<HTMLDetailsElement>(null);
 	const [key, setKey] = useState('');
 	const [error, setError] = useState('');
@@ -26,7 +28,15 @@ export function SignIn() {
 		return (
 			<div className="signin">
 				<span className="addr" title={wallet.address}>{short(wallet.address)}</span>
-				<button type="button" className="btn sm out" onClick={disconnect}>Sign out</button>
+				<button type="button" className="btn sm out" onClick={() => (social.authenticated ? social.logout() : disconnect())}>Sign out</button>
+			</div>
+		);
+	}
+	if (social.authenticated) {
+		return (
+			<div className="signin">
+				<span className="addr">Setting up your wallet…</span>
+				<button type="button" className="btn sm out" onClick={() => social.logout()}>Sign out</button>
 			</div>
 		);
 	}
@@ -36,7 +46,13 @@ export function SignIn() {
 			<details ref={menu}>
 				<summary className="btn">Sign in</summary>
 				<div className="signin-menu">
-					<p className="head">Sign in with your wallet</p>
+					{social.enabled && (
+						<>
+							<button type="button" className="btn" disabled={!social.ready} onClick={() => run(social.login)}>Continue with Google or email</button>
+							<p className="head or">No crypto wallet needed. We create one for you.</p>
+						</>
+					)}
+					<p className="head">{social.enabled ? 'Or use your own wallet' : 'Sign in with your wallet'}</p>
 					{injected.length ? (
 						injected.map((w) => (
 							<button key={w.info.uuid} type="button" className="opt" onClick={() => run(() => connectInjected(w.provider))}>

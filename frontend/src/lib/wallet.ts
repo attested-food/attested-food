@@ -70,7 +70,7 @@ export const FUND_STAKE = 110_000_000n;
 
 export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
-async function useProvider(provider: EIP1193Provider) {
+async function attachProvider(provider: EIP1193Provider) {
 	const client = createWalletClient({ chain, transport: custom(provider) });
 	const [address] = await client.requestAddresses();
 	try {
@@ -102,10 +102,13 @@ if (typeof window !== 'undefined') {
 	window.dispatchEvent(new Event('eip6963:requestProvider'));
 }
 
+/** Use any EIP-1193 provider as the signed-in wallet (e.g. Privy's embedded wallet). */
+export const connectProvider = (provider: EIP1193Provider) => attachProvider(provider);
+
 export async function connectInjected(provider?: EIP1193Provider) {
 	const eth = provider ?? (window as { ethereum?: EIP1193Provider }).ethereum;
 	if (!eth) throw new Error('No browser wallet found. Install MetaMask.');
-	await useProvider(eth);
+	await attachProvider(eth);
 }
 
 export async function connectWalletConnect() {
@@ -118,7 +121,7 @@ export async function connectWalletConnect() {
 		showQrModal: true
 	});
 	await provider.connect();
-	await useProvider(provider as unknown as EIP1193Provider);
+	await attachProvider(provider as unknown as EIP1193Provider);
 }
 
 export function connectPrivateKey(key: string) {

@@ -14,3 +14,6 @@ services:
         fromDatabase:
           name: attested-food
           property: connectionString
+      # Public Privy app ID for Google / email sign-in (safe to ship; read at frontend build time).
+      - key: VITE_PRIVY_APP_ID
+        value: cmw5hd7lq00lw0gl33lwg9p67

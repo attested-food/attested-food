@@ -10,6 +10,7 @@
 		"check": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@privy-io/react-auth": "^3.51.3",
 		"@walletconnect/ethereum-provider": "^2.26.0",
 		"@walletconnect/modal": "^2.7.0",
 		"react": "^19.1.0",
