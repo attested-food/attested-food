@@ -1,0 +1,57 @@
+.lc { position: relative; width: 600px; height: 380px; perspective: 1600px; font-family: var(--sans); }
+.lc .sub { color: var(--sub); }
+.lc-eyebrow { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--sub); }
+.lc .tag.requested { background: transparent; box-shadow: inset 0 0 0 1px var(--line); color: var(--sub); }
+
+.lc-back { position: absolute; inset: 0; padding: 22px 26px 20px; border-radius: 6px; background: var(--bg); color: var(--fg); display: flex; flex-direction: column; box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6); }
+.lc-back-in { flex: 1; min-height: 0; display: flex; flex-direction: column; opacity: 0; visibility: hidden; transition: opacity 0.15s ease, visibility 0s linear 0.15s; }
+.lc-back-in.show { opacity: 1; visibility: visible; transition: opacity 0.35s ease 0.3s, visibility 0s; }
+.lc-head { display: flex; align-items: center; gap: 14px; }
+.lc-grade { flex: 0 0 auto; width: 54px; height: 54px; border-radius: var(--r); display: flex; align-items: center; justify-content: center; font-weight: 700; letter-spacing: -0.02em; }
+.lc-head-text { flex: 1; min-width: 0; }
+.lc-counts { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-size: 14px; font-weight: 600; }
+.lc-counts .pass { color: var(--good); }
+.lc-counts .fail { color: var(--red); }
+.lc-unpeel { flex: 0 0 auto; align-self: flex-start; width: 34px; height: 34px; border: 1px solid var(--line); border-radius: var(--r); background: transparent; color: var(--fg); font-size: 15px; cursor: pointer; }
+.lc-ing { margin: 14px 0 0; flex: 0 1 auto; min-height: 0; font-family: var(--label); font-weight: 600; font-size: 17px; line-height: 1.55; text-transform: uppercase; letter-spacing: 0.005em; overflow: hidden; -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent 100%); mask-image: linear-gradient(180deg, #000 80%, transparent 100%); }
+.lc-rows { margin: 12px 0 0; padding: 0; list-style: none; flex: 0 0 auto; }
+.lc-rows li { display: flex; align-items: center; gap: 12px; height: 34px; border-top: 1px solid var(--line); }
+.lc-ico { flex: 0 0 auto; width: 20px; height: 20px; border-radius: var(--r); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; }
+.lc-ico.good { background: var(--good); color: var(--bg); }
+.lc-ico.bad { background: var(--red); color: #fff; }
+.lc-ico.info { box-shadow: inset 0 0 0 1px var(--line); color: var(--sub); }
+.lc-ico.unk { border: 1px dashed var(--sub); color: var(--sub); }
+.lc-rt { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lc-rr { flex: 0 0 auto; font-size: 13.5px; font-weight: 650; }
+.lc-rr.good { color: var(--good); }
+.lc-rr.bad { color: var(--red); }
+.lc-rr.unk, .lc-rr.info { color: var(--sub); }
+.lc-foot { margin-top: auto; display: flex; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+.lc-src { flex: 1; min-width: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lc-foot .btn { min-height: 38px; }
+.lc-buy.btn { background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1.5px var(--fg); }
+.lc-buy.btn:hover { background: var(--fg); color: var(--bg); }
+
+.lc-front { position: absolute; inset: 0; cursor: pointer; transform-origin: 0 0; transform: rotate3d(1, -1, 0, 0deg); transition: transform 0.9s cubic-bezier(0.55, 0.06, 0.3, 1), opacity 0.1s linear 0s; backface-visibility: hidden; }
+.lc-front.peeled { transform: rotate3d(1, -1, 0, 180deg); opacity: 0; pointer-events: none; transition: transform 0.9s cubic-bezier(0.55, 0.06, 0.3, 1), opacity 0.2s linear 0.55s; }
+.lc-sheet { position: absolute; inset: 0; border-radius: 6px; background: var(--bg); color: var(--fg); clip-path: path('M0 0 H600 V320.3 L536.4 380 H0 Z'); display: flex; box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6); }
+.lc-photo { flex: 0 0 236px; padding: 14px 0 14px 14px; }
+.lc-photo img { display: block; width: 222px; height: 352px; object-fit: cover; background: #fff; border-radius: var(--r); border: 1px solid var(--frame); }
+.lc-info { flex: 1; min-width: 0; padding: 22px 26px 22px 22px; display: flex; flex-direction: column; }
+.lc-top { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.lc-brand { flex-shrink: 0; font-size: 13px; color: var(--sub); margin-top: 16px; }
+.lc-name { flex-shrink: 0; font-weight: 650; font-size: 24px; letter-spacing: -0.03em; line-height: 1.08; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lc-ing-front { margin: 14px 0 0; flex: 1 1 auto; min-height: 0; font-family: var(--label); font-weight: 600; font-size: 15.5px; line-height: 1.32; text-transform: uppercase; letter-spacing: 0.005em; overflow: hidden; -webkit-mask-image: linear-gradient(180deg, #000 72%, transparent 100%); mask-image: linear-gradient(180deg, #000 72%, transparent 100%); }
+.lc-nut { flex-shrink: 0; margin-top: 10px; padding-right: 60px; font-family: var(--label); }
+.lc-nut-head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 3px solid var(--fg); padding-bottom: 3px; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.03em; }
+.lc-nut-head .sub { font-weight: 500; }
+.lc-nut-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
+.lc-nut-row { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--line); font-size: 15px; font-weight: 500; }
+.lc-nut-row strong { font-weight: 700; }
+.lc-nut-none { padding: 8px 0; font-size: 15px; }
+.lc-peel { position: absolute; left: 504px; top: 284px; width: 96px; height: 96px; padding: 0; border: 0; background: none; cursor: pointer; }
+.lc-peel svg { position: absolute; inset: 0; overflow: visible; filter: drop-shadow(-3px -3px 8px rgba(0, 0, 0, 0.4)) drop-shadow(-1px -1px 1px rgba(0, 0, 0, 0.22)); transition: transform 0.3s ease; transform-origin: 100% 100%; }
+.lc-peel:hover svg, .lc-peel:focus-visible svg { transform: scale(1.08); }
+@media (prefers-reduced-motion: reduce) {
+	.lc-front, .lc-front.peeled, .lc-back-in, .lc-back-in.show { transition: none; }
+}

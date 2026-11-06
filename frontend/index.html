@@ -6,13 +6,12 @@
 		<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Crect x='1' y='1' width='28' height='28' rx='3' fill='%231D4A37'/%3E%3Cpath d='M8 15.5l4.5 4.5L22 10' fill='none' stroke='%23C6A26B' stroke-width='3.2' stroke-linecap='square'/%3E%3C/svg%3E" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-		<link
-			rel="stylesheet"
-			href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=Geist+Mono:wght@400..600&family=Barlow+Condensed:wght@500;600;700&display=swap"
-		/>
-		%sveltekit.head%
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=Geist+Mono:wght@400..600&family=Barlow+Condensed:wght@500;600;700&display=swap" />
+		<meta name="description" content="Request lab tests for packaged food in India, fund them together, and see what the label gets wrong." />
+		<title>OpenLabel</title>
 	</head>
-	<body data-sveltekit-preload-data="hover">
-		<div style="display: contents">%sveltekit.body%</div>
+	<body>
+		<div id="root"></div>
+		<script type="module" src="/src/main.tsx"></script>
 	</body>
 </html>

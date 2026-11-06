@@ -1,0 +1,203 @@
+import { useState, type FormEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
+import { buyUrl, label, nameOf, productName, type Category, type ProductCard, type TestRequest } from '@/lib/api';
+import { sourceGrade } from '@/lib/grade';
+import { useApi } from '@/lib/useApi';
+import { GradeChip, Photo, StateTag } from '@/components/bits';
+import './Marketplace.css';
+
+type Page = { items: ProductCard[]; page: number; page_size: number; total: number };
+
+const EVIDENCE = [
+	['lab', 'OpenLabel lab report'],
+	['published', 'Published tests']
+] as const;
+const ON_LABEL = [
+	['no_added_sugar', 'No added sugar'],
+	['high_fibre', 'High fibre (6 g+)'],
+	['high_protein', 'High protein (20 g+)']
+] as const;
+
+function gradeLine(p: ProductCard) {
+	const l = p.latest;
+	if (!l) return 'Not tested yet';
+	if (l.kind === 'user') return 'Lab-tested · no grade yet';
+	return `by ${nameOf(l.publisher) ?? 'published test'}`;
+}
+
+function Tile({ to, img, alt, state, brand, name, grade, line, buy }: { to: string; img: string | null; alt: string; state: 'tested' | 'requested'; brand: string; name: string; grade: string | null; line: string; buy: string }) {
+	return (
+		<article className="m-tile card hoverable">
+			<Link to={to} className="m-photo">
+				<Photo src={img} alt={alt} />
+				<StateTag state={state} style={{ position: 'absolute', left: 10, top: 10 }} />
+			</Link>
+			<Link to={to} className="m-text">
+				<span className="m-brand">{brand}</span>
+				<span className="m-name">{name}</span>
+			</Link>
+			<div className="m-grade">
+				<GradeChip grade={grade} />
+				<span>{line}</span>
+			</div>
+			<a className="btn m-buy" href={buy} target="_blank" rel="sponsored noopener">Buy on Amazon</a>
+		</article>
+	);
+}
+
+export default function Marketplace() {
+	const [params, setParams] = useSearchParams();
+	const navigate = useNavigate();
+	const q = params.get('q') ?? '';
+	const category = params.get('category') ?? '';
+	const evidence = params.getAll('evidence');
+	const page = Number(params.get('page') ?? '1');
+	const [query, setQuery] = useState(q);
+
+	const results = useApi<Page>(`/api/products?${params}`);
+	const cats = useApi<Category[]>('/api/categories');
+	const filtered = evidence.length > 0 || ON_LABEL.some(([k]) => params.get(k));
+	const reqParams = new URLSearchParams();
+	if (q) reqParams.set('q', q);
+	if (category) reqParams.set('category', category);
+	const requests = useApi<TestRequest[]>(page === 1 && !filtered ? `/api/test-requests?${reqParams}` : null);
+
+	const change = (fn: (p: URLSearchParams) => void) => {
+		const p = new URLSearchParams(params);
+		fn(p);
+		p.delete('page');
+		setParams(p);
+	};
+	const hrefFor = (fn: (p: URLSearchParams) => void) => {
+		const p = new URLSearchParams(params);
+		fn(p);
+		const s = p.toString();
+		return s ? `/products?${s}` : '/products';
+	};
+	const search = (e: FormEvent) => {
+		e.preventDefault();
+		navigate(hrefFor((p) => {
+			query.trim() ? p.set('q', query.trim()) : p.delete('q');
+			p.delete('page');
+		}));
+	};
+
+	const shelves = [...(cats.data ?? [])].sort((a, b) => b.product_count - a.product_count).slice(0, 9);
+	const r = results.data;
+	const pages = r ? Math.max(1, Math.ceil(r.total / r.page_size)) : 1;
+	const heading = category ? label(category) : q ? `Results for “${q}”` : 'All products';
+
+	return (
+		<div className="page">
+			<title>Marketplace · OpenLabel</title>
+			<div className="page-head">
+				<div style={{ flex: '1 1 420px', minWidth: 0 }}>
+					<div className="eyebrow">{r ? `${r.total.toLocaleString('en-IN')} products` : ' '}</div>
+					<h1 style={{ marginTop: 10 }}>Marketplace</h1>
+					<p className="lede">What the label says, what the lab found, and where to buy it.</p>
+				</div>
+				<form role="search" className="search" onSubmit={search}>
+					<label htmlFor="mq" className="sr-only">Search products or brands</label>
+					<input id="mq" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search products or brands" />
+					<button type="submit">Search</button>
+				</form>
+			</div>
+
+			<nav className="shelves" aria-label="Shelves">
+				<Link to={hrefFor((p) => { p.delete('category'); p.delete('page'); })} aria-current={!category ? 'page' : undefined}>All</Link>
+				{shelves.map((c) => (
+					<Link key={c.category} to={hrefFor((p) => { p.set('category', c.category); p.delete('page'); })} aria-current={c.category === category ? 'page' : undefined}>
+						{label(c.category)}
+					</Link>
+				))}
+			</nav>
+
+			<div className="m-body">
+				<aside className="m-filters" aria-label="Filters">
+					<fieldset>
+						<legend>Evidence</legend>
+						{EVIDENCE.map(([k, text]) => (
+							<label key={k}>
+								<input
+									type="checkbox"
+									checked={evidence.includes(k)}
+									onChange={(e) => change((p) => {
+										const next = p.getAll('evidence').filter((x) => x !== k);
+										p.delete('evidence');
+										(e.target.checked ? [...next, k] : next).forEach((x) => p.append('evidence', x));
+									})}
+								/>
+								<span>{text}</span>
+							</label>
+						))}
+					</fieldset>
+					<fieldset>
+						<legend>On the label</legend>
+						{ON_LABEL.map(([k, text]) => (
+							<label key={k}>
+								<input type="checkbox" checked={params.get(k) === 'true'} onChange={(e) => change((p) => (e.target.checked ? p.set(k, 'true') : p.delete(k)))} />
+								<span>{text}</span>
+							</label>
+						))}
+						<p className="hint">Per 100 g, from the pack label.</p>
+					</fieldset>
+				</aside>
+
+				<section className="m-results" aria-labelledby="m-h">
+					<h2 id="m-h" className="m-heading">{heading}</h2>
+					{results.error && <p className="error">Couldn't load products: {results.error}</p>}
+					{results.loading && !r && <p className="muted">Loading…</p>}
+					{r && !r.items.length && (
+						<p>No products match. <Link className="link" to="/request">Request a test</Link> for one we don't have.</p>
+					)}
+					{r && r.items.length > 0 && (
+						<div className="m-grid">
+							{r.items.map((p) => (
+								<Tile
+									key={p.id}
+									to={`/products/${p.id}`}
+									img={p.image_url}
+									alt={`${p.brand} ${productName(p)} pack`}
+									state={p.latest ? 'tested' : 'requested'}
+									brand={p.brand}
+									name={productName(p)}
+									grade={sourceGrade(p.latest)}
+									line={gradeLine(p)}
+									buy={buyUrl(p)}
+								/>
+							))}
+							{(requests.data ?? []).map((t) => (
+								<Tile
+									key={t.id}
+									to={`/requests/${t.id}`}
+									img={t.image_url ?? null}
+									alt={`${t.brand} ${productName(t)} pack`}
+									state="requested"
+									brand={t.brand}
+									name={productName(t)}
+									grade={null}
+									line="Not tested · needs backers"
+									buy={buyUrl(t)}
+								/>
+							))}
+						</div>
+					)}
+					{r && pages > 1 && (
+						<nav className="m-pager" aria-label="Pages">
+							{page > 1 ? <Link className="link" to={hrefFor((p) => p.set('page', String(page - 1)))}>← Previous</Link> : <span />}
+							<span className="muted">Page {page} of {pages}</span>
+							{page < pages ? <Link className="link" to={hrefFor((p) => p.set('page', String(page + 1)))}>Next →</Link> : <span />}
+						</nav>
+					)}
+					<section className="m-cta" aria-label="Request a test">
+						<div>
+							<div className="m-cta-title">Not on the shelf?</div>
+							<p className="muted">Paste an Amazon link. Others can chip in, and anyone can be the tester and take it to an accredited lab.</p>
+						</div>
+						<Link className="btn lg" to="/request">Request a test</Link>
+					</section>
+				</section>
+			</div>
+		</div>
+	);
+}

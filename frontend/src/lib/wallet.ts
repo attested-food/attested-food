@@ -1,4 +1,5 @@
 import EthereumProvider from '@walletconnect/ethereum-provider';
+import { useSyncExternalStore } from 'react';
 import {
 	createPublicClient,
 	createWalletClient,
@@ -41,7 +42,21 @@ export const usdAbi = parseAbi([
 
 export const publicClient = createPublicClient({ chain, transport: http(rpc) });
 
-export const wallet = $state<{ address: Address | null; client: WalletClient | null }>({ address: null, client: null });
+type WalletState = { address: Address | null; client: WalletClient | null };
+
+/** Current wallet. Read it in components with useWallet(); it is replaced (never mutated) on change. */
+export let wallet: WalletState = { address: null, client: null };
+const listeners = new Set<() => void>();
+const notify = () => listeners.forEach((l) => l());
+const subscribe = (l: () => void) => {
+	listeners.add(l);
+	return () => listeners.delete(l);
+};
+function setWallet(next: WalletState) {
+	wallet = next;
+	notify();
+}
+export const useWallet = () => useSyncExternalStore(subscribe, () => wallet);
 
 /** Test-request uuid → bytes32 campaign id (uuid bytes, right-padded). */
 export const campaignId = (uuid: string) => pad(`0x${uuid.replaceAll('-', '')}` as Hex, { dir: 'right', size: 32 });
@@ -50,6 +65,9 @@ export const usd = (v: bigint) => `$${formatUnits(v, 6)}`;
 
 /** Cost of one test, in tUSD (6 decimals). */
 export const FUND_GOAL = 100_000_000n;
+
+/** Refundable stake to take a test, in tUSD (6 decimals). Mirrors TestFund.STAKE. */
+export const FUND_STAKE = 110_000_000n;
 
 export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -62,21 +80,25 @@ async function useProvider(provider: EIP1193Provider) {
 		await client.addChain({ chain });
 	}
 	provider.on?.('accountsChanged', (accounts: string[]) => {
-		wallet.address = (accounts[0] as Address) ?? null;
-		if (!wallet.address) wallet.client = null;
+		const next = (accounts[0] as Address) ?? null;
+		setWallet(next ? { ...wallet, address: next } : { address: null, client: null });
 	});
-	Object.assign(wallet, { address, client });
+	setWallet({ address, client });
 }
 
 type Announced = { info: { uuid: string; name: string; icon: string }; provider: EIP1193Provider };
 
 /** Browser wallets that announced themselves via EIP-6963, so MetaMask isn't confused with other extensions. */
-export const injected = $state<Announced[]>([]);
+export let injected: Announced[] = [];
+export const useInjected = () => useSyncExternalStore(subscribe, () => injected);
 
 if (typeof window !== 'undefined') {
 	window.addEventListener('eip6963:announceProvider', (e) => {
 		const d = (e as CustomEvent<Announced>).detail;
-		if (!injected.some((w) => w.info.uuid === d.info.uuid)) injected.push(d);
+		if (!injected.some((w) => w.info.uuid === d.info.uuid)) {
+			injected = [...injected, d];
+			notify();
+		}
 	});
 	window.dispatchEvent(new Event('eip6963:requestProvider'));
 }
@@ -100,11 +122,11 @@ export async function connectWalletConnect() {
 
 export function connectPrivateKey(key: string) {
 	const account = privateKeyToAccount((key.startsWith('0x') ? key : `0x${key}`) as Hex);
-	Object.assign(wallet, { address: account.address, client: createWalletClient({ account, chain, transport: http(rpc) }) });
+	setWallet({ address: account.address, client: createWalletClient({ account, chain, transport: http(rpc) }) });
 }
 
 export function disconnect() {
-	Object.assign(wallet, { address: null, client: null });
+	setWallet({ address: null, client: null });
 }
 
 type Call = { address: Address; abi: typeof fundAbi | typeof usdAbi; functionName: string; args: readonly unknown[] };

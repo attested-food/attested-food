@@ -1,0 +1,24 @@
+.m-body { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; }
+.m-filters { flex: 0 1 220px; min-width: 200px; display: flex; flex-direction: column; gap: 26px; }
+.m-filters fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.m-filters legend { padding: 0 0 8px; width: 100%; border-bottom: 3px solid var(--ink); font-family: var(--label); font-weight: 700; font-size: 16px; letter-spacing: 0.04em; text-transform: uppercase; }
+.m-filters label { display: flex; align-items: center; gap: 10px; min-height: 40px; border-bottom: 1px solid var(--line); font-size: 15px; cursor: pointer; }
+.m-filters input { width: 18px; height: 18px; accent-color: var(--green); }
+.m-filters .hint { margin: 8px 0 0; }
+.m-results { flex: 999 1 760px; min-width: 0; }
+.m-heading { font-family: var(--label); font-weight: 700; font-size: 30px; letter-spacing: 0.01em; text-transform: uppercase; line-height: 1; }
+.m-grid { margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+.m-tile { min-width: 0; display: flex; flex-direction: column; padding: 10px 10px 14px; }
+.m-photo { position: relative; display: block; text-decoration: none; }
+.m-text { margin-top: 12px; padding: 0 4px; text-decoration: none; }
+.m-brand { display: block; font-size: 13px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-name { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 40px; margin-top: 2px; font-weight: 600; font-size: 17px; letter-spacing: -0.02em; line-height: 1.18; }
+.m-tile:hover .m-name { text-decoration: underline; }
+.m-grade { margin-top: 10px; padding: 0 4px; height: 28px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--sub); }
+.m-grade > span:last-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-buy { margin: 12px 4px 0; min-height: 42px; font-size: 14px; }
+.m-pager { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 14px; }
+.m-cta { margin-top: 48px; padding: 28px 0; border-top: 3px solid var(--ink); border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 32px; }
+.m-cta > div { flex: 1 1 420px; min-width: 0; }
+.m-cta-title { font-family: var(--label); font-weight: 700; font-size: 30px; text-transform: uppercase; letter-spacing: 0.01em; line-height: 1.05; }
+.m-cta p { margin: 6px 0 0; font-size: 15.5px; }

@@ -232,7 +232,7 @@ export function buyUrl(p: { brand: string; name: string; variant: string | null;
 
 export const PLACEHOLDER = '/placeholder.svg';
 export const imgSrc = (u: string | null | undefined) => httpUrl(u ?? null) ?? PLACEHOLDER;
-export const imgFallback = (e: Event) => {
-	const img = e.currentTarget as HTMLImageElement;
+export const imgFallback = (e: { currentTarget: HTMLImageElement }) => {
+	const img = e.currentTarget;
 	if (!img.src.endsWith(PLACEHOLDER)) img.src = PLACEHOLDER;
 };
