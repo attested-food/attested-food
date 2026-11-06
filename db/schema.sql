@@ -83,3 +83,8 @@ CREATE TABLE IF NOT EXISTS test_requests (
     created_at    timestamptz NOT NULL DEFAULT now(),
     CHECK ((image_url IS NULL) <> (image IS NULL))
 );
+
+-- Pack label data (per 100 g) and ingredient list, used for label-vs-lab notes.
+ALTER TABLE products ADD COLUMN IF NOT EXISTS ingredients text;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS ingredients_source text;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS label_nutrition jsonb;
