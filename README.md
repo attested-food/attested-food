@@ -11,6 +11,8 @@ Mock lab reports (fictional lab "Eurekha Labs") for the EthGlobal Mumbai 2026 pr
 - `scripts/redact.mjs`: raw PDF -> redacted PDF + manifest (holder side)
 - `scripts/check.mjs`: guest predicate + verifier policy, reference for the zkVM guest
 - `scripts/build.mjs`: compile + normalize + redact + check every report into `out/`
+- `scripts/optimize.mjs`: raw PDF -> prover-friendly raw PDF (same text runs, same rendering)
+- `scripts/build-opt.mjs`: prover-friendly variants into `out/opt/` (originals untouched)
 - `scripts/upload.sh`: put `out/raw/*.pdf` to `s3://eurekhalabs/<key>`, creates the bucket if missing
 
 ## Run
@@ -60,9 +62,19 @@ Verifier (public redacted PDF, outside the proof):
 
 Since non-span bytes are identical, the redacted file's structure is the original's, so the verifier policy holds for the original too. Rejected (tested): zeroing a result glyph, claiming a non-PII string as a span, swapping a PII glyph for another, partial blanking, touching the xref.
 
+## Prover-friendly variants
+
+`node scripts/build-opt.mjs` (after `build.mjs`), for the zkVM guest (cost scales with bytes and content tokens):
+- `out/opt/template/`: template with `--input opt=1`: QR as raster Image XObject (sized like the vector one), no kerning, no bold face
+- `out/opt/full/`: template + `optimize.mjs`: one BT per page with Td moves, Tf / colour only on change, Tj, `q cm ... Q` table strokes flattened into one group, numbers rounded (coords 2 dp, colours 3 dp), ICC -> Device colour spaces, no XMP, no /ProcSet, unreachable objects dropped
+- Checked per file: text-show runs (trimmed) equal the original's, redact + check pass; pixel diff vs `template` only anti-aliasing plus one 0.4pt border shifted 1 px
+- Not S3-uploaded; choco: 90,718 B -> 69,426 B (template) -> 49,577 B (full), content ops 4,123 -> 686
+- ToUnicode CMaps are already uncompressed in Typst output; remaining Flate streams: 2 font files, 2 CIDSets, QR image + SMask
+
 ## Known leaks / limits
 
 - QR in the redacted copy still points to the unredacted original (accepted for the demo)
 - Body length public (Content-Length); independent of PII here
+- QR caption ("Download Report") lands on page 2 when the QR is at the bottom of page 1 (multigrain, peanut)
 - Reader only handles Typst-shaped PDFs: classic xref, no object streams, no incremental updates
 - The backend (`../backend`, equinox-core) parses Equinox/Skia reports; Eurekha reports need their own extraction rules there

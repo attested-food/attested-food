@@ -271,7 +271,7 @@ export function parseCMap(s) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Content stream text scan. Calls onString({ font, str, op }) for every string operand of
+// Content stream text scan. Calls onString({ font, str, op, opIndex }) for every string operand of
 // Tj, TJ, ' and ", with str.start/str.end as offsets into `data` (start points at "(" or "<").
 // Only tracks Tf; enough for Typst output, which sets the font inside every BT block.
 
@@ -279,6 +279,7 @@ export function scanText(data, onString) {
   const p = new Parser(data, 0);
   let operands = [];
   let font = null;
+  let opIndex = 0;
   for (;;) {
     p.skipWs();
     if (p.p >= data.length) break;
@@ -289,7 +290,8 @@ export function scanText(data, onString) {
       if (op === "BI") throw new Error("inline images unsupported");
       if (op === "Tj" || op === "'" || op === '"' || op === "TJ") {
         const arg = operands[operands.length - 1];
-        for (const s of Array.isArray(arg) ? arg : [arg]) if (s && s.str) onString({ font, str: s, op });
+        for (const s of Array.isArray(arg) ? arg : [arg]) if (s && s.str) onString({ font, str: s, op, opIndex });
+        opIndex++;
       }
       operands = [];
     } else operands.push(v);

@@ -21,6 +21,19 @@ export function serialize(v) {
   throw new Error("cannot serialize " + JSON.stringify(v));
 }
 
+// "N 0 obj <<dict>> stream ... endstream endobj" with body stored uncompressed.
+export function streamObject(num, dict, body) {
+  dict = new Map(dict);
+  dict.delete("Filter");
+  dict.delete("DecodeParms");
+  dict.set("Length", body.length);
+  return Buffer.concat([
+    Buffer.from(`${num} 0 obj\n${serialize({ dict })}\nstream\n`, "latin1"),
+    body,
+    Buffer.from("\nendstream\nendobj", "latin1"),
+  ]);
+}
+
 export function normalize(input) {
   const doc = new Doc(input);
   const contentNums = new Set(doc.pages().flatMap((p) => p.contents));
@@ -39,36 +52,28 @@ export function normalize(input) {
     });
     parts.push(data.subarray(last));
     const body = Buffer.concat(parts);
-    const dict = new Map(o.dict);
-    dict.delete("Filter");
-    dict.delete("DecodeParms");
-    dict.set("Length", body.length);
-    replacement.set(
-      num,
-      Buffer.concat([
-        Buffer.from(`${num} 0 obj\n${serialize({ dict })}\nstream\n`, "latin1"),
-        body,
-        Buffer.from("\nendstream\nendobj", "latin1"),
-      ]),
-    );
+    replacement.set(num, streamObject(num, o.dict, body));
   }
 
-  // Re-emit the file object by object in original order; bytes between objects are kept.
+  return rewrite(input, doc, replacement);
+}
+
+// Re-emit the file object by object in original order; bytes between objects are kept. A
+// replacement maps obj num -> Buffer ("N 0 obj ... endobj") or null to drop the object.
+export function rewrite(input, doc, replacement) {
   const order = [...doc.offsets].sort((a, b) => a[1] - b[1]);
   const out = [input.subarray(0, order[0][1])];
-  let pos = order[0][1];
   const newOffsets = new Map();
   let size = out[0].length;
   for (const [num, off] of order) {
     const o = doc.obj(num);
-    if (off !== pos) throw new Error(`gap before object ${num}`);
     const next = order.find(([, x]) => x > off)?.[1] ?? doc.xrefOffset;
+    if (replacement.get(num) === null) continue;
     const gap = input.subarray(o.end, next); // whitespace after endobj
     const bytes = replacement.get(num) ?? input.subarray(off, o.end);
     newOffsets.set(num, size);
     out.push(bytes, gap);
     size += bytes.length + gap.length;
-    pos = next;
   }
 
   const maxNum = Math.max(...doc.offsets.keys());

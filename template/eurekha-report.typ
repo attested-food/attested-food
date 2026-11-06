@@ -8,6 +8,11 @@
 #import "@preview/tiaoma:0.3.0": qrcode
 
 #let data = json(sys.inputs.at("data", default: "/data/choco-millet-muesli.json"))
+// Prover-friendly variant (scripts/build-opt.mjs): QR as a raster image (path in input `qr`),
+// no kerning, no bold face (one font fewer). Same text runs in the same order.
+#let OPT = sys.inputs.at("opt", default: "0") == "1"
+#let BOLD = if OPT { "regular" } else { "bold" }
+#show strong: it => if OPT { it.body } else { it }
 
 #let BODY_FONT = "Libertinus Serif"
 #let PII_FONT = "DejaVu Sans Mono"
@@ -24,7 +29,7 @@
 #let muted = rgb("#5b6770")
 
 #set document(title: "Eurekha Labs Test Report " + data.report.number, author: "Eurekha Labs Pvt. Ltd.")
-#set text(font: BODY_FONT, size: 9.5pt)
+#set text(font: BODY_FONT, size: 9.5pt, kerning: not OPT)
 #set par(leading: 0.55em)
 
 #let pii-line(s) = {
@@ -51,12 +56,12 @@
     columns: (1fr, auto),
     align: (left + horizon, right + horizon),
     [
-      #text(size: 17pt, weight: "bold", fill: accent)[EUREKHA LABS] \
+      #text(size: 17pt, weight: BOLD, fill: accent)[EUREKHA LABS] \
       #text(size: 7.5pt, fill: muted)[Eurekha Labs Pvt. Ltd. · Food, Water & Environment Testing] \
       #text(size: 7.5pt, fill: muted)[Testing Lab Address : #data.lab.address]
     ],
     [
-      #text(size: 13pt, weight: "bold")[TEST REPORT] \
+      #text(size: 13pt, weight: BOLD)[TEST REPORT] \
       #text(size: 7.5pt, fill: muted)[Accreditation No. #data.lab.accreditation]
     ],
   )
@@ -96,7 +101,7 @@
   width: 100%,
   inset: (x: 4pt, y: 3pt),
   fill: accent.lighten(85%),
-  text(weight: "bold", fill: accent, title),
+  text(weight: BOLD, fill: accent, title),
 )
 
 #let kv(rows) = grid(
@@ -149,7 +154,7 @@ Quantity & Condition : #data.sample.condition
 )
 
 #v(4pt)
-#align(center, text(weight: "bold")[---------- Result of Analysis ----------])
+#align(center, text(weight: BOLD)[---------- Result of Analysis ----------])
 
 #for group in data.results [
   #v(4pt)
@@ -160,7 +165,8 @@ Quantity & Condition : #data.sample.condition
     align: (center, left, center, center, center, center, center),
     stroke: 0.4pt + muted,
     fill: (_, y) => if y == 0 { accent.lighten(85%) },
-    table.header(..("No.", "Parameters", "Units", "Methods", "Results of Analysis", "RDA Value*", "% RDA").map(strong)),
+    // OPT: regular weight is narrower, so break "RDA Value*" by hand to keep the bold build's runs.
+    table.header(..("No.", "Parameters", "Units", "Methods", "Results of Analysis", if OPT { [RDA \ Value\*] } else { "RDA Value*" }, "% RDA").map(strong)),
     ..group.rows.enumerate().map(((i, r)) => (
       str(i + 1), r.parameter, r.unit, r.method, strong(r.result), r.rda, r.rda_pct,
     )).flatten(),
@@ -185,7 +191,9 @@ Quantity & Condition : #data.sample.condition
     - The information provided by the customer can affect the validity of results.
   ],
   [
-    #qrcode(report-url, options: (scale: 1.6)) \
+    #let qr = qrcode(report-url, options: (scale: 1.6))
+    // OPT: same QR as a raster image, sized like the vector one so page breaks do not move.
+    #if OPT { context image(sys.inputs.qr, width: measure(qr).width, height: measure(qr).height) } else { qr } \
     #text(size: 7.5pt)[Download Report]
     #v(6pt)
     *#data.lab.signatory* \
@@ -194,5 +202,5 @@ Quantity & Condition : #data.sample.condition
 )
 
 #v(6pt)
-#align(center, text(weight: "bold")[---------- End Of Report ----------])
+#align(center, text(weight: BOLD)[---------- End Of Report ----------])
 

@@ -38,6 +38,27 @@ export function pageText(buf) {
   return text;
 }
 
+// One decoded string per text-show operator (a whole TJ array is one run), in content order:
+// the unit the guest's key/value extraction works on.
+export function pageRuns(buf) {
+  const doc = new Doc(buf);
+  const runs = [];
+  for (const page of doc.pages()) {
+    const fonts = doc.fonts(page.resources);
+    for (const num of page.contents) {
+      let last = -1;
+      scanText(doc.streamData(doc.obj(num)), ({ font, str, opIndex }) => {
+        const f = fonts.get(font);
+        const t = hexOf(str.str).match(/.{4}/g)?.map((c) => f.toUnicode.get(c) ?? "\uFFFD").join("") ?? "";
+        if (opIndex === last) runs[runs.length - 1] += t;
+        else runs.push(t);
+        last = opIndex;
+      });
+    }
+  }
+  return runs;
+}
+
 function assertGone(buf, data) {
   const c = data.customer;
   const needles = [c.name, c.contact, ...[c.address].flat()].filter(Boolean);
