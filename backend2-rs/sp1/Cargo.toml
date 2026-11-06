@@ -1,0 +1,35 @@
+[package]
+name = "eurekha-sp1"
+description = "SP1 v6 prover for the TLSNotary-attested Eurekha statement: guest (guest/) and a CLI that emits Groth16 artifacts for the Solidity registry"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+# Own workspace: sp1-sdk's dependency tree stays out of the OpenVM server's lock.
+# Cargo.lock started as a copy of the Equinox backend's (sp1-sdk 6.10.0).
+[workspace]
+
+[dependencies]
+equinox-core = { path = "../core", features = ["std", "serde", "json", "k256"] }
+sp1-sdk = { version = "6.10.0", features = ["blocking", "native-gnark"] }
+sp1-verifier = "6.10.0"
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+serde_json = "1.0"
+hex = "0.4"
+tokio = { version = "1", features = ["rt-multi-thread"] }
+
+[features]
+# SP1_PROVER=cuda needs this SDK feature; CPU remains the default.
+cuda = ["sp1-sdk/cuda"]
+
+[build-dependencies]
+sp1-build = "6.10.0"
+
+[profile.release]
+opt-level = 3
+
+# sp1-sdk is unusably slow unoptimized.
+[profile.dev.package."*"]
+opt-level = 3

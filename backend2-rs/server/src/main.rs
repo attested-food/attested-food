@@ -13,14 +13,26 @@
 //!   statement natively first (rejects a bad PDF or attestation and anything
 //!   that would publish customer PII), then executes the guest and, for
 //!   `stark`, proves, verifies and returns the proof.
+//! - `POST /prove?mode=sp1-groth16|openvm-halo2` (`format=eurekha-attested`
+//!   only): an EVM-verifiable proof of the same statement. `sp1-groth16`: SP1,
+//!   wrapped in Groth16 by the warm worker ([`sp1`]). `openvm-halo2`: OpenVM's
+//!   Halo2/KZG wrapper (`OpenVmHalo2Verifier.sol`). Returns `artifact` `{ vkey,
+//!   publicValues, proof, notarySignature }`, the arguments of
+//!   `EurekhaReportRegistry.submit` (`../contracts`).
 //! - `POST /verify`: JSON `{ proof, publicValues }` (base64, hex).
 //!
-//! `BIND` (default `127.0.0.1:8793`), `NOTARY_ADDRESS` (the notary attested
+//! Both provers are warmed at start: OpenVM keygen runs, and the SP1 worker
+//! sets up (and with `EUREKHA_SP1_WARM_RUN`, a `zktls` run dir, proves it
+//! once so the Groth16 key is loaded).
+//!
+//! `BIND` (default `127.0.0.1:8793`), `EUREKHA_SP1_BIN` (default
+//! `../sp1/target/release/eurekha-sp1`), `EUREKHA_SP1_WARM_RUN`, `NOTARY_ADDRESS` (the notary attested
 //! reports must be signed by, hex; default the public dev notary), `RUST_LOG`.
 
 mod prover;
+mod sp1;
 
-use std::{panic::AssertUnwindSafe, time::Instant};
+use std::{panic::AssertUnwindSafe, sync::LazyLock, time::Instant};
 
 use axum::{
     extract::{DefaultBodyLimit, Multipart, Query, State},
@@ -30,12 +42,15 @@ use axum::{
     Json, Router,
 };
 use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
-use equinox_core::tlsn::{OnchainRequest, OnchainTlsn, RequestSecret};
+use equinox_core::tlsn::RequestSecret;
 use equinox_core::{PublicValues, BLINDER_LEN, DEFAULT_LABELS};
 use prover::{Attested, GuestInput, ProgramCommit, Prover, Timings};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
+
+/// The warm SP1 Groth16 worker.
+static SP1: LazyLock<sp1::Worker> = LazyLock::new(sp1::Worker::new);
 
 struct ApiError(StatusCode, String);
 
@@ -102,6 +117,10 @@ struct ProveResponse {
     proof: Option<String>,
     proof_bytes: usize,
     timings_ms: TimingsOut,
+    /// EVM modes: `{ prover, mode, vkey, publicValues, proof, notarySignature, timingsMs }`,
+    /// hex; `publicValues`, `proof` and `notarySignature` are `EurekhaReportRegistry.submit`'s arguments.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    artifact: Option<serde_json::Value>,
 }
 
 #[derive(Serialize)]
@@ -226,52 +245,13 @@ fn notary_address() -> Result<[u8; 20], ApiError> {
         .ok_or_else(|| internal("NOTARY_ADDRESS is not a 20-byte hex address"))
 }
 
-/// `onchain.json` (0x-hex fields, as `zktls::onchain::Export::to_json` writes it)
-/// and `request.json` (serde `RequestSecret`).
+/// `onchain.json` and `request.json` (serde `RequestSecret`) of a `zktls` run.
 fn parse_attested(onchain: &str, request: &str) -> Result<Attested, ApiError> {
-    let d: serde_json::Value = serde_json::from_str(onchain).map_err(|e| bad(format!("onchain: {e}")))?;
-    let h = |k: &str| -> Result<Vec<u8>, ApiError> {
-        let s = d[k].as_str().ok_or_else(|| bad(format!("onchain: missing {k}")))?;
-        hex::decode(s.trim_start_matches("0x")).map_err(|e| bad(format!("onchain {k}: {e}")))
-    };
-    let n = |k: &str| d[k].as_u64().map(|v| v as u32).ok_or_else(|| bad(format!("onchain: missing {k}")));
-    let hexes = |k: &str| -> Result<Vec<Vec<u8>>, ApiError> {
-        d[k].as_array()
-            .ok_or_else(|| bad(format!("onchain: missing {k}")))?
-            .iter()
-            .map(|v| {
-                hex::decode(v.as_str().unwrap_or_default().trim_start_matches("0x"))
-                    .map_err(|e| bad(format!("onchain {k}: {e}")))
-            })
-            .collect()
-    };
-    let leaves = hexes("leaves")?
-        .into_iter()
-        .map(|l| l.try_into().map_err(|_| bad("onchain: a leaf is not 32 bytes")))
-        .collect::<Result<_, _>>()?;
-    let sent_index = d["sentIndices"]
-        .as_array()
-        .ok_or_else(|| bad("onchain: missing sentIndices"))?
-        .iter()
-        .map(|v| v.as_u64().map(|v| v as u32).ok_or_else(|| bad("onchain: bad sentIndices")))
-        .collect::<Result<_, _>>()?;
+    let (tlsn, request_leaves) = equinox_core::tlsn::from_onchain_json(onchain).map_err(bad)?;
     Ok(Attested {
         notary: notary_address()?,
-        tlsn: OnchainTlsn {
-            header: h("header")?,
-            signature: h("signature")?,
-            leaves,
-            ext_index: n("extIndex")?,
-            ext_preimage: h("extPreimage")?,
-            body_index: n("bodyIndex")?,
-            body_preimage: h("bodyPreimage")?,
-        },
-        request: OnchainRequest {
-            conn_index: n("connIndex")?,
-            conn_preimage: h("connPreimage")?,
-            sent_index,
-            sent_preimage: hexes("sentPreimages")?,
-        },
+        tlsn,
+        request: request_leaves,
         secret: serde_json::from_str::<RequestSecret>(request).map_err(|e| bad(format!("request: {e}")))?,
     })
 }
@@ -356,11 +336,18 @@ async fn prove(
     mp: Multipart,
 ) -> Result<Json<ProveResponse>, ApiError> {
     let stark = match q.mode.as_str() {
-        "stark" => true,
+        "stark" | "sp1-groth16" | "openvm-halo2" => true,
         "execute" => false,
-        m => return Err(bad(format!("unknown mode {m:?} (stark | execute)"))),
+        m => return Err(bad(format!("unknown mode {m:?} (stark | execute | sp1-groth16 | openvm-halo2)"))),
     };
     let form = read_form(mp).await?;
+    let evm = q.mode == "sp1-groth16" || q.mode == "openvm-halo2";
+    if evm && form.format != Format::EurekhaAttested {
+        return Err(bad(format!("mode={} is offered for format=eurekha-attested only", q.mode)));
+    }
+    if q.mode == "openvm-halo2" {
+        return Err(ApiError(StatusCode::NOT_IMPLEMENTED, "mode=openvm-halo2 is not built yet".into()));
+    }
     let total = Instant::now();
     let buffer = equinox_core::input_buffer(&form.pdf, &form.blinder);
 
@@ -386,6 +373,37 @@ async fn prove(
     tracing::info!(format = format.name(), pdf_bytes = form.pdf.len(), preflight_ms, "preflight ok");
 
     let notary_signature = attested.as_ref().map(|a| hex::encode(&a.tlsn.signature));
+    if q.mode == "sp1-groth16" {
+        let (pdf, blinder) = (form.pdf.clone(), form.blinder);
+        let (onchain, request) = (form.onchain.clone().unwrap_or_default(), form.request.clone().unwrap_or_default());
+        let artifact = tokio::task::spawn_blocking(move || SP1.prove(&pdf, &blinder, &onchain, &request))
+            .await
+            .map_err(|e| internal(e.to_string()))?
+            .map_err(internal)?;
+        if artifact["publicValues"].as_str() != Some(format!("0x{}", hex::encode(&public_values)).as_str()) {
+            return Err(internal("SP1 proof commits other public values than the native run"));
+        }
+        return Ok(Json(ProveResponse {
+            mode: q.mode,
+            format: format.name().into(),
+            public_values: pre.json,
+            notary_signature,
+            redacted_pdf: pre.redacted_pdf.map(|b| B64.encode(b)),
+            public_values_hex: hex::encode(&public_values),
+            revealed: String::new(),
+            blinder: hex::encode(form.blinder),
+            instructions: 0,
+            program: None,
+            proof_bytes: artifact["proof"].as_str().map_or(0, |p| p.len() / 2 - 1),
+            proof: None,
+            timings_ms: TimingsOut {
+                preflight: preflight_ms,
+                prover: Timings { prove_ms: artifact["timingsMs"]["prove"].as_u64(), ..Default::default() },
+                total: total.elapsed().as_millis() as u64,
+            },
+            artifact: Some(artifact),
+        }));
+    }
     let proved =
         prover.run(GuestInput { format: format.byte(), labels, attested, buffer }, stark).await.map_err(internal)?;
     if proved.revealed != equinox_core::sha::sha256(&public_values) {
@@ -405,6 +423,7 @@ async fn prove(
         program: proved.program,
         proof_bytes: proved.proof.len(),
         proof: stark.then(|| B64.encode(&proved.proof)),
+        artifact: None,
         timings_ms: TimingsOut {
             preflight: preflight_ms,
             prover: proved.timings,
@@ -442,8 +461,8 @@ async fn program(State(prover): State<Prover>) -> Result<Json<ProgramCommit>, Ap
 
 async fn health() -> Json<serde_json::Value> {
     match prover::guest_built() {
-        Ok(n) => Json(json!({ "ok": true, "guestElfBytes": n })),
-        Err(e) => Json(json!({ "ok": false, "error": e })),
+        Ok(n) => Json(json!({ "ok": true, "guestElfBytes": n, "sp1": SP1.status() })),
+        Err(e) => Json(json!({ "ok": false, "error": e, "sp1": SP1.status() })),
     }
 }
 
@@ -457,6 +476,19 @@ async fn main() {
         )
         .init();
     let prover = Prover::spawn();
+    // Warm both provers in the background: OpenVM keygen, SP1 setup (+ warm-up proof).
+    let warm = prover.clone();
+    tokio::spawn(async move {
+        match warm.program().await {
+            Ok(_) => tracing::info!("openvm keys ready"),
+            Err(e) => tracing::warn!("openvm keygen: {e}"),
+        }
+    });
+    std::thread::spawn(|| {
+        if let Err(e) = SP1.ensure_started() {
+            tracing::warn!("sp1 worker not started: {e}");
+        }
+    });
     let app = Router::new()
         .route("/health", get(health))
         .route("/program", get(program))

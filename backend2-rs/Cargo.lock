@@ -1048,6 +1048,7 @@ dependencies = [
  "equinox-core",
  "getrandom 0.2.17",
  "hex",
+ "libc",
  "openvm-platform",
  "openvm-sdk",
  "openvm-sdk-config",

@@ -1,0 +1,12 @@
+[package]
+name = "eurekha-sp1-guest"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Built by ../build.rs (sp1-build) for the SP1 RISC-V target.
+[workspace]
+
+[dependencies]
+sp1-zkvm = { version = "6.10.0", features = ["bump"] }
+equinox-core = { path = "../../core", features = ["sp1", "serde"] }

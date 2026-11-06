@@ -21,12 +21,16 @@ all-pages = []
 serde = ["dep:serde"]
 # `tlsn::K256Recover`: notary signature recovery with k256 + keccak256, no_std.
 k256 = ["dep:k256", "dep:sha3"]
+# `tlsn::from_onchain_json`: parse `zktls` `onchain.json` (hosts only).
+json = ["std", "serde", "dep:serde_json", "dep:hex"]
 
 [dependencies]
 serde = { version = "1.0", default-features = false, features = ["derive", "alloc"], optional = true }
 openvm-sha2-guest = { version = "2.1.0", optional = true }
 k256 = { version = "0.13", default-features = false, features = ["ecdsa"], optional = true }
 sha3 = { version = "0.10", default-features = false, optional = true }
+serde_json = { version = "1.0", optional = true }
+hex = { version = "0.4", optional = true }
 
 [dev-dependencies]
 equinox-core = { path = ".", features = ["std", "serde", "k256"] }

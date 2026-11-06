@@ -5,3 +5,5 @@
 /zktls/runs
 # Report PDFs carry customer PII.
 *.pdf
+/sp1/target
+/sp1/guest/target

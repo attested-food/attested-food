@@ -395,6 +395,39 @@ const fn nib(c: u8) -> u8 {
     }
 }
 
+/// `onchain.json` of a `zktls` run (0x-hex fields, `zktls::onchain::Export::to_json`).
+#[cfg(feature = "json")]
+pub fn from_onchain_json(onchain: &str) -> Result<(OnchainTlsn, OnchainRequest), String> {
+    let d: serde_json::Value = serde_json::from_str(onchain).map_err(|e| alloc::format!("onchain: {e}"))?;
+    let hx = |v: &serde_json::Value, k: &str| -> Result<Vec<u8>, String> {
+        let s = v.as_str().ok_or_else(|| alloc::format!("onchain: {k} is not a string"))?;
+        hex::decode(s.trim_start_matches("0x")).map_err(|e| alloc::format!("onchain {k}: {e}"))
+    };
+    let h = |k: &str| hx(&d[k], k);
+    let n = |v: &serde_json::Value, k: &str| v.as_u64().map(|v| v as u32).ok_or_else(|| alloc::format!("onchain: {k}"));
+    let arr = |k: &str| d[k].as_array().ok_or_else(|| alloc::format!("onchain: missing {k}"));
+    let leaves = arr("leaves")?
+        .iter()
+        .map(|l| hx(l, "leaves")?.try_into().map_err(|_| String::from("onchain: a leaf is not 32 bytes")))
+        .collect::<Result<_, _>>()?;
+    let t = OnchainTlsn {
+        header: h("header")?,
+        signature: h("signature")?,
+        leaves,
+        ext_index: n(&d["extIndex"], "extIndex")?,
+        ext_preimage: h("extPreimage")?,
+        body_index: n(&d["bodyIndex"], "bodyIndex")?,
+        body_preimage: h("bodyPreimage")?,
+    };
+    let r = OnchainRequest {
+        conn_index: n(&d["connIndex"], "connIndex")?,
+        conn_preimage: h("connPreimage")?,
+        sent_index: arr("sentIndices")?.iter().map(|v| n(v, "sentIndices")).collect::<Result<_, _>>()?,
+        sent_preimage: arr("sentPreimages")?.iter().map(|v| hx(v, "sentPreimages")).collect::<Result<_, _>>()?,
+    };
+    Ok((t, r))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

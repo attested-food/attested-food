@@ -33,14 +33,24 @@ const OPENVM_TOML: &str = include_str!("../../guest/openvm.toml");
 /// (OpenVM peaks near 19 GB). Released on drop.
 const PROVE_LOCK: &str = "/tmp/equinox-prove.lock.d";
 
-struct ProveLock;
+/// The machine-wide prove lock: the `mkdir` lock [`PROVE_LOCK`] or, with
+/// `PROVE_FLOCK=<file>`, an exclusive `flock` on that file (the GPU box's
+/// `heavy` lock, `~/locks/cpugpu.lock`, whose holder line goes to the sibling
+/// `.holder` file). Released on drop.
+pub(crate) enum ProveLock {
+    Dir,
+    Flock { _file: std::fs::File, holder: Option<std::path::PathBuf> },
+}
 
 impl ProveLock {
-    fn acquire() -> std::io::Result<Self> {
+    pub(crate) fn acquire() -> std::io::Result<Self> {
+        if let Some(path) = std::env::var_os("PROVE_FLOCK") {
+            return Self::flock(std::path::Path::new(&path));
+        }
         let mut waited = false;
         loop {
             match std::fs::create_dir(PROVE_LOCK) {
-                Ok(()) => return Ok(ProveLock),
+                Ok(()) => return Ok(ProveLock::Dir),
                 Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
                     if !waited {
                         tracing::info!("waiting for {PROVE_LOCK} ...");
@@ -52,11 +62,36 @@ impl ProveLock {
             }
         }
     }
+
+    fn flock(path: &std::path::Path) -> std::io::Result<Self> {
+        use std::os::fd::AsRawFd;
+        let file = std::fs::OpenOptions::new().create(true).append(true).open(path)?;
+        if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+            tracing::info!("waiting for {} ...", path.display());
+            if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+        }
+        let holder = (path.extension().is_some_and(|e| e == "lock")).then(|| path.with_extension("holder"));
+        if let Some(h) = &holder {
+            let _ = std::fs::write(h, format!("backend2-rs prove pid={}\n", std::process::id()));
+        }
+        Ok(ProveLock::Flock { _file: file, holder })
+    }
 }
 
 impl Drop for ProveLock {
     fn drop(&mut self) {
-        let _ = std::fs::remove_dir(PROVE_LOCK);
+        match self {
+            ProveLock::Dir => {
+                let _ = std::fs::remove_dir(PROVE_LOCK);
+            }
+            ProveLock::Flock { holder, .. } => {
+                if let Some(h) = holder {
+                    let _ = std::fs::write(h, "");
+                }
+            }
+        }
     }
 }
 
