@@ -14,6 +14,20 @@ Sharing that report creates two problems: it can reveal the contributor’s iden
 
 There is also a cost barrier. One person may not want to pay for a test that would benefit many consumers.
 
+## Two data layers
+
+**Primary: user-commissioned lab reports (the core USP).** A user buys a product, gets it tested at a reputed lab (e.g. Equinox Labs, Eurofins), and uploads the report PDF. attested.food proves the PDF genuinely came from that lab and has not been altered, while hiding the user's personal details (name, address, phone, email, etc.). Only the test findings are published.
+
+**Fallback: data from existing trusted testing websites (bootstrap).** Before enough user reports exist, the product is empty. To bootstrap, we import published test results from established third-party testing sites (e.g. [Trustified](https://www.trustified.in/passandfail/truebasicsplantprotein)). These are shown with clear attribution: *"If you trust <source>, this is what <source> reports for this product."* We do not claim to have verified this data ourselves; it is the source's word.
+
+Display rule per product:
+
+1. If a verified user lab report exists → show it (primary).
+2. Otherwise → show fallback data from trusted sources, labelled with the source and a link back.
+3. If neither exists → offer a community-funded test campaign.
+
+Candidate fallback sources are tracked in [data-sources.md](data-sources.md).
+
 ## The solution
 
 attested.food gives contributors a way to submit lab reports, prove selected details about their source and contents, and share the results with others while keeping personal information private.
@@ -41,6 +55,7 @@ These checks establish evidence about a report’s source and integrity. They do
 The prototype will focus on one product category and a small set of sample reports. It will include:
 
 - A page to upload a report and redact personal details.
+- Fallback product data imported from trusted testing websites, shown when no verified user report exists.
 - A verification flow for a supported lab email or digitally signed report.
 - A public report page with selected findings and an on-chain report hash.
 - A smart contract for product-specific testing campaigns and transparent contributions.
