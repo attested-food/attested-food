@@ -91,8 +91,7 @@ impl Eurekha {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EurekhaAttested {
-    /// The pinned notary's Ethereum address; a verifier must check it.
-    pub notary: [u8; 20],
+    pub signer: Signer,
     /// The notary-signed server name (the bucket host).
     pub server_name: String,
     /// TLS session time (unix seconds).
@@ -103,12 +102,35 @@ pub struct EurekhaAttested {
     pub report: Eurekha,
 }
 
+/// Who checked the notary signature.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum Signer {
+    /// The guest recovered this notary address from the header signature; a
+    /// verifier checks it is the notary it trusts.
+    Notary([u8; 20]),
+    /// The guest did not: a verifier must check a notary signature over
+    /// `keccak256(header)` (the BCS attestation header, which pins every leaf).
+    Header(Vec<u8>),
+}
+
 impl EurekhaAttested {
-    /// `notary | session_time u64 LE | server_name (u64-LE-length-prefixed) |
+    /// `0x00 | notary` or `0x01 | header (u64-LE-length-prefixed)`, then
+    /// `session_time u64 LE | server_name (u64-LE-length-prefixed) |
     /// key_sha256 |` [`Eurekha::encode`].
     pub fn encode(&self) -> Vec<u8> {
         let mut out = Vec::with_capacity(2048);
-        out.extend_from_slice(&self.notary);
+        match &self.signer {
+            Signer::Notary(a) => {
+                out.push(0);
+                out.extend_from_slice(a);
+            }
+            Signer::Header(h) => {
+                out.push(1);
+                out.extend_from_slice(&(h.len() as u64).to_le_bytes());
+                out.extend_from_slice(h);
+            }
+        }
         out.extend_from_slice(&self.session_time.to_le_bytes());
         put_str(&mut out, &self.server_name);
         out.extend_from_slice(&self.key_sha256);
@@ -457,11 +479,34 @@ pub fn run_attested(
     sig: &impl tlsn::NotarySignature,
 ) -> Result<EurekhaAttested, tlsn::TlsnError> {
     let body = tlsn::check(t, notary, sig)?;
+    attested(buf, t, req, secret, body, Signer::Notary(*notary))
+}
+
+/// [`run_attested`] with the notary signature left to the verifier
+/// ([`tlsn::check_unsigned`], [`Signer::Header`]).
+pub fn run_attested_unsigned(
+    buf: &[u8],
+    t: &tlsn::OnchainTlsn,
+    req: &tlsn::OnchainRequest,
+    secret: &tlsn::RequestSecret,
+) -> Result<EurekhaAttested, tlsn::TlsnError> {
+    let body = tlsn::check_unsigned(t)?;
+    attested(buf, t, req, secret, body, Signer::Header(t.header.clone()))
+}
+
+fn attested(
+    buf: &[u8],
+    t: &tlsn::OnchainTlsn,
+    req: &tlsn::OnchainRequest,
+    secret: &tlsn::RequestSecret,
+    body: tlsn::AttestedBody,
+    signer: Signer,
+) -> Result<EurekhaAttested, tlsn::TlsnError> {
     let request = tlsn::open_request(t, &body, req, secret)?;
     let report = run(buf);
     tlsn::bind_body(&body, &report.body_commitment, report.pdf_len as u64)?;
     Ok(EurekhaAttested {
-        notary: *notary,
+        signer,
         server_name: body.server_name.into(),
         session_time: request.session_time,
         key_sha256: request.key_sha256,

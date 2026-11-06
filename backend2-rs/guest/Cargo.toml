@@ -9,7 +9,7 @@ publish = false
 
 [dependencies]
 openvm = "2.1.0"
-equinox-core = { path = "../core", features = ["openvm"] }
+equinox-core = { path = "../core", features = ["openvm", "serde", "k256"] }
 
 [profile.release]
 lto = "fat"

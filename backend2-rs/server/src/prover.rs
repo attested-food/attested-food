@@ -11,6 +11,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use equinox_core::tlsn::{OnchainRequest, OnchainTlsn, RequestSecret};
 use openvm_sdk::{
     config::{default_system_params, AggregationSystemParams, AppConfig},
     openvm_circuit::arch::instructions::exe::VmExe,
@@ -90,12 +91,25 @@ pub struct Proved {
 }
 
 pub struct GuestInput {
-    /// Report format byte the guest dispatches on: 0 Equinox, 1 Eurekha.
+    /// Report format byte the guest dispatches on: 0 Equinox, 1 Eurekha,
+    /// 2 Eurekha with its TLSNotary attestation (signature checked by the
+    /// verifier), 3 the same with the signature checked in the guest.
     pub format: u8,
     /// Analyte labels (Equinox only).
     pub labels: Vec<String>,
+    /// Formats 2 and 3.
+    pub attested: Option<Attested>,
     /// `pdf || blinder`.
     pub buffer: Vec<u8>,
+}
+
+/// The attestation inputs of formats 2 and 3, in the order the guest reads
+/// them (`notary` in format 3 only).
+pub struct Attested {
+    pub notary: [u8; 20],
+    pub tlsn: OnchainTlsn,
+    pub request: OnchainRequest,
+    pub secret: RequestSecret,
 }
 
 enum Job {
@@ -232,6 +246,14 @@ impl Engine {
         s.write(&input.format);
         if input.format == 0 {
             s.write(&input.labels);
+        }
+        if let Some(a) = &input.attested {
+            if input.format == 3 {
+                s.write(&a.notary);
+            }
+            s.write(&a.tlsn);
+            s.write(&a.request);
+            s.write(&a.secret);
         }
         s.write_bytes(&input.buffer);
         s

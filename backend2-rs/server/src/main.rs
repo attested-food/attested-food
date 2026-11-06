@@ -1,16 +1,22 @@
-//! `equinox-openvm-server`: an Equinox lab-report PDF in, an OpenVM STARK
-//! proof of the chosen test values out.
+//! `equinox-openvm-server`: a lab-report PDF in, an OpenVM STARK proof of the
+//! extracted values out.
 //!
 //! - `GET  /health`: is the guest built.
 //! - `GET  /program`: the pinned program's commitments (runs keygen once).
 //! - `POST /prove?mode=stark|execute`: multipart `pdf` (file), optional
 //!   `labels` (comma-separated analytes) and `blinder` (32 hex chars; random
-//!   if absent). Runs the extraction natively first (rejects a bad PDF and
-//!   anything that would publish customer PII), then executes the guest and,
-//!   for `stark`, proves, verifies and returns the proof.
+//!   if absent), `format` (`equinox`, `eurekha`, `eurekha-attested`,
+//!   `eurekha-attested-sig`). The attested ones also take `onchain` and
+//!   `request` (the `onchain.json` and `request.json` of a `zktls` run) and the
+//!   TLS body `blinder`; `eurekha-attested` leaves the notary signature over
+//!   `keccak256(header)` to the verifier, `-sig` checks it in the guest. Runs the
+//!   statement natively first (rejects a bad PDF or attestation and anything
+//!   that would publish customer PII), then executes the guest and, for
+//!   `stark`, proves, verifies and returns the proof.
 //! - `POST /verify`: JSON `{ proof, publicValues }` (base64, hex).
 //!
-//! `BIND` (default `127.0.0.1:8793`), `RUST_LOG`.
+//! `BIND` (default `127.0.0.1:8793`), `NOTARY_ADDRESS` (the notary attested
+//! reports must be signed by, hex; default the public dev notary), `RUST_LOG`.
 
 mod prover;
 
@@ -24,8 +30,9 @@ use axum::{
     Json, Router,
 };
 use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
+use equinox_core::tlsn::{OnchainRequest, OnchainTlsn, RequestSecret};
 use equinox_core::{PublicValues, BLINDER_LEN, DEFAULT_LABELS};
-use prover::{GuestInput, ProgramCommit, Prover, Timings};
+use prover::{Attested, GuestInput, ProgramCommit, Prover, Timings};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -67,13 +74,19 @@ fn default_mode() -> String {
 #[serde(rename_all = "camelCase")]
 struct ProveResponse {
     mode: String,
-    /// `equinox` or `eurekha`.
+    /// `equinox`, `eurekha`, `eurekha-attested` or `eurekha-attested-sig`.
     format: String,
     /// Decoded public values (hashes in hex). Equinox: report number, product,
     /// ULR, issue date, chosen rows, body commitment. Eurekha: body
     /// commitment, redacted-PDF hash and spans, every non-customer key-value
-    /// pair and result row.
+    /// pair and result row. Eurekha attested: the signer (attestation header,
+    /// or with `-sig` the notary address), bucket host, session time,
+    /// `sha256(object key)` and the Eurekha values under `report`.
     public_values: serde_json::Value,
+    /// Attested formats: the notary signature over `keccak256(header)`, what a
+    /// verifier of `eurekha-attested` checks (`ecrecover`) against its notary.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    notary_signature: Option<String>,
     /// Eurekha: the redacted PDF (base64), the file whose sha256 is committed.
     #[serde(skip_serializing_if = "Option::is_none")]
     redacted_pdf: Option<String>,
@@ -106,10 +119,14 @@ struct Form {
     pdf: Vec<u8>,
     labels: Vec<String>,
     blinder: [u8; BLINDER_LEN],
+    blinder_given: bool,
+    onchain: Option<String>,
+    request: Option<String>,
 }
 
 async fn read_form(mut mp: Multipart) -> Result<Form, ApiError> {
     let (mut pdf, mut labels, mut blinder, mut format) = (None, Vec::new(), None, Format::Equinox);
+    let (mut onchain, mut request) = (None, None);
     while let Some(field) = mp.next_field().await.map_err(|e| bad(format!("multipart: {e}")))? {
         match field.name() {
             Some("pdf") => pdf = Some(field.bytes().await.map_err(|e| bad(format!("pdf: {e}")))?.to_vec()),
@@ -121,7 +138,13 @@ async fn read_form(mut mp: Multipart) -> Result<Form, ApiError> {
                 format = match field.text().await.map_err(|e| bad(format!("format: {e}")))?.trim() {
                     "equinox" => Format::Equinox,
                     "eurekha" => Format::Eurekha,
-                    f => return Err(bad(format!("unknown format {f:?} (equinox | eurekha)"))),
+                    "eurekha-attested" => Format::EurekhaAttested,
+                    "eurekha-attested-sig" => Format::EurekhaAttestedSig,
+                    f => {
+                        return Err(bad(format!(
+                            "unknown format {f:?} (equinox | eurekha | eurekha-attested | eurekha-attested-sig)"
+                        )))
+                    }
                 }
             }
             Some("blinder") => {
@@ -129,10 +152,13 @@ async fn read_form(mut mp: Multipart) -> Result<Form, ApiError> {
                 let b = hex::decode(s.trim().trim_start_matches("0x")).map_err(|e| bad(format!("blinder: {e}")))?;
                 blinder = Some(b.try_into().map_err(|_| bad(format!("blinder must be {BLINDER_LEN} bytes")))?);
             }
+            Some("onchain") => onchain = Some(field.text().await.map_err(|e| bad(format!("onchain: {e}")))?),
+            Some("request") => request = Some(field.text().await.map_err(|e| bad(format!("request: {e}")))?),
             _ => {}
         }
     }
     let pdf = pdf.ok_or_else(|| bad("missing `pdf` file field"))?;
+    let blinder_given = blinder.is_some();
     if labels.is_empty() {
         labels = DEFAULT_LABELS.iter().map(|s| s.to_string()).collect();
     }
@@ -144,13 +170,15 @@ async fn read_form(mut mp: Multipart) -> Result<Form, ApiError> {
             b
         }
     };
-    Ok(Form { format, pdf, labels, blinder })
+    Ok(Form { format, pdf, labels, blinder, blinder_given, onchain, request })
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Format {
     Equinox,
     Eurekha,
+    EurekhaAttested,
+    EurekhaAttestedSig,
 }
 
 impl Format {
@@ -162,6 +190,8 @@ impl Format {
         match self {
             Format::Equinox => "equinox",
             Format::Eurekha => "eurekha",
+            Format::EurekhaAttested => "eurekha-attested",
+            Format::EurekhaAttestedSig => "eurekha-attested-sig",
         }
     }
 }
@@ -185,9 +215,87 @@ fn catch<T>(f: impl FnOnce() -> T) -> Result<T, ApiError> {
     })
 }
 
+/// The public dev notary's address (key `[1u8; 32]`, see the backend's `zktls`).
+const DEV_NOTARY: &str = "1a642f0e3c3af545e7acbd38b07251b3990914f1";
+
+fn notary_address() -> Result<[u8; 20], ApiError> {
+    let h = std::env::var("NOTARY_ADDRESS").unwrap_or_else(|_| DEV_NOTARY.into());
+    hex::decode(h.trim().trim_start_matches("0x"))
+        .ok()
+        .and_then(|b| b.try_into().ok())
+        .ok_or_else(|| internal("NOTARY_ADDRESS is not a 20-byte hex address"))
+}
+
+/// `onchain.json` (0x-hex fields, as `zktls::onchain::Export::to_json` writes it)
+/// and `request.json` (serde `RequestSecret`).
+fn parse_attested(onchain: &str, request: &str) -> Result<Attested, ApiError> {
+    let d: serde_json::Value = serde_json::from_str(onchain).map_err(|e| bad(format!("onchain: {e}")))?;
+    let h = |k: &str| -> Result<Vec<u8>, ApiError> {
+        let s = d[k].as_str().ok_or_else(|| bad(format!("onchain: missing {k}")))?;
+        hex::decode(s.trim_start_matches("0x")).map_err(|e| bad(format!("onchain {k}: {e}")))
+    };
+    let n = |k: &str| d[k].as_u64().map(|v| v as u32).ok_or_else(|| bad(format!("onchain: missing {k}")));
+    let hexes = |k: &str| -> Result<Vec<Vec<u8>>, ApiError> {
+        d[k].as_array()
+            .ok_or_else(|| bad(format!("onchain: missing {k}")))?
+            .iter()
+            .map(|v| {
+                hex::decode(v.as_str().unwrap_or_default().trim_start_matches("0x"))
+                    .map_err(|e| bad(format!("onchain {k}: {e}")))
+            })
+            .collect()
+    };
+    let leaves = hexes("leaves")?
+        .into_iter()
+        .map(|l| l.try_into().map_err(|_| bad("onchain: a leaf is not 32 bytes")))
+        .collect::<Result<_, _>>()?;
+    let sent_index = d["sentIndices"]
+        .as_array()
+        .ok_or_else(|| bad("onchain: missing sentIndices"))?
+        .iter()
+        .map(|v| v.as_u64().map(|v| v as u32).ok_or_else(|| bad("onchain: bad sentIndices")))
+        .collect::<Result<_, _>>()?;
+    Ok(Attested {
+        notary: notary_address()?,
+        tlsn: OnchainTlsn {
+            header: h("header")?,
+            signature: h("signature")?,
+            leaves,
+            ext_index: n("extIndex")?,
+            ext_preimage: h("extPreimage")?,
+            body_index: n("bodyIndex")?,
+            body_preimage: h("bodyPreimage")?,
+        },
+        request: OnchainRequest {
+            conn_index: n("connIndex")?,
+            conn_preimage: h("connPreimage")?,
+            sent_index,
+            sent_preimage: hexes("sentPreimages")?,
+        },
+        secret: serde_json::from_str::<RequestSecret>(request).map_err(|e| bad(format!("request: {e}")))?,
+    })
+}
+
+/// `Eurekha` as JSON with its hashes in hex, and the redacted PDF.
+fn eurekha_json(out: &equinox_core::eurekha::Eurekha, buffer: &[u8]) -> (serde_json::Value, Vec<u8>) {
+    let mut redacted = buffer[..out.pdf_len as usize].to_vec();
+    for &(s, e) in &out.spans {
+        redacted[s as usize..e as usize].fill(b'0');
+    }
+    let mut json = serde_json::to_value(out).unwrap_or_default();
+    json["body_commitment"] = json!(hex::encode(out.body_commitment));
+    json["redacted_sha256"] = json!(hex::encode(out.redacted_sha256));
+    (json, redacted)
+}
+
 /// Native run of the same code the guest proves: rejects a PDF the guest would
 /// reject (before seconds of proving) and checks no customer PII is published.
-fn preflight(format: Format, buffer: &[u8], labels: &[String]) -> Result<Preflight, ApiError> {
+fn preflight(
+    format: Format,
+    buffer: &[u8],
+    labels: &[String],
+    attested: Option<&Attested>,
+) -> Result<Preflight, ApiError> {
     match format {
         Format::Equinox => {
             let out = catch(|| equinox_core::run(buffer, labels))?;
@@ -203,13 +311,40 @@ fn preflight(format: Format, buffer: &[u8], labels: &[String]) -> Result<Preflig
         Format::Eurekha => {
             // eurekha::run asserts the PII-line leak check itself.
             let out = catch(|| equinox_core::eurekha::run(buffer))?;
-            let mut redacted = buffer[..out.pdf_len as usize].to_vec();
-            for &(s, e) in &out.spans {
-                redacted[s as usize..e as usize].fill(b'0');
-            }
-            let mut json = serde_json::to_value(&out).unwrap_or_default();
-            json["body_commitment"] = json!(hex::encode(out.body_commitment));
-            json["redacted_sha256"] = json!(hex::encode(out.redacted_sha256));
+            let (json, redacted) = eurekha_json(&out, buffer);
+            Ok(Preflight { public_values: out.encode(), json, redacted_pdf: Some(redacted) })
+        }
+        Format::EurekhaAttested | Format::EurekhaAttestedSig => {
+            use equinox_core::eurekha::{self, Signer};
+            let a = attested.ok_or_else(|| bad("attested formats need `onchain` and `request`"))?;
+            // Both check the signature here, so a forged attestation is never proven.
+            let out = catch(|| {
+                let signed = eurekha::run_attested(
+                    buffer,
+                    &a.tlsn,
+                    &a.request,
+                    &a.secret,
+                    &a.notary,
+                    &equinox_core::tlsn::K256Recover,
+                )?;
+                match format {
+                    Format::EurekhaAttested => eurekha::run_attested_unsigned(buffer, &a.tlsn, &a.request, &a.secret),
+                    _ => Ok(signed),
+                }
+            })?
+            .map_err(|e| bad(format!("attestation rejected: {e:?}")))?;
+            let (report, redacted) = eurekha_json(&out.report, buffer);
+            let signer = match &out.signer {
+                Signer::Notary(n) => json!({ "notary": hex::encode(n) }),
+                Signer::Header(h) => json!({ "header": hex::encode(h) }),
+            };
+            let json = json!({
+                "signer": signer,
+                "server_name": out.server_name,
+                "session_time": out.session_time,
+                "key_sha256": hex::encode(out.key_sha256),
+                "report": report,
+            });
             Ok(Preflight { public_values: out.encode(), json, redacted_pdf: Some(redacted) })
         }
     }
@@ -231,9 +366,18 @@ async fn prove(
 
     let t = Instant::now();
     let format = form.format;
-    let (buffer, labels, pre) = tokio::task::spawn_blocking(move || {
-        let pre = preflight(format, &buffer, &form.labels)?;
-        Ok::<_, ApiError>((buffer, form.labels, pre))
+    let attested = match (format, &form.onchain, &form.request) {
+        (Format::EurekhaAttested | Format::EurekhaAttestedSig, Some(o), Some(r)) if form.blinder_given => {
+            Some(parse_attested(o, r)?)
+        }
+        (Format::EurekhaAttested | Format::EurekhaAttestedSig, ..) => {
+            return Err(bad("attested formats need `onchain`, `request` and the TLS body `blinder`"))
+        }
+        _ => None,
+    };
+    let (buffer, labels, attested, pre) = tokio::task::spawn_blocking(move || {
+        let pre = preflight(format, &buffer, &form.labels, attested.as_ref())?;
+        Ok::<_, ApiError>((buffer, form.labels, attested, pre))
     })
     .await
     .map_err(|e| internal(e.to_string()))??;
@@ -241,7 +385,9 @@ async fn prove(
     let preflight_ms = t.elapsed().as_millis() as u64;
     tracing::info!(format = format.name(), pdf_bytes = form.pdf.len(), preflight_ms, "preflight ok");
 
-    let proved = prover.run(GuestInput { format: format.byte(), labels, buffer }, stark).await.map_err(internal)?;
+    let notary_signature = attested.as_ref().map(|a| hex::encode(&a.tlsn.signature));
+    let proved =
+        prover.run(GuestInput { format: format.byte(), labels, attested, buffer }, stark).await.map_err(internal)?;
     if proved.revealed != equinox_core::sha::sha256(&public_values) {
         return Err(internal("guest revealed digest is not sha256(public values)"));
     }
@@ -250,6 +396,7 @@ async fn prove(
         mode: q.mode,
         format: format.name().into(),
         public_values: pre.json,
+        notary_signature,
         redacted_pdf: pre.redacted_pdf.map(|b| B64.encode(b)),
         public_values_hex: hex::encode(&public_values),
         revealed: hex::encode(&proved.revealed),

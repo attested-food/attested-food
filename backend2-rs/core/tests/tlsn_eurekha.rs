@@ -77,7 +77,18 @@ fn attested_eurekha() {
     assert_eq!(out.key_sha256, sha256(r.key.as_bytes()));
     assert!(out.session_time > 1_700_000_000);
     assert_eq!(out.report, eurekha::run(&r.buf));
-    assert_eq!(out.notary, notary());
+    assert_eq!(out.signer, eurekha::Signer::Notary(notary()));
+
+    // Signature left to the verifier: same values, the header committed instead.
+    let u = eurekha::run_attested_unsigned(&r.buf, &r.t, &r.req, &r.secret).expect("unsigned");
+    assert_eq!(u.signer, eurekha::Signer::Header(r.t.header.clone()));
+    assert_eq!((u.key_sha256, u.session_time, &u.report), (out.key_sha256, out.session_time, &out.report));
+    // ... and what that verifier checks: the header signature recovers the notary.
+    assert_eq!(tlsn::NotarySignature::recover(&K256, &r.t.header, &r.t.signature), Some(notary()));
+    // A leaf that is not under the header's root is still rejected in the guest.
+    let mut t = r.t.clone();
+    t.leaves[0][0] ^= 1;
+    assert_eq!(eurekha::run_attested_unsigned(&r.buf, &t, &r.req, &r.secret).err(), Some(TlsnError::BadMerkleRoot));
 }
 
 #[test]

@@ -134,10 +134,18 @@ pub enum TlsnError {
 
 /// Full check of an exported attestation against a pinned notary address.
 pub fn check(t: &OnchainTlsn, notary: &[u8; 20], sig: &impl NotarySignature) -> Result<AttestedBody, TlsnError> {
-    let root = header_root(&t.header).ok_or(TlsnError::BadHeader)?;
     if sig.recover(&t.header, &t.signature) != Some(*notary) {
         return Err(TlsnError::BadNotarySignature);
     }
+    check_unsigned(t)
+}
+
+/// [`check`] without the notary signature: everything is bound to `t.header`,
+/// so a verifier that checks the signature over `keccak256(header)` itself
+/// (`ecrecover` on-chain, 3,000 gas) gets the same guarantee for a fraction of
+/// the guest's cycles. `t.signature` is not read.
+pub fn check_unsigned(t: &OnchainTlsn) -> Result<AttestedBody, TlsnError> {
+    let root = header_root(&t.header).ok_or(TlsnError::BadHeader)?;
     if t.leaves.is_empty() || merkle_root(&t.leaves) != root {
         return Err(TlsnError::BadMerkleRoot);
     }

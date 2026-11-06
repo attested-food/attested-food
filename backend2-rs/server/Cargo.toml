@@ -1,13 +1,13 @@
 [package]
 name = "equinox-openvm-server"
-description = "HTTP server: Equinox report PDF in, OpenVM STARK proof of the extracted values out"
+description = "HTTP server: lab report PDF (optionally with its TLSNotary attestation) in, OpenVM STARK proof of the extracted values out"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
 publish = false
 
 [dependencies]
-equinox-core = { path = "../core", features = ["std", "serde"] }
+equinox-core = { path = "../core", features = ["std", "serde", "k256"] }
 # No jemalloc feature: keeps the system allocator.
 openvm-sdk = { version = "2.1.0", default-features = false, features = ["parallel"] }
 openvm-sdk-config = { version = "2.1.0", default-features = false }
