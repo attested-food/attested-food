@@ -144,6 +144,12 @@ def test_test_request_created(extra):
     assert resp.status_code == 201, resp.text
     body = resp.json()
     assert body["tests"][0] == "Nutrition vs label claims"
+    req = client.get(f"/api/test-requests/{body['id']}").json()
+    assert req["brand"] == GOOD_REQUEST["brand"] and req["tests"] == body["tests"]
+    if "image_data" in extra:
+        assert req["image_url"] == f"/api/test-requests/{body['id']}/image"
+        img = client.get(req["image_url"])
+        assert img.status_code == 200 and img.headers["content-type"] == "image/png" and img.content[:4] == b"\x89PNG"
     main.fetch("DELETE FROM test_requests WHERE id = %s RETURNING id", (body["id"],))
 
 
@@ -186,3 +192,30 @@ def test_frontend_serving(path, status, content, tmp_path, monkeypatch):
     monkeypatch.setattr(main, "BUILD_DIR", tmp_path)
     resp = client.get(path)
     assert resp.status_code == status and resp.text == content
+
+
+def test_test_request_already_requested():
+    created = client.post("/api/test-requests", json={**GOOD_REQUEST, "buy_url": "https://www.amazon.in/x/dp/B0ZZQQ0001"})
+    assert created.status_code == 201
+    rid = created.json()["id"]
+    try:
+        same_link = {**GOOD_REQUEST, "name": "Other Name", "buy_url": "https://amazon.in/dp/B0ZZQQ0001?ref=y"}
+        for body in (GOOD_REQUEST, same_link):
+            resp = client.post("/api/test-requests", json=body)
+            assert resp.status_code == 409
+            assert resp.json()["detail"]["request"]["id"] == rid
+        found = client.get("/api/test-requests", params={"q": "zzqq test"}).json()
+        assert [r["id"] for r in found] == [rid]
+    finally:
+        main.fetch("DELETE FROM test_requests WHERE id = %s RETURNING id", (rid,))
+
+
+@pytest.mark.parametrize("url", ["https://example.com/dp/B08R3CLJ8H", "http://169.254.169.254/"])
+def test_prefill_rejects_non_amazon(url):
+    assert client.get("/api/prefill", params={"url": url}).status_code == 422
+
+
+@pytest.mark.parametrize("rid", ["not-a-uuid", "00000000-0000-0000-0000-000000000000"])
+def test_test_request_not_found(rid):
+    assert client.get(f"/api/test-requests/{rid}").status_code == 404
+    assert client.get(f"/api/test-requests/{rid}/image").status_code == 404

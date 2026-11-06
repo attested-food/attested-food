@@ -57,6 +57,34 @@ export type Product = {
 	tests: { name: string; tested: boolean }[];
 };
 
+export type TestRequest = {
+	id: string;
+	brand: string;
+	name: string;
+	variant: string | null;
+	category: string;
+	requested_on: string;
+	net_quantity?: string | null;
+	manufacturer?: string | null;
+	fssai_license?: string | null;
+	barcode?: string | null;
+	buy_url?: string | null;
+	image_url?: string | null;
+	tests?: string[];
+};
+
+export type Prefill = {
+	asin: string;
+	buy_url: string;
+	brand: string | null;
+	name: string | null;
+	category: string | null;
+	image_url: string | null;
+	manufacturer: string | null;
+	net_quantity: string | null;
+	existing_request: TestRequest | null;
+};
+
 export type Category = { category: string; product_count: number; tests: string[] };
 
 export type ProductCard = {

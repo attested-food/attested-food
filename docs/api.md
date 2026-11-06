@@ -109,7 +109,25 @@ or `image_data` (PNG/JPEG/WebP data URL, max 5 MB). Optional: `variant`, `net_qu
 
 - `201` `{"id": "uuid", "tests": ["..."]}`
 - `409` `{"detail": {"message": "product already exists", "product_id": "uuid"}}` when brand + name + variant match an existing product (case-insensitive)
+- `409` `{"detail": {"message": "already requested", "request": {...}}}` when the same Amazon ASIN (from `buy_url`) or brand + name + variant was already requested
 - `422` validation error
+
+## `GET /api/test-requests?q=`
+
+Up to 8 requests whose brand/name/variant contain `q` (min 2 chars):
+`[{"id", "brand", "name", "variant", "category", "requested_on"}]`.
+
+## `GET /api/test-requests/{id}`
+
+One request plus `net_quantity`, `manufacturer`, `fssai_license`, `barcode`, `buy_url`, `image_url` and `tests`.
+Uploaded images are served at `GET /api/test-requests/{id}/image`.
+
+## `GET /api/prefill?url=`
+
+Reads an amazon.in product link (short links like amzn.in are followed, only to Amazon hosts) and returns
+`{asin, buy_url, brand, name, category, image_url, manufacturer, net_quantity, existing_request}`.
+`existing_request` is set when that ASIN was already requested. `422` if not an Amazon product link, `502` if
+Amazon didn't return the page (captcha/blocked).
 
 ## `GET /api/health`
 

@@ -6,15 +6,17 @@ import re
 import uuid
 from pathlib import Path
 
+import httpx
 import orjson
 import psycopg
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, ORJSONResponse
+from fastapi.responses import FileResponse, ORJSONResponse, Response
 from psycopg.rows import dict_row
 from psycopg.types.json import set_json_loads
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from backend import amazon
 from backend.category_tests import coverage, names_for
 
 load_dotenv()
@@ -107,11 +109,35 @@ WHERE lower(brand) = lower(%(brand)s) AND lower(name) = lower(%(name)s)
 LIMIT 1
 """
 
+REQUEST_FIELDS = "id::text AS id, brand, name, variant, category, created_at::date::text AS requested_on"
+
+DUPLICATE_REQUEST_SQL = f"""
+SELECT {REQUEST_FIELDS} FROM test_requests
+WHERE asin = %(asin)s
+   OR (lower(brand) = lower(%(brand)s) AND lower(name) = lower(%(name)s)
+       AND lower(coalesce(variant, '')) = lower(coalesce(%(variant)s::text, '')))
+ORDER BY created_at
+LIMIT 1
+"""
+
+SEARCH_REQUESTS_SQL = f"""
+SELECT {REQUEST_FIELDS} FROM test_requests
+WHERE (brand || ' ' || name || ' ' || coalesce(variant, '')) ILIKE %(like)s
+ORDER BY created_at DESC
+LIMIT 8
+"""
+
+GET_REQUEST_SQL = f"""
+SELECT {REQUEST_FIELDS}, net_quantity, manufacturer, fssai_license, barcode, buy_url, image_url,
+       image IS NOT NULL AS has_image
+FROM test_requests WHERE id = %s
+"""
+
 INSERT_REQUEST_SQL = """
 INSERT INTO test_requests (brand, name, variant, category, net_quantity, manufacturer, fssai_license, barcode,
-                           buy_url, image_url, image, image_type)
+                           buy_url, asin, image_url, image, image_type)
 VALUES (%(brand)s, %(name)s, %(variant)s, %(category)s, %(net_quantity)s, %(manufacturer)s, %(fssai_license)s,
-        %(barcode)s, %(buy_url)s, %(image_url)s, %(image)s, %(image_type)s)
+        %(barcode)s, %(buy_url)s, %(asin)s, %(image_url)s, %(image)s, %(image_type)s)
 RETURNING id
 """
 
@@ -209,12 +235,71 @@ def list_categories() -> list[dict]:
     return [{**c, "tests": names_for(c["category"])} for c in fetch(CATEGORIES_SQL)]
 
 
+@app.get("/api/test-requests")
+def search_test_requests(q: str = Query(min_length=2, max_length=200)) -> list[dict]:
+    return fetch(SEARCH_REQUESTS_SQL, {"like": f"%{q.strip()}%"})
+
+
+def request_id(value: str) -> uuid.UUID:
+    try:
+        return uuid.UUID(value)
+    except ValueError:
+        raise HTTPException(404, "request not found") from None
+
+
+@app.get("/api/test-requests/{rid}")
+def get_test_request(rid: str) -> dict:
+    rows = fetch(GET_REQUEST_SQL, (request_id(rid),))
+    if not rows:
+        raise HTTPException(404, "request not found")
+    req = rows.pop()
+    if req.pop("has_image"):
+        req["image_url"] = f"/api/test-requests/{req['id']}/image"
+    return {**req, "tests": names_for(req["category"])}
+
+
+@app.get("/api/test-requests/{rid}/image")
+def get_test_request_image(rid: str) -> Response:
+    rows = fetch("SELECT image, image_type FROM test_requests WHERE id = %s AND image IS NOT NULL", (request_id(rid),))
+    if not rows:
+        raise HTTPException(404, "image not found")
+    return Response(rows[0]["image"], media_type=rows[0]["image_type"],
+                    headers={"Cache-Control": "public, max-age=86400", "X-Content-Type-Options": "nosniff"})
+
+
+@app.get("/api/prefill")
+def prefill(url: str = Query(max_length=2000)) -> dict:
+    try:
+        asin, product = amazon.fetch(url)
+    except amazon.NotAmazon as e:
+        raise HTTPException(422, f"{e}. Paste an amazon.in product link.") from None
+    except (amazon.Unreadable, httpx.HTTPError):
+        logging.exception("prefill failed for %s", url)
+        raise HTTPException(502, "Couldn't read that Amazon page. Please fill in the details yourself.") from None
+    categories = [c["category"] for c in fetch(CATEGORIES_SQL)]
+    fields = {"asin": asin, "brand": product["brand"] or "", "name": product["name"] or "", "variant": None}
+    requested = fetch(DUPLICATE_REQUEST_SQL, fields)
+    return {
+        "asin": asin,
+        "buy_url": f"https://www.amazon.in/dp/{asin}",
+        "brand": product["brand"],
+        "name": product["name"],
+        "category": amazon.guess_category(product, categories),
+        "image_url": product["image_url"],
+        "manufacturer": product["manufacturer"],
+        "net_quantity": product["net_quantity"],
+        "existing_request": requested[0] if requested else None,
+    }
+
+
 @app.post("/api/test-requests", status_code=201)
 def create_test_request(body: TestRequestBody) -> dict:
     fields = body.model_dump(exclude={"image_data"})
-    existing = fetch(DUPLICATE_SQL, fields)
-    if existing:
+    fields["asin"] = amazon.asin_from_url(body.buy_url) if body.buy_url else None
+    if existing := fetch(DUPLICATE_SQL, fields):
         raise HTTPException(409, {"message": "product already exists", "product_id": str(existing[0]["id"])})
+    if requested := fetch(DUPLICATE_REQUEST_SQL, fields):
+        raise HTTPException(409, {"message": "already requested", "request": requested[0]})
     image, image_type = None, None
     if body.image_data:
         match = DATA_URL_RE.match(body.image_data)

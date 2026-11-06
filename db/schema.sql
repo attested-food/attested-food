@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS test_requests (
     fssai_license text,
     barcode       text,
     buy_url       text,
+    asin          text UNIQUE,
     image_url     text,
     image         bytea,
     image_type    text,
