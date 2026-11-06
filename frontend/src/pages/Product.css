@@ -165,3 +165,8 @@
 @media (max-width: 600px) {
 	.rp-head, .rp-key, .rp-results, .rp-highlights, .rp-foot, .rp-more > summary { padding-left: 16px; padding-right: 16px; }
 }
+
+.p-breakdown { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; font-size: 13.5px; }
+.p-part { display: inline-flex; align-items: baseline; gap: 6px; color: var(--sub); }
+.p-part b { color: var(--ink); font-weight: 700; }
+.p-breakdown p { flex-basis: 100%; margin: 0; }

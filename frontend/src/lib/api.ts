@@ -59,6 +59,7 @@ export type Product = {
 	reports: Report[];
 	tests: { name: string; tested: boolean }[];
 	annotations: Annotations;
+	openlabel_grade: OpenLabelGrade | null;
 };
 
 /** Per 100 g, from the pack label. Any subset. */
@@ -72,6 +73,14 @@ export type LabelNutrition = Partial<{
 	saturated_fat_g: number;
 	sodium_mg: number;
 }>;
+
+export type OpenLabelGrade = {
+	letter: string;
+	score: number;
+	provisional: boolean;
+	safety_failed: boolean;
+	parts: { honesty: number | null; safety: number | null; nutrition: number | null };
+};
 
 export type Finding = {
 	parameter: string;
@@ -108,6 +117,7 @@ export type WallItem = {
 	lab: string | null;
 	tested_on: string | null;
 	annotations: Annotations | null;
+	openlabel_grade: OpenLabelGrade | null;
 };
 
 export type TestRequest = {
@@ -152,6 +162,7 @@ export type ProductCard = {
 	label_nutrition: LabelNutrition | null;
 	report_count: number;
 	has_user_report: boolean;
+	openlabel_grade: OpenLabelGrade | null;
 	latest: {
 		kind: 'user' | 'fallback';
 		verdict: Report['verdict'];

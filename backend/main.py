@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from backend import amazon
 from backend.annotate import summarize
 from backend import departments
+from backend.grading import openlabel_grade
 from backend.thumbs import thumbnail
 from backend.category_tests import coverage, names_for
 
@@ -277,7 +278,10 @@ def list_products(
         "limit": page_size,
         "offset": (page - 1) * page_size,
     })[0]
-    return {"items": row["items"], "page": page, "page_size": page_size, "total": row["total"]}
+    items = row["items"]
+    for item in items:  # few products have our own report; grade those from their full detail
+        item["openlabel_grade"] = get_product(item["id"])["openlabel_grade"] if item["has_user_report"] else None
+    return {"items": items, "page": page, "page_size": page_size, "total": row["total"]}
 
 
 @app.get("/api/products/{product_id}")
@@ -293,6 +297,10 @@ def get_product(product_id: str) -> dict:
     product["tests"] = coverage(product["category"], [x for r in product["reports"] for x in r["results"]])
     primary = product["reports"][0]["results"] if product["reports"] else []
     product["annotations"] = summarize({**product, "results": primary})
+    ours = bool(product["reports"]) and product["reports"][0]["kind"] == "user"
+    product["openlabel_grade"] = (
+        openlabel_grade(primary, product["label_nutrition"], product["annotations"]["findings"], product["tests"]) if ours else None
+    )
     return product
 
 
@@ -338,14 +346,17 @@ def wall(limit: int = Query(16, ge=1, le=48)) -> dict:
     items = []
     for row in fetch(WALL_SQL, {"limit": limit}):
         tests = coverage(row["category"], row["results"])
+        notes = summarize({**row, "tests": tests})
+        ours = openlabel_grade(row["results"], row["label_nutrition"], notes["findings"], tests) if row["kind"] == "user" else None
         items.append({
             "kind": "product", "id": row["id"], "brand": row["brand"], "name": row["name"], "variant": row["variant"],
             "category": row["category"], "image_url": row["image_url"], "ingredients": row["ingredients"],
             "label_nutrition": row["label_nutrition"], "state": "tested",
-            "grade": source_grade(row["kind"], row["grade"], row["verdict"]),
-            "grade_source": row["publisher"] or row["lab"], "report_kind": row["kind"],
+            "grade": ours["letter"] if ours else source_grade(row["kind"], row["grade"], row["verdict"]),
+            "grade_source": "OpenLabel" if ours else row["publisher"] or row["lab"], "report_kind": row["kind"],
+            "openlabel_grade": ours,
             "lab": row["lab"], "tested_on": row["tested_on"],
-            "annotations": summarize({**row, "tests": tests}),
+            "annotations": notes,
         })
     requests = fetch(LIST_REQUESTS_SQL, {"q": None, "like": None, "brand": None, "category": None})
     for req in requests[: max(1, limit // 4)]:
@@ -354,7 +365,7 @@ def wall(limit: int = Query(16, ge=1, le=48)) -> dict:
             "kind": "request", "id": req["id"], "brand": req["brand"], "name": req["name"], "variant": req["variant"],
             "category": req["category"], "image_url": req["image_url"], "ingredients": None, "label_nutrition": None,
             "state": "requested", "grade": None, "grade_source": None, "report_kind": None, "lab": None,
-            "tested_on": None, "annotations": summarize({"name": req["name"], "tests": tests}),
+            "tested_on": None, "openlabel_grade": None, "annotations": summarize({"name": req["name"], "tests": tests}),
         })
     return {"items": items}
 

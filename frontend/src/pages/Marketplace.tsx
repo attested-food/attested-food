@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { buyUrl, label, nameOf, productName, type Brand, type Department, type ProductCard, type TestRequest } from '@/lib/api';
-import { gradeColors, sourceGrade } from '@/lib/grade';
+import { cardGrade, gradeColors } from '@/lib/grade';
 import { useApi } from '@/lib/useApi';
-import { GradeChip, Photo, StateTag } from '@/components/bits';
+import { GradeChip, GradeTag, Photo, StateTag } from '@/components/bits';
 import './Marketplace.css';
 
 type Page = { items: ProductCard[]; page: number; page_size: number; total: number };
@@ -18,15 +18,18 @@ const ON_LABEL = [
 	['high_protein', 'High protein (20 g+)']
 ] as const;
 
-function gradeLine(p: ProductCard) {
+/** Grade (if any), whose it is, and a short line naming who tested the product. */
+export function gradeInfo(p: ProductCard) {
+	const g = cardGrade(p);
 	const l = p.latest;
-	if (!l) return 'Not tested yet';
-	if (l.kind === 'user') return 'Tested through OpenLabel';
-	const who = nameOf(l.publisher) ?? 'a testing website';
-	return sourceGrade(l) ? `Graded by ${who}` : `Tested for ${who}`;
+	const who = l ? (l.kind === 'user' ? 'OpenLabel' : nameOf(l.publisher) ?? 'a testing website') : null;
+	const text = !l ? 'Not tested yet' : g ? (g.ours ? '' : who!) : l.kind === 'user' ? 'Tested through OpenLabel' : `Tested for ${who}`;
+	return { grade: g?.grade ?? null, ours: !!g?.ours, provisional: !!g?.provisional, hasGrade: !!g, text };
 }
 
-function Tile({ to, img, alt, state, brand, name, grade, line, buy }: { to: string; img: string | null; alt: string; state: 'tested' | 'requested'; brand: string; name: string; grade: string | null; line: string; buy: string }) {
+type GradeInfo = ReturnType<typeof gradeInfo>;
+
+function Tile({ to, img, alt, state, brand, name, g, buy }: { to: string; img: string | null; alt: string; state: 'tested' | 'requested'; brand: string; name: string; g: GradeInfo; buy: string }) {
 	return (
 		<article className="m-tile card hoverable">
 			<Link to={to} className="m-photo">
@@ -38,8 +41,9 @@ function Tile({ to, img, alt, state, brand, name, grade, line, buy }: { to: stri
 				<span className="m-name">{name}</span>
 			</Link>
 			<div className="m-grade">
-				<GradeChip grade={grade} />
-				<span>{line}</span>
+				<GradeChip grade={g.grade} />
+				{g.hasGrade && <GradeTag ours={g.ours} provisional={g.provisional} />}
+				{g.text && <span>{g.text}</span>}
 			</div>
 			<a className="btn m-buy" href={buy} target="_blank" rel="sponsored noopener">Buy on Amazon</a>
 		</article>
@@ -216,8 +220,7 @@ export default function Marketplace() {
 									state={p.latest ? 'tested' : 'requested'}
 									brand={p.brand}
 									name={productName(p)}
-									grade={sourceGrade(p.latest)}
-									line={gradeLine(p)}
+									g={gradeInfo(p)}
 									buy={buyUrl(p)}
 								/>
 							))}
@@ -230,8 +233,7 @@ export default function Marketplace() {
 									state="requested"
 									brand={t.brand}
 									name={productName(t)}
-									grade={null}
-									line="Not tested · needs backers"
+									g={{ grade: null, ours: false, provisional: false, hasGrade: false, text: 'Not tested · needs funding' }}
 									buy={buyUrl(t)}
 								/>
 							))}

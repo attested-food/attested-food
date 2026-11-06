@@ -42,11 +42,13 @@ export function LabelCard({ item, theme, peeled, onPeel, onUnpeel }: { item: Wal
 		: [{ kind: 'unk', t: 'Lab test', r: isRequest ? 'Requested, not funded yet' : 'Results not on file' }];
 	const gradeLabel = isRequest
 		? 'Not tested yet'
-		: item.grade && item.grade_source
-			? `Graded by ${item.grade_source}`
-			: item.report_kind === 'user'
-				? 'Lab results · OpenLabel grade coming soon'
-				: `Tested for ${item.grade_source ?? item.lab ?? 'a testing website'}`;
+		: item.openlabel_grade
+			? item.openlabel_grade.provisional ? 'OpenLabel grade · provisional' : 'OpenLabel grade'
+			: item.grade && item.grade_source
+				? `3rd-party grade · ${item.grade_source}`
+				: item.report_kind === 'user'
+					? 'Tested through OpenLabel'
+					: `Tested for ${item.grade_source ?? item.lab ?? 'a testing website'}`;
 	const source = isRequest
 		? 'From the label · requested for testing'
 		: [item.lab, item.report_kind === 'fallback' && item.grade_source && item.grade_source !== item.lab ? `via ${item.grade_source}` : null, month(item.tested_on)].filter(Boolean).join(' · ');

@@ -7,10 +7,10 @@ from backend.category_tests import coverage
 client = TestClient(main.app)
 
 PRODUCT_KEYS = {"id", "brand", "name", "variant", "category", "image_url", "label_nutrition", "report_count",
-                "has_user_report", "latest"}
+                "has_user_report", "latest", "openlabel_grade"}
 DETAIL_KEYS = {"id", "brand", "name", "variant", "category", "manufacturer", "fssai_license", "barcode",
                "net_quantity", "image_url", "reports", "tests", "ingredients", "ingredients_source", "label_nutrition",
-               "annotations"}
+               "annotations", "openlabel_grade"}
 REPORT_KEYS = {"id", "kind", "lab", "publisher", "source_url", "report_number", "ulr_number", "batch_no", "mfg_date",
                "expiry_date", "tested_on", "issued_on", "verdict", "grade", "pdf_url", "pdf_sha256", "verification",
                "verified", "chain_tx", "fetched_at", "results"}
@@ -255,7 +255,8 @@ def test_frontend_cache_headers(path, cache, tmp_path, monkeypatch):
 
 
 WALL_KEYS = {"kind", "id", "brand", "name", "variant", "category", "image_url", "ingredients", "label_nutrition",
-             "state", "grade", "grade_source", "report_kind", "lab", "tested_on", "annotations"}
+             "state", "grade", "grade_source", "report_kind", "lab", "tested_on", "annotations",
+             "openlabel_grade"}
 
 
 def test_wall_shape():
@@ -266,7 +267,8 @@ def test_wall_shape():
         assert set(item) == WALL_KEYS
         assert set(item["annotations"]) == {"segments", "findings", "counts"}
     first = products_[0]
-    assert first["report_kind"] == "user" and first["grade"] is None
+    assert first["report_kind"] == "user" and first["grade_source"] == "OpenLabel"
+    assert first["grade"] == first["openlabel_grade"]["letter"]
 
 
 @pytest.mark.parametrize("limit", [0, 49])
@@ -354,3 +356,13 @@ def test_brands():
     one = brands[0]["brand"]
     body = client.get("/api/products", params={"brand": one, "category": "paneer"}).json()
     assert body["total"] == brands[0]["product_count"]
+
+
+def test_openlabel_grade_on_our_reports(kelloggs):
+    body = client.get(f"/api/products/{kelloggs['id']}").json()
+    g = body["openlabel_grade"]
+    assert g["letter"] in "ABCDE" and set(g["parts"]) == {"honesty", "safety", "nutrition"}
+    listed = client.get("/api/products", params={"evidence": "lab"}).json()["items"]
+    assert all(p["openlabel_grade"] for p in listed)
+    published = client.get("/api/products", params={"evidence": "published", "page_size": 5}).json()["items"]
+    assert all(p["openlabel_grade"] is None for p in published)

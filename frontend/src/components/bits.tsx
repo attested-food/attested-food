@@ -32,6 +32,15 @@ export function GradeChip({ grade, size = 28 }: { grade: string | null; size?: n
 	);
 }
 
+/** Whose grade it is: OpenLabel's own (filled) or a third party's (outlined). */
+export function GradeTag({ ours, provisional = false }: { ours: boolean; provisional?: boolean }) {
+	return (
+		<span className={`gtag ${ours ? 'ours' : 'third'}`} title={ours ? 'Graded by OpenLabel from our own lab test' : 'Grade from a third-party testing website'}>
+			{ours ? (provisional ? 'OpenLabel · provisional' : 'OpenLabel') : '3rd-party'}
+		</span>
+	);
+}
+
 type Kind = 'good' | 'bad' | 'info' | 'unk';
 
 /** Result icon: filled check (pass), filled cross (fail), outlined dash (within limits), outlined question (not tested). */

@@ -24,9 +24,16 @@ export default function About() {
 					<li>Notes on the ingredients are numbers from the lab report, never opinions.</li>
 				</ul>
 			</section>
-			<section className="ab-sec">
-				<h2 className="section-title">Grades</h2>
-				<p>For products already tested by Trustified, Unbox Health or Consumer Voice, we show their grade and link back to them. Our own grading for OpenLabel tests is still being built.</p>
+			<section className="ab-sec" id="grading">
+				<h2 className="section-title">How we grade</h2>
+				<p>Products tested through OpenLabel get an <strong>OpenLabel grade</strong> from A to E, built from three parts:</p>
+				<ul>
+					<li><strong>Label honesty (40%).</strong> How close the lab’s numbers are to what the pack says. Every nutrient more than 10% off, in the direction that’s worse for you, costs points; the further off, the more it costs.</li>
+					<li><strong>Safety (40%).</strong> Heavy metals, aflatoxins, pesticides, microbes and adulterants against their limits. Any failure scores zero and caps the grade at D.</li>
+					<li><strong>Nutrition (20%).</strong> A Nutri-Score style score from the lab’s values: sugar, saturated fat, sodium and energy count against; fibre and protein count for.</li>
+				</ul>
+				<p>If a part wasn’t tested, the grade is worked out from the parts that were. Until all of a category’s standard tests are done, the grade is marked <strong>provisional</strong>.</p>
+				<p>Products tested by Trustified, Unbox Health or Consumer Voice show <strong>their</strong> grade with a <span className="gtag third">3rd-party</span> tag and a link back to them. We don’t change or re-grade their results.</p>
 			</section>
 			<section className="ab-sec">
 				<h2 className="section-title">Published tests, with credit</h2>

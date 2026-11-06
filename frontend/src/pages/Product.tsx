@@ -1,8 +1,9 @@
 import { Link, useParams } from 'react-router';
-import { buyUrl, dash, httpUrl, imgFallback, imgSrc, label, nameOf, nutritionRows, productName, verdictText, type Finding, type Product as P, type ProductCard, type Report, type Result } from '@/lib/api';
+import { buyUrl, dash, httpUrl, imgFallback, imgSrc, label, nutritionRows, productName, verdictText, type Finding, type Product as P, type ProductCard, type Report, type Result } from '@/lib/api';
 import { sourceGrade } from '@/lib/grade';
 import { useApi } from '@/lib/useApi';
-import { GradeChip, Photo, ResultCounts, ResultIcon, StateTag } from '@/components/bits';
+import { GradeChip, GradeTag, Photo, ResultCounts, ResultIcon, StateTag } from '@/components/bits';
+import { gradeInfo } from './Marketplace';
 import { Segments } from '@/components/Segments';
 import './Product.css';
 
@@ -31,9 +32,10 @@ function summary(r: Report | undefined) {
 	return `Tested${r.lab?.name ? ` by ${r.lab.name}` : ''} for ${r.publisher?.name ?? 'a testing website'}${when ? ` in ${when}` : ''}.`;
 }
 
-function gradeLabel(r: Report | undefined) {
+function gradeLabel(r: Report | undefined, ours: P['openlabel_grade']) {
 	if (!r) return 'Not tested yet';
-	if (r.kind === 'user') return 'Lab results · OpenLabel grade coming soon';
+	if (ours) return ours.provisional ? 'OpenLabel grade · provisional until all standard tests are done' : 'OpenLabel grade';
+	if (r.kind === 'user') return 'Tested through OpenLabel';
 	return sourceGrade(r) ? `Graded by ${r.publisher?.name ?? 'the source'}` : `Tested for ${r.publisher?.name ?? 'a testing website'}`;
 }
 
@@ -167,13 +169,30 @@ function ReportBlock({ r, findings }: { r: Report; findings: Finding[] }) {
 	);
 }
 
-/** One line under a product card: who graded or tested it. Never "by X" without a grade. */
-export function shelfLine(x: ProductCard) {
-	const l = x.latest;
-	if (!l) return 'Not tested yet';
-	if (l.kind === 'user') return 'Tested through OpenLabel';
-	const who = nameOf(l.publisher) ?? 'a testing website';
-	return sourceGrade(l) ? `Graded by ${who}` : `Tested for ${who}`;
+function Breakdown({ g }: { g: NonNullable<P['openlabel_grade']> }) {
+	const part = (name: string, v: number | null) => (
+		<span className="p-part"><span>{name}</span><b>{v === null ? 'not tested' : v}</b></span>
+	);
+	return (
+		<div className="p-breakdown">
+			{part('Label honesty', g.parts.honesty)}
+			{part('Safety', g.parts.safety)}
+			{part('Nutrition', g.parts.nutrition)}
+			<Link className="link small" to="/about#grading">How we grade</Link>
+			{g.safety_failed && <p className="off small">A safety test failed, so the grade can't be higher than D.</p>}
+		</div>
+	);
+}
+
+function ShelfGrade({ x }: { x: ProductCard }) {
+	const g = gradeInfo(x);
+	return (
+		<>
+			<GradeChip grade={g.grade} />
+			{g.hasGrade && <GradeTag ours={g.ours} provisional={g.provisional} />}
+			{g.text && <span>{g.text}</span>}
+		</>
+	);
 }
 
 function Others({ product }: { product: P }) {
@@ -190,8 +209,7 @@ function Others({ product }: { product: P }) {
 						<span className="muted small p-shelf-brand">{x.brand}</span>
 						<span className="p-shelf-name">{productName(x)}</span>
 						<span className="p-shelf-g">
-							<GradeChip grade={sourceGrade(x.latest)} />
-							<span>{shelfLine(x)}</span>
+							<ShelfGrade x={x} />
 						</span>
 					</Link>
 				))}
@@ -240,10 +258,12 @@ export default function Product() {
 					<Link className="p-store" to={`/products?q=${encodeURIComponent(p.brand)}`}>Brand: {p.brand}</Link>
 					<h1 className="p-title">{name}{p.net_quantity ? `, ${p.net_quantity}` : ''}</h1>
 					<a className="p-rating" href={compared.length ? '#results' : '#rep'}>
-						<GradeChip grade={sourceGrade(first)} size={26} />
-						<span className="p-rating-src">{gradeLabel(first)}</span>
+						<GradeChip grade={p.openlabel_grade?.letter ?? sourceGrade(first)} size={26} />
+						{(p.openlabel_grade || sourceGrade(first)) && <GradeTag ours={!!p.openlabel_grade} provisional={p.openlabel_grade?.provisional} />}
+						<span className="p-rating-src">{gradeLabel(first, p.openlabel_grade)}</span>
 						<ResultCounts counts={a.counts} size="sm" />
 					</a>
+					{p.openlabel_grade && <Breakdown g={p.openlabel_grade} />}
 					<hr />
 					<table className="p-facts">
 						<tbody>

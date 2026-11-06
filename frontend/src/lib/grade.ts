@@ -20,8 +20,15 @@ export function gradeColors(grade: string | null): [string, string] | null {
 	return COLORS[letter] ?? ['#141414', '#FFFFFF'];
 }
 
-/** The grade a product shows: the source's own grade for published tests; none for our own reports yet. */
+/** A third party's grade for a published test (none for our own reports; those use the OpenLabel grade). */
 export function sourceGrade(r: { kind: 'user' | 'fallback'; grade: string | null; verdict: string | null } | null | undefined) {
 	if (!r || r.kind === 'user') return null;
 	return r.grade ?? (r.verdict === 'pass' ? 'Pass' : r.verdict === 'fail' ? 'Fail' : null);
+}
+
+/** The grade a product card shows, and whose it is. */
+export function cardGrade(p: { latest: { kind: 'user' | 'fallback'; grade: string | null; verdict: string | null; publisher?: unknown } | null; openlabel_grade?: { letter: string; provisional: boolean } | null }) {
+	if (p.openlabel_grade) return { grade: p.openlabel_grade.letter, ours: true, provisional: p.openlabel_grade.provisional };
+	const g = sourceGrade(p.latest);
+	return g ? { grade: g, ours: false, provisional: false } : null;
 }

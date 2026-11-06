@@ -108,6 +108,20 @@ first report (see `/api/wall`).
 
 `lab` / `publisher` are `{id, name, url, accreditation}` or `null`. Numbers are JSON numbers, dates are `YYYY-MM-DD`.
 
+## OpenLabel grade
+
+Product detail, list items and wall items carry `openlabel_grade` for products whose primary report is our own
+(`kind: "user"`), else `null`:
+
+```json
+{"letter": "B", "score": 78, "provisional": false, "safety_failed": false,
+ "parts": {"honesty": 88, "safety": null, "nutrition": 60}}
+```
+
+Label honesty 40%, safety 40%, nutrition 20%, over the parts that were tested; a failed safety test caps the
+grade at D; `provisional` while any of the category's standard tests is untested. See
+[backend/grading.py](../backend/grading.py).
+
 ## `GET /api/wall?limit=16`
 
 Cards for the home page: products with their latest report (user reports first, then products with a photo,
