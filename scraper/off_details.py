@@ -2,6 +2,8 @@
 
 Looks a product up by barcode first, then by search (brand must appear, name words must overlap).
 Dry run by default; pass --apply to write. Only fills empty columns, never overwrites.
+--recheck re-runs the matcher on rows this script filled and rewrites or clears them (image_url is left alone,
+since scraper/off_images.py also sets it).
 """
 import logging
 import re
@@ -28,7 +30,26 @@ UPDATE products SET
     ingredients = coalesce(ingredients, %(ingredients)s),
     ingredients_source = coalesce(ingredients_source, CASE WHEN %(ingredients)s::text IS NULL THEN NULL ELSE 'open_food_facts' END),
     label_nutrition = coalesce(label_nutrition, %(nutrition)s),
-    image_url = coalesce(image_url, %(image)s)
+    image_url = coalesce(image_url, %(image)s),
+    off_code = coalesce(off_code, %(code)s)
+WHERE id = %(id)s
+"""
+
+FILLED = """
+SELECT id, brand, name, variant, barcode FROM products
+WHERE ingredients_source = 'open_food_facts' OR label_nutrition IS NOT NULL
+ORDER BY brand, name
+"""
+
+# label_nutrition is only ever written by this script, so it can be replaced outright.
+REWRITE = """
+UPDATE products SET
+    ingredients = CASE WHEN ingredients_source = 'open_food_facts' OR ingredients IS NULL THEN %(ingredients)s ELSE ingredients END,
+    ingredients_source = CASE WHEN ingredients_source = 'open_food_facts' OR ingredients IS NULL
+                              THEN CASE WHEN %(ingredients)s::text IS NULL THEN NULL ELSE 'open_food_facts' END
+                              ELSE ingredients_source END,
+    label_nutrition = %(nutrition)s,
+    off_code = %(code)s
 WHERE id = %(id)s
 """
 
@@ -119,6 +140,42 @@ def lookup(http: httpx.Client, brand: str, name: str, variant: str | None, barco
     return hit
 
 
+def extract(hit: dict | None) -> tuple[str | None, dict | None]:
+    if not hit:
+        return None, None
+    return clean_ingredients(hit.get("ingredients_text_en") or hit.get("ingredients_text")), off_nutrition(hit.get("nutriments") or {}) or None
+
+
+def recheck(apply: bool, limit: int | None = None, delay: float = 3.0) -> None:
+    """Re-match rows filled earlier; keep, rewrite or clear each one."""
+    conn = connect()
+    rows = conn.execute(FILLED).fetchall()[:limit]
+    tally = {"kept": 0, "unchanged": 0, "cleared": 0, "failed": 0}
+    with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=30) as http:
+        for pid, brand, name, variant, barcode in rows:
+            time.sleep(delay)
+            try:
+                hit = lookup(http, brand, name, variant, barcode or KNOWN_CODES.get((brand, name, variant)))
+            except httpx.HTTPError:
+                logging.exception("OFF lookup failed for %s %s", brand, name)
+                tally["failed"] += 1
+                continue
+            ingredients, nutrition = extract(hit)
+            if hit and not (ingredients or nutrition):
+                # Still matches, but this response came back empty: leave the row as it is.
+                tally["unchanged"] += 1
+                print(f"unchanged: {brand} | {name} -> {hit.get('product_name')} ({hit.get('code')})")
+                continue
+            outcome = "kept" if hit else "cleared"
+            tally[outcome] += 1
+            print(f"{outcome}: {brand} | {name} -> {hit.get('product_name') if hit else None} ({hit.get('code') if hit else None})")
+            if apply:
+                conn.execute(REWRITE, {"id": pid, "ingredients": ingredients,
+                                       "nutrition": Jsonb(nutrition) if nutrition else None,
+                                       "code": hit.get("code") if outcome == "kept" else None})
+    print(tally)
+
+
 def main(apply: bool, limit: int | None = None, delay: float = 3.0, known_only: bool = False) -> None:
     conn = connect()
     rows = conn.execute(MISSING).fetchall()
@@ -136,8 +193,7 @@ def main(apply: bool, limit: int | None = None, delay: float = 3.0, known_only: 
                 continue
             if not hit:
                 continue
-            ingredients = clean_ingredients(hit.get("ingredients_text_en") or hit.get("ingredients_text"))
-            nutrition = off_nutrition(hit.get("nutriments") or {}) or None
+            ingredients, nutrition = extract(hit)
             if not ingredients and not nutrition:
                 continue
             found += 1
@@ -145,11 +201,15 @@ def main(apply: bool, limit: int | None = None, delay: float = 3.0, known_only: 
             if apply:
                 conn.execute(UPDATE, {"id": pid, "ingredients": ingredients,
                                       "nutrition": Jsonb(nutrition) if nutrition else None,
-                                      "image": None if image else hit.get("image_front_url")})
+                                      "image": None if image else hit.get("image_front_url"),
+                                      "code": hit.get("code")})
     print(f"{found}/{len(rows)} matched")
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     lim = next((int(a.split("=", 1)[1]) for a in sys.argv if a.startswith("--limit=")), None)
-    main("--apply" in sys.argv, lim, known_only="--known" in sys.argv)
+    if "--recheck" in sys.argv:
+        recheck("--apply" in sys.argv, lim)
+    else:
+        main("--apply" in sys.argv, lim, known_only="--known" in sys.argv)

@@ -88,3 +88,4 @@ CREATE TABLE IF NOT EXISTS test_requests (
 ALTER TABLE products ADD COLUMN IF NOT EXISTS ingredients text;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS ingredients_source text;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS label_nutrition jsonb;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS off_code text;
