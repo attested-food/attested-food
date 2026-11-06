@@ -32,7 +32,7 @@
 	api<Category[]>('/api/categories').then((c) => (categories = c)).catch((e) => (error = `Could not load categories: ${e.message}`));
 
 	const asRequest = (r: TestRequest): Match => ({ kind: 'request', ...r });
-	const fullName = (p: Match) => `${p.brand} ${p.name}${p.variant ? ` — ${p.variant}` : ''}`;
+	const fullName = (p: Match) => `${p.brand} ${p.name}${p.variant ? ` · ${p.variant}` : ''}`;
 
 	let timer: ReturnType<typeof setTimeout>;
 	let latestQuery = '';
@@ -147,97 +147,148 @@
 	}
 </script>
 
-<svelte:head><title>Request a test — attested.food</title></svelte:head>
+<svelte:head><title>Request a test · OpenLabel</title></svelte:head>
 
-<h1>Request a test</h1>
+<div class="page narrow">
+	<div class="eyebrow">Step 1 of 3 · request → fund → test</div>
+	<h1>Request a test</h1>
 
-{#if done}
-	<p class="notice">Request received for <strong>{form.brand} {form.name}</strong>. <a href="/requests/{done.id}">View your request</a>.</p>
-	<h2>Tests we'll run</h2>
-	<ul>{#each done.tests as t (t)}<li>{t}</li>{/each}</ul>
-	<p><button class="primary" onclick={() => switchMode(mode)}>Request another product</button></p>
-{:else}
-	<p class="muted">Tell us which product to get lab tested. If we already have it, we'll take you to its page.</p>
-
-	<div class="modes" role="radiogroup" aria-label="How to add the product">
-		<label><input type="radio" name="mode" checked={mode === 'link'} onchange={() => switchMode('link')} /> Paste an Amazon link</label>
-		<label><input type="radio" name="mode" checked={mode === 'manual'} onchange={() => switchMode('manual')} /> Enter details manually</label>
-	</div>
-
-	{#if existing}
-		<div class="notice" role="alert">
-			{#if existing.kind === 'product'}
-				<p><strong>{fullName(existing)}</strong> already exists on attested.food. Do you want to go to its page?</p>
-			{:else}
-				<p><strong>{fullName(existing)}</strong> was already requested on {existing.requested_on}. Do you want to go to its page?</p>
-			{/if}
-			<button type="button" class="primary" onclick={() => goto(existing?.kind === 'product' ? `/products/${existing.id}` : `/requests/${existing?.id}`)}>Yes, open it</button>
-			<button type="button" onclick={() => switchMode(mode)}>No, start over</button>
+	{#if done}
+		<div class="notice done">
+			<p>Request received for <strong>{form.brand} {form.name}</strong>. Once others back it, it goes to an accredited lab.</p>
+			<p><a class="btn small" href="/requests/{done.id}">View your request</a></p>
 		</div>
-	{/if}
+		<h2>Tests we'll run</h2>
+		<ul class="tests">{#each done.tests as t (t)}<li><span aria-hidden="true">?</span>{t}</li>{/each}</ul>
+		<p><button type="button" class="btn ghost" onclick={() => switchMode(mode)}>Request another product</button></p>
+	{:else}
+		<p class="lede">Tell us which product to get lab tested. If we already have it, we'll take you to its page.</p>
 
-	{#if mode === 'link'}
-		<form class="request link" onsubmit={fetchLink}>
-			<label>Amazon product link
-				<input type="url" required maxlength="2000" bind:value={link} disabled={!!existing || fetching} placeholder="https://www.amazon.in/…/dp/B08R3CLJ8H" />
-			</label>
-			<p><button class="primary" type="submit" disabled={!!existing || fetching}>{fetching ? 'Fetching…' : fetched ? 'Fetch again' : 'Fetch details'}</button></p>
-		</form>
-		{#if linkNote}<p class="notice">{linkNote}</p>{/if}
-	{/if}
+		<div class="seg" role="radiogroup" aria-label="How to add the product">
+			<label class:on={mode === 'link'}><input class="sr-only" type="radio" name="mode" checked={mode === 'link'} onchange={() => switchMode('link')} />Paste an Amazon link</label>
+			<label class:on={mode === 'manual'}><input class="sr-only" type="radio" name="mode" checked={mode === 'manual'} onchange={() => switchMode('manual')} />Enter details</label>
+		</div>
 
-	{#if error && !showForm}<p class="error">{error}</p>{/if}
-
-	{#if showForm}
-		<form class="request" onsubmit={submit}>
-			<fieldset disabled={!!existing}>
-				<div class="suggest" onfocusout={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) suggestions = []; }}>
-					<label>Brand *<input required maxlength="100" bind:value={form.brand} oninput={() => search()} placeholder="e.g. Pintola" autocomplete="off" /></label>
-					<label>Product name *<input required maxlength="200" bind:value={form.name} oninput={() => search()} placeholder="e.g. Peanut Butter" autocomplete="off" /></label>
-					{#if suggestions.length}
-						<ul aria-label="Products already on attested.food">
-							{#each suggestions as s (s.kind + s.id)}
-								<li><button type="button" onclick={() => choose(s)}>{fullName(s)}<span class="tag">{s.kind === 'product' ? 'Already listed' : 'Already requested'}</span></button></li>
-							{/each}
-						</ul>
-					{/if}
-				</div>
-				<label>Variant / flavour<input maxlength="100" bind:value={form.variant} placeholder="e.g. Dark Chocolate, Crunchy" /></label>
-				<label>Category *
-					<select required bind:value={form.category}>
-						<option value="" disabled>Choose a category</option>
-						{#each categories as c (c.category)}<option value={c.category}>{label(c.category)}</option>{/each}
-					</select>
-				</label>
-				{#if tests.length}
-					<div>
-						<p class="muted">Tests we'll run for {label(form.category)}:</p>
-						<ul>{#each tests as t (t)}<li>{t}</li>{/each}</ul>
-					</div>
-				{/if}
-
-				<div>
-					<p>Product image *</p>
-					<label style="display:inline"><input type="radio" bind:group={imageMode} value="url" style="width:auto" /> Image URL</label>
-					<label style="display:inline"><input type="radio" bind:group={imageMode} value="file" style="width:auto" /> Upload file</label>
-				</div>
-				{#if imageMode === 'url'}
-					<label>Image URL<input type="url" required maxlength="2000" bind:value={imageUrl} placeholder="https://…" /></label>
+		{#if existing}
+			<div class="notice" role="alert">
+				{#if existing.kind === 'product'}
+					<p><strong>{fullName(existing)}</strong> is already on OpenLabel. Go to its page?</p>
 				{:else}
-					<label>Image file (JPG, PNG or WebP, up to 5 MB)<input type="file" required accept="image/png,image/jpeg,image/webp" bind:this={fileInput} onchange={pickFile} /></label>
+					<p><strong>{fullName(existing)}</strong> was already requested on {existing.requested_on}. Go to its page?</p>
 				{/if}
-				{#if imageError}<p class="error">{imageError}</p>{/if}
-				{#if preview}<img class="preview" src={preview} alt="Product preview" />{/if}
+				<div class="row">
+					<button type="button" class="btn small" onclick={() => goto(existing?.kind === 'product' ? `/products/${existing.id}` : `/requests/${existing?.id}`)}>Yes, open it</button>
+					<button type="button" class="btn small ghost" onclick={() => switchMode(mode)}>No, start over</button>
+				</div>
+			</div>
+		{/if}
 
-				<label>Net quantity<input maxlength="50" bind:value={form.net_quantity} placeholder="e.g. 1 kg" /></label>
-				<label>Where to buy<input type="url" maxlength="2000" bind:value={form.buy_url} placeholder="Amazon, BigBasket or brand site link" /></label>
-				<label>Barcode<input inputmode="numeric" pattern={'\\d{8,14}'} title="8 to 14 digits" bind:value={form.barcode} placeholder="From the pack" /></label>
-				<label>FSSAI licence no.<input inputmode="numeric" pattern={'\\d{14}'} title="14 digits" bind:value={form.fssai_license} placeholder="14 digits, from the pack" /></label>
-				<label>Manufacturer<input maxlength="200" bind:value={form.manufacturer} placeholder="From the pack" /></label>
+		{#if mode === 'link'}
+			<form class="stack" onsubmit={fetchLink}>
+				<label class="field"><span>Amazon product link</span>
+					<input type="url" required maxlength="2000" bind:value={link} disabled={!!existing || fetching} placeholder="https://www.amazon.in/…/dp/B08R3CLJ8H" />
+				</label>
+				<div><button class="btn" type="submit" disabled={!!existing || fetching}>{fetching ? 'Fetching…' : fetched ? 'Fetch again' : 'Fetch details'}</button></div>
+			</form>
+			{#if linkNote}<p class="notice">{linkNote}</p>{/if}
+		{/if}
 
-				{#if error}<p class="error">{error}</p>{/if}
-				<p><button class="primary" type="submit" disabled={submitting}>{submitting ? 'Sending…' : 'Request a test'}</button></p>
-			</fieldset>
-		</form>
+		{#if error && !showForm}<p class="error">{error}</p>{/if}
+
+		{#if showForm}
+			<form class="stack" onsubmit={submit}>
+				<fieldset disabled={!!existing}>
+					<div class="suggest" onfocusout={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) suggestions = []; }}>
+						<div class="pair">
+							<label class="field"><span>Brand *</span><input required maxlength="100" bind:value={form.brand} oninput={() => search()} placeholder="e.g. Pintola" autocomplete="off" /></label>
+							<label class="field"><span>Product name *</span><input required maxlength="200" bind:value={form.name} oninput={() => search()} placeholder="e.g. Peanut Butter" autocomplete="off" /></label>
+						</div>
+						{#if suggestions.length}
+							<ul aria-label="Products already on OpenLabel">
+								{#each suggestions as s (s.kind + s.id)}
+									<li><button type="button" onclick={() => choose(s)}>{fullName(s)}<span class="tag">{s.kind === 'product' ? 'Already listed' : 'Already requested'}</span></button></li>
+								{/each}
+							</ul>
+						{/if}
+					</div>
+					<div class="pair">
+						<label class="field"><span>Variant / flavour</span><input maxlength="100" bind:value={form.variant} placeholder="e.g. Dark Chocolate, Crunchy" /></label>
+						<label class="field"><span>Category *</span>
+							<select required bind:value={form.category}>
+								<option value="" disabled>Choose a category</option>
+								{#each categories as c (c.category)}<option value={c.category}>{label(c.category)}</option>{/each}
+							</select>
+						</label>
+					</div>
+					{#if tests.length}
+						<div class="tests-box">
+							<div class="eyebrow">Tests we'll run for {label(form.category)}</div>
+							<ul class="tests">{#each tests as t (t)}<li><span aria-hidden="true">?</span>{t}</li>{/each}</ul>
+						</div>
+					{/if}
+
+					<div class="field">
+						<span>Product image *</span>
+						<div class="seg small" role="radiogroup" aria-label="Image source">
+							<label class:on={imageMode === 'url'}><input class="sr-only" type="radio" bind:group={imageMode} value="url" />Image URL</label>
+							<label class:on={imageMode === 'file'}><input class="sr-only" type="radio" bind:group={imageMode} value="file" />Upload file</label>
+						</div>
+					</div>
+					{#if imageMode === 'url'}
+						<label class="field"><span>Image URL</span><input type="url" required maxlength="2000" bind:value={imageUrl} placeholder="https://…" /></label>
+					{:else}
+						<label class="field"><span>Image file</span><input type="file" required accept="image/png,image/jpeg,image/webp" bind:this={fileInput} onchange={pickFile} /><small class="hint">JPG, PNG or WebP, up to 5 MB</small></label>
+					{/if}
+					{#if imageError}<p class="error">{imageError}</p>{/if}
+					{#if preview}<img class="preview" src={preview} alt="Product preview" />{/if}
+
+					<div class="pair">
+						<label class="field"><span>Net quantity</span><input maxlength="50" bind:value={form.net_quantity} placeholder="e.g. 1 kg" /></label>
+						<label class="field"><span>Where to buy</span><input type="url" maxlength="2000" bind:value={form.buy_url} placeholder="Amazon, BigBasket or brand site link" /></label>
+					</div>
+					<div class="pair">
+						<label class="field"><span>Barcode</span><input inputmode="numeric" pattern={'\\d{8,14}'} title="8 to 14 digits" bind:value={form.barcode} placeholder="From the pack" /></label>
+						<label class="field"><span>FSSAI licence no.</span><input inputmode="numeric" pattern={'\\d{14}'} title="14 digits" bind:value={form.fssai_license} placeholder="14 digits, from the pack" /></label>
+					</div>
+					<label class="field"><span>Manufacturer</span><input maxlength="200" bind:value={form.manufacturer} placeholder="From the pack" /></label>
+
+					{#if error}<p class="error">{error}</p>{/if}
+					<div><button class="btn" type="submit" disabled={submitting}>{submitting ? 'Sending…' : 'Request a test'}</button></div>
+				</fieldset>
+			</form>
+		{/if}
 	{/if}
-{/if}
+</div>
+
+<style>
+	.narrow { max-width: 760px; }
+	h1 { margin: 6px 0 0; font-size: clamp(32px, 5vw, 44px); font-weight: 750; }
+	h2 { font-size: 22px; margin: 28px 0 10px; }
+	.lede { margin-bottom: 24px; }
+	.stack, fieldset { display: grid; gap: 18px; }
+	fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+	.stack { margin-bottom: 20px; }
+	.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+	.seg { display: inline-flex; padding: 3px; border-radius: var(--r); background: var(--cream); box-shadow: inset 0 0 0 1px var(--line); margin-bottom: 22px; }
+	.seg input.sr-only { position: absolute; width: 1px; height: 1px; min-height: 0; padding: 0; border: 0; opacity: 0; }
+	.seg label { position: relative; padding: 9px 16px; border-radius: 2px; cursor: pointer; font-weight: 600; font-size: 15px; color: var(--sub); }
+	.seg label.on { background: var(--green); color: var(--gold); }
+	.seg.small { margin: 0; justify-self: start; }
+	.seg.small label { padding: 6px 12px; font-size: 14px; }
+	.notice { margin-bottom: 20px; }
+	.notice p { margin: 0 0 10px; }
+	.notice p:last-child { margin: 0; }
+	.row { display: flex; flex-wrap: wrap; gap: 8px; }
+	.suggest { position: relative; }
+	.suggest ul { position: absolute; z-index: 3; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px 0; list-style: none; background: var(--paper); border: 1px solid var(--ink); border-radius: var(--r); max-height: 18rem; overflow-y: auto; box-shadow: 0 12px 30px -12px rgba(0,0,0,.3); }
+	.suggest li button { display: flex; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: none; border: 0; padding: 10px 14px; cursor: pointer; }
+	.suggest li button:hover, .suggest li button:focus { background: var(--cream); }
+	.tag { flex: 0 0 auto; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--gold-ink); }
+	.tests-box { padding: 14px 16px; background: var(--cream); border-radius: var(--r); }
+	.tests { list-style: none; margin: 8px 0 0; padding: 0; }
+	.tests li { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+	.tests li:last-child { border-bottom: 0; }
+	.tests li span { width: 16px; color: var(--sub); font-weight: 700; }
+	.preview { max-height: 10rem; justify-self: start; border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--line); }
+	.field input[type='file'] { padding: 10px 12px; }
+</style>
