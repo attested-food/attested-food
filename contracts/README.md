@@ -26,7 +26,7 @@ Deploy env (optional): `USD` reuses a token, `REGISTRY` reuses a registry (else 
 `NOTARY`, default the backend2-rs dev notary, and `VKEY`, default the live prover's SP1 program),
 `ADMIN` (default the deployer).
 
-Base Sepolia: TestFund `0x7A3bb47C53531608975EdB68CDbff8D245306757`, registry
+Base Sepolia: TestFund `0x62b89329c709b008cC366FD22E8934931125c88E`, registry
 `0x7b99B87c980E08Ee490B8F93EdC625c241697be4`, tUSD `0xbf73cf388CDcB0842E0eE8623E3836F8078Fb685`.
 
 Local test wallets (anvil defaults, pasteable into "Private key (testing only)"):
