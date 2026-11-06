@@ -340,8 +340,9 @@ def api_not_found(rest: str) -> None:
 def frontend(path: str) -> FileResponse:
     file = (BUILD_DIR / path).resolve()
     if path and file.is_file() and file.is_relative_to(BUILD_DIR):
-        return FileResponse(file)
+        immutable = path.startswith("_app/immutable/")
+        return FileResponse(file, headers={"Cache-Control": "public, max-age=31536000, immutable" if immutable else "no-cache"})
     index = BUILD_DIR / "index.html"
     if not index.is_file():
         raise HTTPException(404, "frontend not built")
-    return FileResponse(index)
+    return FileResponse(index, headers={"Cache-Control": "no-cache"})

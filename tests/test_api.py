@@ -232,3 +232,16 @@ def test_duplicates_finds_product(q, kelloggs):
 @pytest.mark.parametrize("q", ["zzqqxx nothing here", "%%", "__"])
 def test_duplicates_no_match(q):
     assert client.get("/api/duplicates", params={"q": q}).json() == []
+
+
+@pytest.mark.parametrize(("path", "cache"), [
+    ("/", "no-cache"),
+    ("/request", "no-cache"),
+    ("/_app/immutable/x.js", "public, max-age=31536000, immutable"),
+])
+def test_frontend_cache_headers(path, cache, tmp_path, monkeypatch):
+    (tmp_path / "_app" / "immutable").mkdir(parents=True)
+    (tmp_path / "index.html").write_text("<html>spa</html>")
+    (tmp_path / "_app" / "immutable" / "x.js").write_text("1")
+    monkeypatch.setattr(main, "BUILD_DIR", tmp_path)
+    assert client.get(path).headers["cache-control"] == cache
