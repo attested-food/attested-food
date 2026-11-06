@@ -50,3 +50,24 @@ export async function pollJob(id: string, onUpdate: (job: Job) => void, everyMs 
 		await new Promise((r) => setTimeout(r, everyMs));
 	}
 }
+
+// TEMP MOCK, remove once the prover server is back: "Post the lab report" skips the server and returns
+// backend2-rs's real SP1 Groth16 fixture (choco-millet-muesli), which TestFund accepts once per deployment.
+export const MOCK_PROVER = true;
+
+export async function mockProof(onUpdate: (job: Job) => void): Promise<Job> {
+	const { default: artifact } = await import('./mock-proof.json');
+	const stages = ['zktls fetch', 'prove stark', 'prove groth16'];
+	let job: Job = {
+		id: 'mock', mode: 'sp1-groth16', format: 'eurekha-attested', status: 'running', stage: null, stages: [], elapsedMs: 0,
+		progress: null, preview: { publicValues: null, publicValuesHex: '' }, partial: {}, result: null, error: null
+	};
+	for (const [i, stage] of stages.entries()) {
+		job = { ...job, stage, elapsedMs: i * 1000, progress: { fraction: i / stages.length } };
+		onUpdate(job);
+		await new Promise((r) => setTimeout(r, 1000));
+	}
+	job = { ...job, status: 'done', stage: null, elapsedMs: 3000, progress: { fraction: 1 }, result: { artifact } };
+	onUpdate(job);
+	return job;
+}

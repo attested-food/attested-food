@@ -23,6 +23,7 @@ contract TestFund {
         uint64 deadline;
         Status status;
         uint256 shares;
+        uint64 reportBlock;
     }
 
     uint256 public constant GOAL = 100e6;
@@ -41,7 +42,8 @@ contract TestFund {
 
     event Contributed(bytes32 indexed id, address indexed from, uint256 amount);
     event Committed(bytes32 indexed id, address indexed tester, uint64 deadline);
-    event ReportSubmitted(bytes32 indexed id, address indexed tester, bytes32 reportDigest, uint256 payout);
+    /// `publicValues` carries the proven report (decode with EurekhaReportRegistry.decode); find it at `reportBlock`.
+    event ReportSubmitted(bytes32 indexed id, address indexed tester, uint256 payout, bytes publicValues);
     event Slashed(bytes32 indexed id, address indexed tester);
     event Distributed(bytes32 indexed id, uint256 amount);
 
@@ -98,7 +100,8 @@ contract TestFund {
         uint256 payout = c.pool + STAKE;
         c.pool = 0;
         c.status = Status.Submitted;
-        emit ReportSubmitted(id, msg.sender, digest, payout);
+        c.reportBlock = uint64(block.number);
+        emit ReportSubmitted(id, msg.sender, payout, publicValues);
         require(usd.transfer(msg.sender, payout), "transfer failed");
     }
 

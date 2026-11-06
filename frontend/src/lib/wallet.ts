@@ -27,7 +27,9 @@ export const hasWalletConnect = !!wcProjectId;
 export const allowPrivateKey = env.VITE_ALLOW_PRIVATE_KEY !== 'false';
 
 export const fundAbi = parseAbi([
-	'function campaigns(bytes32) view returns (uint256 pool, address tester, uint64 deadline, uint8 status, uint256 shares)',
+	'function campaigns(bytes32) view returns (uint256 pool, address tester, uint64 deadline, uint8 status, uint256 shares, uint64 reportBlock)',
+	'function registry() view returns (address)',
+	'event ReportSubmitted(bytes32 indexed id, address indexed tester, uint256 payout, bytes publicValues)',
 	'function contributed(bytes32, address) view returns (uint256)',
 	'function contributors(bytes32) view returns (address[])',
 	'function admin() view returns (address)',
@@ -47,6 +49,16 @@ export const useIsAdmin = () => {
 	}, []);
 	return !!address && !!admin && address.toLowerCase() === admin.toLowerCase();
 };
+/** EurekhaReportRegistry.decode: the report a proof's public values commit to. */
+export const registryAbi = parseAbi([
+	'struct Head { bytes header; uint64 sessionTime; string serverName; bytes32 keySha256; bytes32 bodyCommitment; uint32 pdfLen; bytes32 redactedSha256; uint256 spansAt; }',
+	'struct KeyValue { string key; string value; }',
+	'struct Row { string discipline; string group; string parameter; string unit; string method; string result; string rda; string rdaPct; }',
+	'function decode(bytes publicValues) pure returns (Head h, uint32[2][] spans, KeyValue[] kv, Row[] rows)'
+]);
+
+export const txUrl = (hash: string) => (chain.blockExplorers?.default.url ? `${chain.blockExplorers.default.url}/tx/${hash}` : null);
+
 export const usdAbi = parseAbi([
 	'function balanceOf(address) view returns (uint256)',
 	'function allowance(address, address) view returns (uint256)',
