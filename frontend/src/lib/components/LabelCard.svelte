@@ -99,7 +99,7 @@
 
 			{#if item.ingredients}
 				<p class="ing">
-					<span class="sub">Ingredients: </span>{#if a?.segments.length}<Segments segments={a.segments} compact />{:else}{item.ingredients}{/if}
+					<span class="sub">{'Ingredients: '}</span>{#if a?.segments.length}<Segments segments={a.segments} compact />{:else}{item.ingredients}{/if}
 				</p>
 			{/if}
 
@@ -143,7 +143,7 @@
 				<div class="brand">{item.brand}</div>
 				<div class="name">{name}</div>
 				<p class="ing-front">
-					<span class="sub">Ingredients: </span>{item.ingredients ?? 'Not on file yet.'}
+					<span class="sub">{'Ingredients: '}</span>{item.ingredients ?? 'Not on file yet.'}
 				</p>
 				<div class="nut">
 					<div class="nut-head"><span>Nutrition</span><span class="sub">per 100 g</span></div>
