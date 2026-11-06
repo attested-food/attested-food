@@ -26,7 +26,7 @@
 </script>
 
 <script lang="ts">
-	import { buyUrl, label, nutritionRows, productName, type Finding, type WallItem } from '$lib/api';
+	import { buyUrl, imgFallback, imgSrc, label, nutritionRows, productName, type Finding, type WallItem } from '$lib/api';
 	import GradeBox from './GradeBox.svelte';
 	import Segments from './Segments.svelte';
 	import StateTag from './StateTag.svelte';
@@ -129,11 +129,7 @@
 	<div class="front" class:peeled onclick={onpeel} inert={peeled}>
 		<div class="sheet">
 			<div class="photo">
-				{#if item.image_url}
-					<img src={item.image_url} alt="{name} pack" draggable="false" loading="lazy" referrerpolicy="no-referrer" />
-				{:else}
-					<span class="nophoto">{item.brand}</span>
-				{/if}
+				<img src={imgSrc(item.image_url)} alt="{name} pack" draggable="false" loading="lazy" referrerpolicy="no-referrer" onerror={imgFallback} />
 			</div>
 			<div class="info">
 				<div class="top">
@@ -400,8 +396,7 @@
 		flex: 0 0 236px;
 		padding: 14px 0 14px 14px;
 	}
-	.photo img,
-	.nophoto {
+	.photo img {
 		display: block;
 		width: 222px;
 		height: 352px;
@@ -410,15 +405,6 @@
 		background: #ffffff;
 		border-radius: var(--r);
 		border: 1px solid var(--frame);
-	}
-	.nophoto {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: var(--frame);
-		color: var(--sub);
-		font-weight: 700;
-		font-size: 22px;
 	}
 	.info {
 		flex: 1;

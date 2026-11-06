@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { api, buyUrl, dash, label, nutritionRows, productName, verdictText, httpUrl, type Product, type Result } from '$lib/api';
+	import { api, buyUrl, dash, imgFallback, imgSrc, label, nutritionRows, productName, verdictText, httpUrl, type Product, type Result } from '$lib/api';
 	import GradeBox from '$lib/components/GradeBox.svelte';
 	import Segments from '$lib/components/Segments.svelte';
 	import StateTag from '$lib/components/StateTag.svelte';
@@ -57,11 +57,7 @@
 
 		<section class="hero">
 			<div class="photo">
-				{#if httpUrl(p.image_url)}
-					<img src={httpUrl(p.image_url)} alt="{p.brand} {productName(p)} pack" referrerpolicy="no-referrer" />
-				{:else}
-					<span class="nophoto">{p.brand}</span>
-				{/if}
+				<img src={imgSrc(p.image_url)} alt="{p.brand} {productName(p)} pack" referrerpolicy="no-referrer" onerror={imgFallback} />
 			</div>
 			<div class="summary">
 				<div class="row">
@@ -255,8 +251,7 @@
 	.crumbs a { text-decoration: none; }
 	.hero { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
 	.photo { flex: 0 0 300px; max-width: 100%; }
-	.photo img, .nophoto { display: block; width: 100%; aspect-ratio: 222 / 352; object-fit: contain; padding: 14px; background: #fff; border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--line); }
-	.nophoto { display: flex; align-items: center; justify-content: center; background: var(--cream); color: var(--sub); font-weight: 700; font-size: 22px; }
+	.photo img { display: block; width: 100%; aspect-ratio: 222 / 352; object-fit: contain; padding: 14px; background: #fff; border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--line); }
 	.summary { flex: 1 1 380px; min-width: 0; }
 	.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 	.brand { display: inline-block; margin-top: 18px; color: var(--sub); text-decoration: none; }
@@ -297,6 +292,6 @@
 	.results { min-width: 720px; font-size: 14px; }
 	@media (max-width: 600px) {
 		.photo { flex-basis: 100%; }
-		.photo img, .nophoto { aspect-ratio: 4 / 3; }
+		.photo img { aspect-ratio: 4 / 3; }
 	}
 </style>

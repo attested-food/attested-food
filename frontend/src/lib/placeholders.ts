@@ -1,6 +1,6 @@
 /**
- * PLACEHOLDER DATA. Funding is not built yet: there is no payments backend, no pledges and no lab
- * bookings. Everything here is shown with a "Placeholder" tag so nobody mistakes it for real numbers.
+ * PLACEHOLDER DATA, shown only when this deployment has no TestFund contract configured
+ * (VITE_FUND_ADDRESS). Always rendered with a "Placeholder" tag so nobody mistakes it for real numbers.
  */
 export type FundingPlaceholder = {
 	productHint: string;

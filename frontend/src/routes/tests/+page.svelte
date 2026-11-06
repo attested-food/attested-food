@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { api, httpUrl, label, nameOf, productName, type ProductCard, type TestRequest } from '$lib/api';
+	import { api, imgFallback, imgSrc, label, nameOf, productName, type ProductCard, type TestRequest } from '$lib/api';
 	import { FUNDING } from '$lib/placeholders';
+	import { FUND_GOAL, campaignId, fundAbi, fundAddress, publicClient, usd } from '$lib/wallet.svelte';
 	import StateTag from '$lib/components/StateTag.svelte';
 
 	const TABS = [
@@ -29,8 +30,27 @@
 
 	const requests = api<TestRequest[]>('/api/test-requests');
 	const tested = api<{ items: ProductCard[] }>('/api/products?page_size=48').then((r) => r.items.filter((p) => p.has_user_report));
-	const funding = FUNDING.filter((f) => f.state === 'funding');
-	const funded = FUNDING.filter((f) => f.state === 'funded');
+	const placeholderFunding = FUNDING.filter((f) => f.state === 'funding');
+	const placeholderFunded = FUNDING.filter((f) => f.state === 'funded');
+
+	// Campaign states from the TestFund contract, when this deployment has one.
+	type Campaign = { r: TestRequest; pool: bigint; status: number; pct: number };
+	const STATUS_LABEL = ['Waiting for a tester', 'Tester assigned', 'Report submitted'];
+	const campaigns: Promise<Campaign[]> | null = fundAddress
+		? requests.then((rs) =>
+				Promise.all(
+					rs.map(async (r) => {
+						const [pool, , , status] = await publicClient.readContract({
+							address: fundAddress!, abi: fundAbi, functionName: 'campaigns', args: [campaignId(r.id)]
+						});
+						return { r, pool, status, pct: Math.min(100, Number((pool * 100n) / FUND_GOAL)) };
+					})
+				)
+			)
+		: null;
+	const inTab = (c: Campaign, t: Tab) =>
+		t === 'funding' ? c.status === 0 && c.pool > 0n && c.pool < FUND_GOAL : c.status > 0 || c.pool >= FUND_GOAL;
+	const firstLine = (e: unknown) => (e instanceof Error ? e.message : String(e)).split(String.fromCharCode(10))[0];
 </script>
 
 <svelte:head><title>Tests · OpenLabel</title></svelte:head>
@@ -69,7 +89,7 @@
 						{#each reqs as r (r.id)}
 							<li>
 								<a class="tile" href="/requests/{r.id}">
-									<span class="img">{#if httpUrl(r.image_url ?? null)}<img src={httpUrl(r.image_url ?? null)} alt="" loading="lazy" referrerpolicy="no-referrer" />{/if}</span>
+									<span class="img"><img src={imgSrc(r.image_url)} alt="" loading="lazy" referrerpolicy="no-referrer" onerror={imgFallback} /></span>
 									<span class="body">
 										<span class="top"><span class="eyebrow">{label(r.category)}</span><StateTag state="requested" /></span>
 										<span class="muted small">{r.brand}</span>
@@ -84,10 +104,38 @@
 			{:catch err}
 				<p class="error">Could not load requests: {err.message}</p>
 			{/await}
+		{:else if (tab === 'funding' || tab === 'funded') && campaigns}
+			{#await campaigns}
+				<p class="muted">Reading campaigns…</p>
+			{:then all}
+				{@const list = all.filter((c) => inTab(c, tab))}
+				{#if !list.length}
+					<p>{tab === 'funding' ? 'No tests are part-funded right now.' : 'No tests are fully funded yet.'} <a href="#requested" onclick={() => pick('requested')}>Back a requested test.</a></p>
+				{:else}
+					<ul class="grid">
+						{#each list as c (c.r.id)}
+							<li>
+								<a class="tile" href="/requests/{c.r.id}">
+									<span class="img"><img src={imgSrc(c.r.image_url)} alt="" loading="lazy" referrerpolicy="no-referrer" onerror={imgFallback} /></span>
+									<span class="body">
+										<span class="top"><span class="eyebrow">{label(c.r.category)}</span><StateTag state={tab} pct={tab === 'funding' ? c.pct : null} /></span>
+										<span class="muted small">{c.r.brand}</span>
+										<span class="name">{productName(c.r)}</span>
+										<span class="bar" aria-label="{c.pct}% funded"><span style:width="{c.pct}%"></span></span>
+										<span class="nums"><span><b>{usd(c.pool)}</b> of {usd(FUND_GOAL)}</span>{#if tab === 'funded'}<span class="muted">{STATUS_LABEL[c.status]}</span>{/if}</span>
+									</span>
+								</a>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			{:catch err}
+				<p class="error">Could not read campaigns: {firstLine(err)}</p>
+			{/await}
 		{:else if tab === 'funding' || tab === 'funded'}
-			<p class="notice"><span class="placeholder-tag">Placeholder</span> Funding isn't live yet. These cards show how it will look; the products and numbers are not real.</p>
+			<p class="notice"><span class="placeholder-tag">Placeholder</span> On-chain funding isn't configured for this deployment. These cards show how it looks; the products and numbers are not real.</p>
 			<ul class="grid">
-				{#each tab === 'funding' ? funding : funded as f, i (i)}
+				{#each tab === 'funding' ? placeholderFunding : placeholderFunded as f, i (i)}
 					<li>
 						<div class="tile fund">
 							<span class="body">
@@ -112,7 +160,7 @@
 						{#each items as p (p.id)}
 							<li>
 								<a class="tile" href="/products/{p.id}">
-									<span class="img">{#if httpUrl(p.image_url)}<img src={httpUrl(p.image_url)} alt="" loading="lazy" referrerpolicy="no-referrer" />{/if}</span>
+									<span class="img"><img src={imgSrc(p.image_url)} alt="" loading="lazy" referrerpolicy="no-referrer" onerror={imgFallback} /></span>
 									<span class="body">
 										<span class="top"><span class="eyebrow">{label(p.category)}</span><StateTag state="tested" /></span>
 										<span class="muted small">{p.brand}</span>

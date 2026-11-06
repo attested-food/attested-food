@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import WalletButton from '$lib/WalletButton.svelte';
 
 	let { overlay = false }: { overlay?: boolean } = $props();
 
@@ -30,7 +31,7 @@
 				<a href={l.href} aria-current={current(l.href) ? 'page' : undefined}>{l.text}</a>
 			{/each}
 		</nav>
-		<button type="button" class="btn signin" aria-disabled="true" title="Accounts are coming soon">Sign in</button>
+		<div class="signin"><WalletButton /></div>
 	</div>
 </header>
 
@@ -99,9 +100,6 @@
 	}
 	.overlay nav a:hover {
 		color: var(--gold);
-	}
-	.signin {
-		cursor: default;
 	}
 	@media (max-width: 640px) {
 		.inner {

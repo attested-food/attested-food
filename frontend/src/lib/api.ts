@@ -229,3 +229,10 @@ export function buyUrl(p: { brand: string; name: string; variant: string | null;
 	const q = encodeURIComponent([p.brand, p.variant, p.name].filter(Boolean).join(' '));
 	return `https://www.amazon.in/s?k=${q}${AFFILIATE_TAG ? `&tag=${AFFILIATE_TAG}` : ''}`;
 }
+
+export const PLACEHOLDER = '/placeholder.svg';
+export const imgSrc = (u: string | null | undefined) => httpUrl(u ?? null) ?? PLACEHOLDER;
+export const imgFallback = (e: Event) => {
+	const img = e.currentTarget as HTMLImageElement;
+	if (!img.src.endsWith(PLACEHOLDER)) img.src = PLACEHOLDER;
+};

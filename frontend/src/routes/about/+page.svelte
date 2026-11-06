@@ -12,7 +12,7 @@
 		</li>
 		<li>
 			<b>2</b>
-			<div><h2>Fund <span class="placeholder-tag">Coming soon</span></h2><p>Anyone can chip in. When a test is fully funded, it's sent to an accredited (NABL) lab.</p></div>
+			<div><h2>Fund</h2><p>Anyone can chip in to a test's pool on-chain. Anyone can also take the job by staking $110, which is returned when they submit the lab report. Miss the one-month deadline and the stake is lost and the job reopens.</p></div>
 		</li>
 		<li>
 			<b>3</b>

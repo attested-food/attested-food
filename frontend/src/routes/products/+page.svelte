@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { api, buyUrl, label, nameOf, productName, httpUrl, type LabelNutrition, type ProductCard, type TestRequest } from '$lib/api';
+	import { api, buyUrl, imgFallback, imgSrc, label, nameOf, productName, type LabelNutrition, type ProductCard, type TestRequest } from '$lib/api';
 	import GradeBox from '$lib/components/GradeBox.svelte';
 	import StateTag from '$lib/components/StateTag.svelte';
 
@@ -81,7 +81,7 @@
 					{#each reqs.slice(0, 6) as t (t.id)}
 						<li>
 							<a href="/requests/{t.id}">
-								{#if httpUrl(t.image_url ?? null)}<img src={httpUrl(t.image_url ?? null)} alt="" loading="lazy" />{:else}<span class="noimg"></span>{/if}
+								<img src={imgSrc(t.image_url)} alt="" loading="lazy" onerror={imgFallback} />
 								<span class="rq-text">
 									<span class="muted small">{t.brand}</span>
 									<span class="rq-name">{productName(t)}</span>
@@ -126,7 +126,7 @@
 								<tr>
 									<th scope="row">
 										<a class="prod" href="/products/{p.id}">
-											{#if httpUrl(p.image_url)}<img src={httpUrl(p.image_url)} alt="" loading="lazy" referrerpolicy="no-referrer" />{:else}<span class="noimg"></span>{/if}
+											<img src={imgSrc(p.image_url)} alt="" loading="lazy" referrerpolicy="no-referrer" onerror={imgFallback} />
 											<span>
 												<span class="muted small">{p.brand}</span>
 												<span class="pname">{productName(p)}</span>
@@ -174,14 +174,13 @@
 	.requested { margin-bottom: 44px; }
 	.requested ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 	.requested a { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: var(--r); background: var(--cream); text-decoration: none; height: 100%; }
-	.requested img, .requested .noimg { flex: 0 0 auto; width: 52px; height: 64px; object-fit: contain; background: #fff; border-radius: 2px; }
+	.requested img { flex: 0 0 auto; width: 52px; height: 64px; object-fit: contain; background: #fff; border-radius: 2px; }
 	.rq-text { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
 	.rq-name { font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 	.ratings { min-width: 860px; }
 	.ratings tbody th { font-weight: 600; }
 	.prod { display: flex; align-items: center; gap: 14px; text-decoration: none; }
-	.prod img, .prod .noimg { flex: 0 0 auto; width: 44px; height: 60px; object-fit: contain; background: #fff; border-radius: 2px; box-shadow: inset 0 0 0 1px var(--line); }
-	.noimg { display: block; background: var(--cream); }
+	.prod img { flex: 0 0 auto; width: 44px; height: 60px; object-fit: contain; background: #fff; border-radius: 2px; box-shadow: inset 0 0 0 1px var(--line); }
 	.prod > span { display: flex; flex-direction: column; }
 	.pname { line-height: 1.25; }
 	.lab { display: inline-flex; padding: 3px 7px; background: var(--green); color: var(--gold); font-family: var(--mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; border-radius: var(--r); }
