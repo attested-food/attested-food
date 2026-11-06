@@ -53,8 +53,61 @@ export type Product = {
 	barcode: string | null;
 	net_quantity: string | null;
 	image_url: string | null;
+	ingredients: string | null;
+	ingredients_source: string | null;
+	label_nutrition: LabelNutrition | null;
 	reports: Report[];
 	tests: { name: string; tested: boolean }[];
+	annotations: Annotations;
+};
+
+/** Per 100 g, from the pack label. Any subset. */
+export type LabelNutrition = Partial<{
+	energy_kcal: number;
+	protein_g: number;
+	sugars_g: number;
+	added_sugars_g: number;
+	fiber_g: number;
+	fat_g: number;
+	saturated_fat_g: number;
+	sodium_mg: number;
+}>;
+
+export type Finding = {
+	parameter: string;
+	kind: 'good' | 'bad' | 'info';
+	label: number | null;
+	tested: number | null;
+	unit: string | null;
+	deviation_pct: number | null;
+	text: string;
+};
+
+export type Segment = { t: string; mark: 'under' | 'circle' | 'hl' | 'good' | null; note: string | null };
+
+export type Annotations = {
+	segments: Segment[];
+	findings: Finding[];
+	counts: { pass: number; fail: number; untested: number };
+};
+
+export type WallItem = {
+	kind: 'product' | 'request';
+	id: string;
+	brand: string;
+	name: string;
+	variant: string | null;
+	category: string | null;
+	image_url: string | null;
+	ingredients: string | null;
+	label_nutrition: LabelNutrition | null;
+	state: 'tested' | 'requested';
+	grade: string | null;
+	grade_source: string | null;
+	report_kind: 'user' | 'fallback' | null;
+	lab: string | null;
+	tested_on: string | null;
+	annotations: Annotations | null;
 };
 
 export type TestRequest = {
@@ -94,6 +147,7 @@ export type ProductCard = {
 	variant: string | null;
 	category: string | null;
 	image_url: string | null;
+	label_nutrition: LabelNutrition | null;
 	report_count: number;
 	has_user_report: boolean;
 	latest: {
@@ -131,7 +185,7 @@ export async function post<T>(path: string, body: unknown): Promise<T> {
 
 export const dash = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : String(v));
 
-export const label = (v: string | null) => (v ? v.replace(/_/g, ' ') : '—');
+export const label = (v: string | null) => (v ? v.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase()) : '—');
 
 export const nameOf = (x: string | Source | null) => (x && typeof x === 'object' ? x.name : x);
 
@@ -143,6 +197,39 @@ export function verdictText(r: { verdict: Report['verdict']; grade: string | nul
 }
 
 export const httpUrl = (u: string | null) => (u && /^(https?:\/\/|\/)/i.test(u) ? u : null);
+
+const NUTRITION_ROWS: [keyof LabelNutrition, string, string][] = [
+	['energy_kcal', 'Energy', 'kcal'],
+	['protein_g', 'Protein', 'g'],
+	['sugars_g', 'Sugars', 'g'],
+	['added_sugars_g', 'Added sugar', 'g'],
+	['fiber_g', 'Fibre', 'g'],
+	['fat_g', 'Fat', 'g'],
+	['saturated_fat_g', 'Sat. fat', 'g'],
+	['sodium_mg', 'Sodium', 'mg']
+];
+
+const num = (v: number) => (Math.abs(v) >= 100 ? Math.round(v).toString() : (Math.round(v * 10) / 10).toString());
+
+/** Label nutrition as display rows, in a fixed order. */
+export function nutritionRows(n: LabelNutrition | null, max = 8) {
+	if (!n) return [];
+	return NUTRITION_ROWS.filter(([k]) => typeof n[k] === 'number')
+		.slice(0, max)
+		.map(([k, name, unit]) => ({ key: k, name, value: `${num(n[k] as number)} ${unit}` }));
+}
+
+export const productName = (p: { name: string; variant: string | null }) =>
+	p.variant && !p.name.toLowerCase().includes(p.variant.toLowerCase()) ? `${p.variant} ${p.name}` : p.name;
+
+/** Amazon search link for a product. Affiliate tag is added once the account exists. */
+export const AFFILIATE_TAG = '';
+export function buyUrl(p: { brand: string; name: string; variant: string | null; buy_url?: string | null }) {
+	if (p.buy_url && httpUrl(p.buy_url)) return p.buy_url;
+	const q = encodeURIComponent([p.brand, p.variant, p.name].filter(Boolean).join(' '));
+	return `https://www.amazon.in/s?k=${q}${AFFILIATE_TAG ? `&tag=${AFFILIATE_TAG}` : ''}`;
+}
+
 export const PLACEHOLDER = '/placeholder.svg';
 export const imgSrc = (u: string | null | undefined) => httpUrl(u ?? null) ?? PLACEHOLDER;
 export const imgFallback = (e: Event) => {

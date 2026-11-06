@@ -6,9 +6,11 @@ from backend.category_tests import coverage
 
 client = TestClient(main.app)
 
-PRODUCT_KEYS = {"id", "brand", "name", "variant", "category", "image_url", "report_count", "has_user_report", "latest"}
+PRODUCT_KEYS = {"id", "brand", "name", "variant", "category", "image_url", "label_nutrition", "report_count",
+                "has_user_report", "latest"}
 DETAIL_KEYS = {"id", "brand", "name", "variant", "category", "manufacturer", "fssai_license", "barcode",
-               "net_quantity", "image_url", "reports", "tests"}
+               "net_quantity", "image_url", "reports", "tests", "ingredients", "ingredients_source", "label_nutrition",
+               "annotations"}
 REPORT_KEYS = {"id", "kind", "lab", "publisher", "source_url", "report_number", "ulr_number", "batch_no", "mfg_date",
                "expiry_date", "tested_on", "issued_on", "verdict", "grade", "pdf_url", "pdf_sha256", "verification",
                "verified", "chain_tx", "fetched_at", "results"}
@@ -250,3 +252,29 @@ def test_frontend_cache_headers(path, cache, tmp_path, monkeypatch):
     (tmp_path / "_app" / "immutable" / "x.js").write_text("1")
     monkeypatch.setattr(main, "BUILD_DIR", tmp_path)
     assert client.get(path).headers["cache-control"] == cache
+
+
+WALL_KEYS = {"kind", "id", "brand", "name", "variant", "category", "image_url", "ingredients", "label_nutrition",
+             "state", "grade", "grade_source", "report_kind", "lab", "tested_on", "annotations"}
+
+
+def test_wall_shape():
+    body = client.get("/api/wall", params={"limit": 4}).json()
+    products_ = [i for i in body["items"] if i["kind"] == "product"]
+    assert 1 <= len(products_) <= 4
+    for item in body["items"]:
+        assert set(item) == WALL_KEYS
+        assert set(item["annotations"]) == {"segments", "findings", "counts"}
+    first = products_[0]
+    assert first["report_kind"] == "user" and first["grade"] is None
+
+
+@pytest.mark.parametrize("limit", [0, 49])
+def test_wall_limit_bounds(limit):
+    assert client.get("/api/wall", params={"limit": limit}).status_code == 422
+
+
+def test_detail_has_annotations(kelloggs):
+    body = client.get(f"/api/products/{kelloggs['id']}").json()
+    assert set(body["annotations"]["counts"]) == {"pass", "fail", "untested"}
+    assert "ingredients" in body and "label_nutrition" in body

@@ -16,6 +16,7 @@ Query: `q` (search brand/name/variant), `brand`, `category`, `page` (1-based, de
       "variant": "Choco",
       "category": "breakfast_cereal",
       "image_url": null,
+      "label_nutrition": {"sodium_mg": 236, "fiber_g": 7},
       "report_count": 1,
       "has_user_report": true,
       "latest": {
@@ -84,9 +85,41 @@ Product plus every report (user reports first, then newest first), each with all
 }
 ```
 
+Also returned: `ingredients` (text or null), `ingredients_source` (`open_food_facts` or null), `label_nutrition` (per 100 g: `energy_kcal`, `protein_g`, `sugars_g`,
+`added_sugars_g`, `fiber_g`, `fat_g`, `saturated_fat_g`, `sodium_mg`, any subset, or null) and `annotations` for the
+first report (see `/api/wall`).
+
 `tests` is the test set for the product's category ([backend/category_tests.py](../backend/category_tests.py)), each marked tested if any report has a matching result.
 
 `lab` / `publisher` are `{id, name, url, accreditation}` or `null`. Numbers are JSON numbers, dates are `YYYY-MM-DD`.
+
+## `GET /api/wall?limit=16`
+
+Cards for the home page: products with their latest report (user reports first, then products with a photo,
+ingredients and results), followed by up to `limit / 4` newest test requests. `limit` 1–48.
+
+```json
+{"items": [{
+  "kind": "product", "id": "uuid", "brand": "Kellogg's", "name": "Millet Muesli", "variant": "Choco",
+  "category": "breakfast_cereal", "image_url": "https://…", "ingredients": "MULTIGRAIN MIX (69.1%) …",
+  "label_nutrition": {"sodium_mg": 236, "fiber_g": 7},
+  "state": "tested", "grade": null, "grade_source": "Equinox Labs", "report_kind": "user",
+  "lab": "Equinox Labs", "tested_on": "2026-11-03",
+  "annotations": {
+    "segments": [{"t": "IODIZED SALT", "mark": "circle", "note": "sodium 282.8 mg, +20% vs label"}],
+    "findings": [{"parameter": "Sodium", "kind": "bad", "label": 236, "tested": 282.83, "unit": "mg",
+                  "deviation_pct": 19.8, "text": "282.8 mg, +20% vs label"}],
+    "counts": {"pass": 2, "fail": 1, "untested": 0}
+  }
+}]}
+```
+
+- `grade`: the source's own grade for fallback reports (`"86/100"`, `"A+"`, `"Pass"`); `null` for our own reports
+  until grading exists. `state` is `tested` for products and `requested` for test requests.
+- `annotations` come from [backend/annotate.py](../backend/annotate.py): a result is off its label when it differs from
+  `label_claim` (or `label_nutrition`) by more than 10%; higher is worse for sugar, sodium, fat and energy, lower is
+  worse for protein and fibre. `status` and `limit` decide the rest. `segments` join back to `ingredients`;
+  `mark` is `under`, `circle`, `hl`, `good` or `null`. Notes hold numbers only.
 
 ## `GET /api/sources`
 

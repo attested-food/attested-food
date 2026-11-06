@@ -17,6 +17,7 @@ from psycopg.types.json import set_json_loads
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend import amazon
+from backend.annotate import summarize
 from backend.category_tests import coverage, names_for
 
 load_dotenv()
@@ -33,7 +34,7 @@ SOURCE_JSON = "CASE WHEN {a}.id IS NULL THEN NULL ELSE json_build_object('id', {
 
 LIST_SQL = f"""
 WITH filtered AS (
-    SELECT p.id, p.brand, p.name, p.variant, p.category, p.image_url,
+    SELECT p.id, p.brand, p.name, p.variant, p.category, p.image_url, p.label_nutrition,
            (SELECT count(*) FROM reports r WHERE r.product_id = p.id) AS report_count,
            EXISTS (SELECT 1 FROM reports r WHERE r.product_id = p.id AND r.kind = 'user') AS has_user_report
     FROM products p
@@ -64,7 +65,7 @@ SELECT (SELECT count(*) FROM filtered) AS total,
 
 DETAIL_SQL = f"""
 SELECT p.id, p.brand, p.name, p.variant, p.category, p.manufacturer, p.fssai_license,
-       p.barcode, p.net_quantity, p.image_url,
+       p.barcode, p.net_quantity, p.image_url, p.ingredients, p.ingredients_source, p.label_nutrition,
        coalesce((
            SELECT json_agg(to_jsonb(rep) - 'ord' ORDER BY rep.ord)
            FROM (
@@ -251,7 +252,72 @@ def get_product(product_id: str) -> dict:
         raise HTTPException(404, "product not found")
     product = rows[0]
     product["tests"] = coverage(product["category"], [x for r in product["reports"] for x in r["results"]])
+    primary = product["reports"][0]["results"] if product["reports"] else []
+    product["annotations"] = summarize({**product, "results": primary})
     return product
+
+
+WALL_SQL = f"""
+SELECT p.id::text AS id, p.brand, p.name, p.variant, p.category, p.image_url, p.ingredients, p.label_nutrition,
+       rep.kind, rep.grade, rep.verdict, rep.lab, rep.publisher, rep.tested_on, rep.results
+FROM products p
+JOIN LATERAL (
+    SELECT r.kind, r.grade, r.verdict, lab.name AS lab, pub.name AS publisher, r.tested_on::text AS tested_on,
+           coalesce((
+               SELECT json_agg(json_build_object(
+                   'parameter', x.parameter, 'group', x."group", 'unit', x.unit, 'value', x.value,
+                   'value_raw', x.value_raw, 'label_claim', x.label_claim, 'limit', x."limit",
+                   'detection_limit', x.detection_limit, 'method', x.method, 'status', x.status
+               ) ORDER BY x."group", x.parameter)
+               FROM results x WHERE x.report_id = r.id
+           ), '[]'::json) AS results
+    FROM reports r
+    LEFT JOIN sources lab ON lab.id = r.lab_id
+    LEFT JOIN sources pub ON pub.id = r.publisher_id
+    WHERE r.product_id = p.id
+    ORDER BY {REPORT_ORDER}
+    LIMIT 1
+) rep ON true
+ORDER BY (rep.kind = 'user') DESC, (p.image_url IS NOT NULL) DESC, (p.ingredients IS NOT NULL) DESC,
+         (json_array_length(rep.results) > 0) DESC, p.brand, p.name
+LIMIT %(limit)s
+"""
+
+
+def source_grade(kind: str, grade: str | None, verdict: str | None) -> str | None:
+    """Fallback reports keep the source's own grade; our own reports have no grade until grading exists."""
+    if kind == "user":
+        return None
+    if grade:
+        return grade
+    return {"pass": "Pass", "fail": "Fail"}.get(verdict or "")
+
+
+@app.get("/api/wall")
+def wall(limit: int = Query(16, ge=1, le=48)) -> dict:
+    """Products with their latest report, best-documented first, then the newest test requests."""
+    items = []
+    for row in fetch(WALL_SQL, {"limit": limit}):
+        tests = coverage(row["category"], row["results"])
+        items.append({
+            "kind": "product", "id": row["id"], "brand": row["brand"], "name": row["name"], "variant": row["variant"],
+            "category": row["category"], "image_url": row["image_url"], "ingredients": row["ingredients"],
+            "label_nutrition": row["label_nutrition"], "state": "tested",
+            "grade": source_grade(row["kind"], row["grade"], row["verdict"]),
+            "grade_source": row["publisher"] or row["lab"], "report_kind": row["kind"],
+            "lab": row["lab"], "tested_on": row["tested_on"],
+            "annotations": summarize({**row, "tests": tests}),
+        })
+    requests = fetch(LIST_REQUESTS_SQL, {"q": None, "like": None, "brand": None, "category": None})
+    for req in requests[: max(1, limit // 4)]:
+        tests = coverage(req["category"], [])
+        items.append({
+            "kind": "request", "id": req["id"], "brand": req["brand"], "name": req["name"], "variant": req["variant"],
+            "category": req["category"], "image_url": req["image_url"], "ingredients": None, "label_nutrition": None,
+            "state": "requested", "grade": None, "grade_source": None, "report_kind": None, "lab": None,
+            "tested_on": None, "annotations": summarize({"name": req["name"], "tests": tests}),
+        })
+    return {"items": items}
 
 
 @app.get("/api/sources")

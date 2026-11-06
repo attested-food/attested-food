@@ -79,3 +79,45 @@ def test_claim_key(a, b):
 )
 def test_category(names, expected):
     assert category(names) == expected
+
+
+def test_off_nutrition_maps_and_converts():
+    from scraper.off_details import off_nutrition
+
+    got = off_nutrition({
+        "energy-kcal_100g": 375, "proteins_100g": 7.8, "sugars_100g": 20.8, "added-sugars_100g": 13.7,
+        "fiber_100g": 7, "sodium_100g": 0.236, "fat_100g": "n/a", "unrelated_100g": 5,
+    })
+    assert got == {"energy_kcal": 375, "protein_g": 7.8, "sugars_g": 20.8, "added_sugars_g": 13.7,
+                   "fiber_g": 7, "sodium_mg": 236}
+
+
+def test_off_nutrition_drops_implausible():
+    from scraper.off_details import off_nutrition
+
+    assert off_nutrition({"energy-kcal_100g": 955, "sugars_100g": 21.8, "added-sugars_100g": 32}) == {}
+
+
+def test_pick_needs_most_name_words():
+    from scraper.off_details import pick
+
+    hits = [
+        {"code": "1", "brands": "Kellogg's", "product_name": "Kellogg's crunchy muesli", "countries_tags": ["en:india"]},
+        {"code": "2", "brands": "Kellogg's", "product_name": "Choco Millet Muesli", "countries_tags": ["en:india"]},
+    ]
+    assert pick(hits, "Kellogg's", "Millet Muesli", "Choco")["code"] == "2"
+    assert pick(hits[:1], "Kellogg's", "Millet Muesli", "Choco") is None
+
+
+def test_pick_skips_products_not_sold_in_india():
+    from scraper.off_details import pick
+    hits = [{"code": "4001234", "brands": "Double Diamond", "product_name": "Black Tea", "countries_tags": ["en:germany"]}]
+    assert pick(hits, "Double Diamond", "Black Tea", None) is None
+    hits[0]["code"] = "8901234567890"
+    assert pick(hits, "Double Diamond", "Black Tea", None) is hits[0]
+
+
+def test_clean_ingredients_drops_allergen_markers():
+    from scraper.off_details import clean_ingredients
+    assert clean_ingredients("_WHEAT_ GLUTEN,  _OATS_") == "WHEAT GLUTEN, OATS"
+    assert clean_ingredients("  ") is None

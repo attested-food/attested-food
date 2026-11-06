@@ -48,6 +48,9 @@ export const campaignId = (uuid: string) => pad(`0x${uuid.replaceAll('-', '')}` 
 
 export const usd = (v: bigint) => `$${formatUnits(v, 6)}`;
 
+/** Cost of one test, in tUSD (6 decimals). */
+export const FUND_GOAL = 100_000_000n;
+
 export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 async function useProvider(provider: EIP1193Provider) {
