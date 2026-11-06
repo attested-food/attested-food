@@ -147,6 +147,7 @@ export type ProductCard = {
 	variant: string | null;
 	category: string | null;
 	image_url: string | null;
+	label_nutrition: LabelNutrition | null;
 	report_count: number;
 	has_user_report: boolean;
 	latest: {
@@ -184,7 +185,7 @@ export async function post<T>(path: string, body: unknown): Promise<T> {
 
 export const dash = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : String(v));
 
-export const label = (v: string | null) => (v ? v.replace(/_/g, ' ') : '—');
+export const label = (v: string | null) => (v ? v.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase()) : '—');
 
 export const nameOf = (x: string | Source | null) => (x && typeof x === 'object' ? x.name : x);
 

@@ -34,7 +34,7 @@ SOURCE_JSON = "CASE WHEN {a}.id IS NULL THEN NULL ELSE json_build_object('id', {
 
 LIST_SQL = f"""
 WITH filtered AS (
-    SELECT p.id, p.brand, p.name, p.variant, p.category, p.image_url,
+    SELECT p.id, p.brand, p.name, p.variant, p.category, p.image_url, p.label_nutrition,
            (SELECT count(*) FROM reports r WHERE r.product_id = p.id) AS report_count,
            EXISTS (SELECT 1 FROM reports r WHERE r.product_id = p.id AND r.kind = 'user') AS has_user_report
     FROM products p

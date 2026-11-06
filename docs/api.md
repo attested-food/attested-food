@@ -16,6 +16,7 @@ Query: `q` (search brand/name/variant), `brand`, `category`, `page` (1-based, de
       "variant": "Choco",
       "category": "breakfast_cereal",
       "image_url": null,
+      "label_nutrition": {"sodium_mg": 236, "fiber_g": 7},
       "report_count": 1,
       "has_user_report": true,
       "latest": {

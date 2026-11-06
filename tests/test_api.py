@@ -6,7 +6,8 @@ from backend.category_tests import coverage
 
 client = TestClient(main.app)
 
-PRODUCT_KEYS = {"id", "brand", "name", "variant", "category", "image_url", "report_count", "has_user_report", "latest"}
+PRODUCT_KEYS = {"id", "brand", "name", "variant", "category", "image_url", "label_nutrition", "report_count",
+                "has_user_report", "latest"}
 DETAIL_KEYS = {"id", "brand", "name", "variant", "category", "manufacturer", "fssai_license", "barcode",
                "net_quantity", "image_url", "reports", "tests", "ingredients", "ingredients_source", "label_nutrition",
                "annotations"}
