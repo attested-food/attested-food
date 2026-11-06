@@ -8,7 +8,8 @@ client = TestClient(main.app)
 
 PRODUCT_KEYS = {"id", "brand", "name", "variant", "category", "image_url", "report_count", "has_user_report", "latest"}
 DETAIL_KEYS = {"id", "brand", "name", "variant", "category", "manufacturer", "fssai_license", "barcode",
-               "net_quantity", "image_url", "reports", "tests", "ingredients", "label_nutrition", "annotations"}
+               "net_quantity", "image_url", "reports", "tests", "ingredients", "ingredients_source", "label_nutrition",
+               "annotations"}
 REPORT_KEYS = {"id", "kind", "lab", "publisher", "source_url", "report_number", "ulr_number", "batch_no", "mfg_date",
                "expiry_date", "tested_on", "issued_on", "verdict", "grade", "pdf_url", "pdf_sha256", "verification",
                "verified", "chain_tx", "fetched_at", "results"}

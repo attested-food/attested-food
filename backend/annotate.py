@@ -104,8 +104,8 @@ def findings(results: list[dict], label_nutrition: dict | None) -> list[dict]:
             dev = round(raw, 1)
             f.update(label=label, deviation_pct=dev, text=f"{_fmt(value)} {unit}, {_pct(raw)} vs label")
             if f["kind"] == "info" and abs(dev) > THRESHOLD:
-                worse = mapped[1] if mapped else True
-                f["kind"] = "bad" if (dev > 0) == worse else "good"
+                # Unknown direction: the label is simply wrong, which counts against it.
+                f["kind"] = "bad" if not mapped or (dev > 0) == mapped[1] else "good"
         out.append(f)
     return out
 

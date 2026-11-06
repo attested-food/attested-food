@@ -107,3 +107,8 @@ def test_split_tolerates_unclosed_percent_bracket():
 def test_split_ignores_bracket_that_never_closes():
     text = "SEEDS (9%) (CRANBERRIES (3%), WHEAT BRAN, IODIZED SALT"
     assert split_ingredients(text) == ["SEEDS (9%) (CRANBERRIES (3%)", "WHEAT BRAN", "IODIZED SALT"]
+
+
+def test_off_label_with_unknown_direction_is_bad():
+    f = findings([r("MUFA+PUFA", 6.63, label_claim=12.4)], None)[0]
+    assert f["kind"] == "bad" and f["text"] == "6.6 g, -47% vs label"

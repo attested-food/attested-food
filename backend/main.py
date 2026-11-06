@@ -65,7 +65,7 @@ SELECT (SELECT count(*) FROM filtered) AS total,
 
 DETAIL_SQL = f"""
 SELECT p.id, p.brand, p.name, p.variant, p.category, p.manufacturer, p.fssai_license,
-       p.barcode, p.net_quantity, p.image_url, p.ingredients, p.label_nutrition,
+       p.barcode, p.net_quantity, p.image_url, p.ingredients, p.ingredients_source, p.label_nutrition,
        coalesce((
            SELECT json_agg(to_jsonb(rep) - 'ord' ORDER BY rep.ord)
            FROM (

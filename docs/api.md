@@ -84,7 +84,7 @@ Product plus every report (user reports first, then newest first), each with all
 }
 ```
 
-Also returned: `ingredients` (text or null), `label_nutrition` (per 100 g: `energy_kcal`, `protein_g`, `sugars_g`,
+Also returned: `ingredients` (text or null), `ingredients_source` (`open_food_facts` or null), `label_nutrition` (per 100 g: `energy_kcal`, `protein_g`, `sugars_g`,
 `added_sugars_g`, `fiber_g`, `fat_g`, `saturated_fat_g`, `sodium_mg`, any subset, or null) and `annotations` for the
 first report (see `/api/wall`).
 

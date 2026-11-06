@@ -1,23 +1,27 @@
 <script lang="ts">
 	import '../app.css';
+	import { page } from '$app/state';
+	import SiteHeader from '$lib/components/SiteHeader.svelte';
 
 	let { children } = $props();
+	const home = $derived(page.url.pathname === '/');
 </script>
 
-<header>
-	<a class="logo" href="/">attested.food</a>
-	<nav>
-		<a href="/">Home</a>
-		<a href="/products">Products</a>
-		<a href="/sources">Sources</a>
-		<a href="/request">Request a test</a>
-		<a href="/upload">Upload</a>
-		<a href="/about">About</a>
-	</nav>
-</header>
+<svelte:head><title>OpenLabel</title></svelte:head>
 
-<main>
+{#if home}
 	{@render children()}
-</main>
-
-<footer><p>attested.food — lab test reports for packaged food in India.</p></footer>
+{:else}
+	<SiteHeader />
+	<main>{@render children()}</main>
+	<footer class="site-footer">
+		<div class="inner">
+			<span>OpenLabel · crowd-requested, crowd-funded lab tests of packaged food in India.</span>
+			<nav aria-label="Footer">
+				<a href="/sources">Sources</a>
+				<a href="/about">About</a>
+			</nav>
+			<span>Ingredient lists and label nutrition from <a href="https://world.openfoodfacts.org">Open Food Facts</a> (ODbL / CC BY-SA) where the pack wasn't scanned by us.</span>
+		</div>
+	</footer>
+{/if}
