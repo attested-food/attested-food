@@ -1,8 +1,10 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { Logo } from './bits';
 import { SignIn } from './SignIn';
+import { useIsAdmin } from '@/lib/wallet';
 
 export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
+	const isAdmin = useIsAdmin();
 	const links = overlay
 		? [['/products', 'Marketplace'], ['/about', 'How it works']]
 		: [['/products', 'Marketplace'], ['/tests', 'Tests'], ['/about', 'How it works']];
@@ -14,6 +16,7 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
 					{links.map(([to, text]) => (
 						<NavLink key={to} to={to}>{text}</NavLink>
 					))}
+					{isAdmin && <NavLink to="/distribute">Distribute</NavLink>}
 				</nav>
 				<SignIn />
 			</div>

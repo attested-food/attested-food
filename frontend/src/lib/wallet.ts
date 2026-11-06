@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import {
 	createPublicClient,
 	createWalletClient,
@@ -25,13 +25,26 @@ export const hasWalletConnect = !!wcProjectId;
 export const allowPrivateKey = env.DEV || env.VITE_ALLOW_PRIVATE_KEY === 'true';
 
 export const fundAbi = parseAbi([
-	'function campaigns(bytes32) view returns (uint256 pool, address tester, uint64 deadline, uint8 status)',
+	'function campaigns(bytes32) view returns (uint256 pool, address tester, uint64 deadline, uint8 status, uint256 shares)',
 	'function contributed(bytes32, address) view returns (uint256)',
+	'function contributors(bytes32) view returns (address[])',
+	'function admin() view returns (address)',
 	'function contribute(bytes32 id, uint256 amount)',
 	'function commit(bytes32 id)',
-	'function submitReport(bytes32 id)',
-	'function slash(bytes32 id)'
+	'function submitReport(bytes32 id, bytes32 backend, bytes publicValues, bytes proof, bytes notarySignature)',
+	'function slash(bytes32 id)',
+	'function distribute(bytes32 id, uint256 amount)'
 ]);
+
+/** The app admin (TestFund.admin), who can distribute revenue to a tested pool's contributors. */
+export const useIsAdmin = () => {
+	const { address } = useWallet();
+	const [admin, setAdmin] = useState<Address | null>(null);
+	useEffect(() => {
+		if (fundAddress) publicClient.readContract({ address: fundAddress, abi: fundAbi, functionName: 'admin' }).then(setAdmin, () => setAdmin(null));
+	}, []);
+	return !!address && !!admin && address.toLowerCase() === admin.toLowerCase();
+};
 export const usdAbi = parseAbi([
 	'function balanceOf(address) view returns (uint256)',
 	'function allowance(address, address) view returns (uint256)',
