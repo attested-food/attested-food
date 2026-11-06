@@ -1,4 +1,7 @@
 /target
 /guest/target
+/zktls/target
+# TLS session output: body, blinders and the private request path.
+/zktls/runs
 # Report PDFs carry customer PII.
 *.pdf

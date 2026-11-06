@@ -1,0 +1,42 @@
+[package]
+name = "zktls"
+description = "TLSNotary server-side prover, notary and on-chain export (copy of the Equinox backend's crate, rev in ../core/UPSTREAM_REV), with a host allowlist and the request opening"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+# Own workspace: tlsn's dependency tree stays out of the OpenVM server's lock.
+# Cargo.lock started as a copy of the backend's, so versions match it.
+[workspace]
+
+[dependencies]
+equinox-core = { path = "../core", features = ["std", "serde", "k256"] }
+# TLSNotary, pinned at the rev the backend runs (alpha.16-pre).
+tlsn = { git = "https://github.com/tlsnotary/tlsn", rev = "24b10ba21bf36c3fd3de709e7eccd8308bb64207", features = ["mozilla-certs"] }
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bincode = "1.3"
+bcs = "0.1"
+blake3 = "1.5"
+sha2 = "0.10.9"
+k256 = { version = "0.13", features = ["ecdsa"] }
+sha3 = "0.10"
+hex = "0.4"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync", "time", "fs", "io-util"] }
+tokio-util = { version = "0.7", features = ["compat"] }
+futures = "0.3"
+hyper = { version = "1.1", features = ["client", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4.5", features = ["derive", "env"] }
+
+[profile.release]
+opt-level = 3
+
+# tlsn crypto is unusably slow unoptimized.
+[profile.dev.package."*"]
+opt-level = 3

@@ -20,6 +20,7 @@ use crate::extract::{check_xobjects, page_fonts, page_list_max};
 use crate::pdf::{is_regular, is_ws, Dict, Doc, Obj};
 use crate::sha::{sha256, sha256_in};
 use crate::text::{decode_content, CMap, Text};
+use crate::tlsn;
 
 /// Labels of the customer block. Their values are PII-font runs and are never
 /// emitted as key-value pairs.
@@ -81,6 +82,37 @@ impl Eurekha {
                 put_str(&mut out, s);
             }
         }
+        out
+    }
+}
+
+/// A [`Eurekha`] report served by the lab's S3 bucket under a TLSNotary
+/// attestation ([`run_attested`]).
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct EurekhaAttested {
+    /// The pinned notary's Ethereum address; a verifier must check it.
+    pub notary: [u8; 20],
+    /// The notary-signed server name (the bucket host).
+    pub server_name: String,
+    /// TLS session time (unix seconds).
+    pub session_time: u64,
+    /// `sha256` of the S3 object key, never the key itself: it is the
+    /// capability to the unredacted original.
+    pub key_sha256: [u8; 32],
+    pub report: Eurekha,
+}
+
+impl EurekhaAttested {
+    /// `notary | session_time u64 LE | server_name (u64-LE-length-prefixed) |
+    /// key_sha256 |` [`Eurekha::encode`].
+    pub fn encode(&self) -> Vec<u8> {
+        let mut out = Vec::with_capacity(2048);
+        out.extend_from_slice(&self.notary);
+        out.extend_from_slice(&self.session_time.to_le_bytes());
+        put_str(&mut out, &self.server_name);
+        out.extend_from_slice(&self.key_sha256);
+        out.extend_from_slice(&self.report.encode());
         out
     }
 }
@@ -410,4 +442,29 @@ pub fn run(buf: &[u8]) -> Eurekha {
         kv,
         results,
     }
+}
+
+/// TLS + redaction in one computation: [`tlsn::check`] the attestation against
+/// the pinned notary, [`tlsn::open_request`] for the object key, [`run`] over
+/// `buf = pdf || blinder`, then bind its commitment and length to the
+/// attested body.
+pub fn run_attested(
+    buf: &[u8],
+    t: &tlsn::OnchainTlsn,
+    req: &tlsn::OnchainRequest,
+    secret: &tlsn::RequestSecret,
+    notary: &[u8; 20],
+    sig: &impl tlsn::NotarySignature,
+) -> Result<EurekhaAttested, tlsn::TlsnError> {
+    let body = tlsn::check(t, notary, sig)?;
+    let request = tlsn::open_request(t, &body, req, secret)?;
+    let report = run(buf);
+    tlsn::bind_body(&body, &report.body_commitment, report.pdf_len as u64)?;
+    Ok(EurekhaAttested {
+        notary: *notary,
+        server_name: body.server_name.into(),
+        session_time: request.session_time,
+        key_sha256: request.key_sha256,
+        report,
+    })
 }

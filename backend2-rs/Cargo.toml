@@ -2,7 +2,8 @@
 resolver = "2"
 members = ["core", "server"]
 # The guest is its own workspace, built for riscv32im-risc0-zkvm-elf by server/build.rs.
-exclude = ["guest"]
+# zktls is its own workspace too, so tlsn's dependency tree stays out of the OpenVM lock.
+exclude = ["guest", "zktls"]
 
 [profile.release]
 opt-level = 3

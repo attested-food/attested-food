@@ -7,9 +7,14 @@
 //!   so each zkVM can use its own secp256k1 / keccak precompiles;
 //! - the attestation body Merkle root (rs_merkle over SHA-256) rebuilt from all
 //!   leaves and compared with the root at the end of the signed header;
-//! - the `equinox.server_name` extension leaf opened to the expected server;
+//! - the `equinox.server_name` extension leaf opened to one of [`SERVER_NAMES`];
 //! - the body commitment leaf opened to `PlaintextHash { Received, one range,
 //!   SHA-256 }`, giving the commitment and the body range.
+//!
+//! [`open_request`] goes further for an [`OnchainRequest`]: it opens the
+//! `ConnectionInfo` leaf and the three request commitments against the private
+//! request bytes, so the guest learns the request path (and outputs only its
+//! hash) and checks the `Host` header names the attested server.
 //!
 //! The X.509 chain is NOT checked here: like the contract, this trusts the
 //! notary's signed server-name extension. The Rust verifier checks the chain.
@@ -31,8 +36,18 @@ pub const DOMAIN_EXTENSION: [u8; 16] = hex16("67ed567f312ca482b9f365cc271baa42")
 pub const DOMAIN_TRANSCRIPT_COMMITMENT: [u8; 16] = hex16("bd0ab9ac6ea93ebda2500e8769e63a9e");
 /// Id of the notary-signed extension that carries the verified server name.
 pub const SERVER_NAME_EXT_ID: &[u8] = b"equinox.server_name";
-/// The only server the workflow accepts.
+/// `blake3("tlsn_core::connection::ConnectionInfo")[..16]`.
+pub const DOMAIN_CONNECTION_INFO: [u8; 16] = hex16("6e317487904af460f6bba793610c9961");
+/// The Equinox report bucket.
 pub const SERVER_NAME: &str = "equinox-labs-latest.s3.amazonaws.com";
+/// The Eurekha Labs report bucket (`mock-pdfs`).
+pub const EUREKHA_SERVER_NAME: &str = "eurekhalabs.s3.amazonaws.com";
+/// Every server the workflow accepts.
+pub const SERVER_NAMES: [&str; 2] = [SERVER_NAME, EUREKHA_SERVER_NAME];
+
+pub fn is_allowed_host(host: &str) -> bool {
+    SERVER_NAMES.contains(&host)
+}
 
 /// The attestation pieces the on-chain and in-guest checks consume. Built from
 /// a presentation by `zktls::onchain::export`.
@@ -59,9 +74,43 @@ pub trait NotarySignature {
     fn recover(&self, header: &[u8], signature: &[u8]) -> Option<[u8; 20]>;
 }
 
+/// The leaves that pin the request: `ConnectionInfo` (transcript lengths,
+/// session time) and the three sent commitments `GET `, path, rest of the
+/// request, in transcript order. Public, built by `zktls::onchain::export`.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct OnchainRequest {
+    pub conn_index: u32,
+    /// `bcs(ConnectionInfo)`: `time u64 LE | version | sent u32 LE | received u32 LE`.
+    pub conn_preimage: Vec<u8>,
+    pub sent_index: Vec<u32>,
+    /// `bcs(TranscriptCommitment::Hash(PlaintextHash { Sent, .. }))` per leaf.
+    pub sent_preimage: Vec<Vec<u8>>,
+}
+
+/// The private opening of the request commitments: the whole sent transcript
+/// (it holds the object key) and one blinder per [`OnchainRequest`] leaf.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct RequestSecret {
+    pub request: Vec<u8>,
+    pub blinders: Vec<[u8; 16]>,
+}
+
+/// What an opened request establishes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct AttestedRequest {
+    /// TLS session time (unix seconds) the notary attested.
+    pub session_time: u64,
+    /// `sha256` of the object key (the request path without its leading `/`).
+    pub key_sha256: [u8; 32],
+}
+
 /// What a verified attestation says about the body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AttestedBody {
+    /// The notary-signed server name, one of [`SERVER_NAMES`].
+    pub server_name: &'static str,
     pub body_commitment: [u8; 32],
     /// Byte range of the body in the received transcript.
     pub body_start: u64,
@@ -75,6 +124,10 @@ pub enum TlsnError {
     BadMerkleRoot,
     BadServerName,
     BadBodyCommitment,
+    BadConnectionInfo,
+    /// A request leaf, its opening, or the request shape (`GET /path HTTP/1.1`,
+    /// one `Host` header naming the attested server) does not check out.
+    BadRequest,
     /// The PDF's recomputed commitment or length differs from the attested body.
     BodyMismatch,
 }
@@ -89,22 +142,110 @@ pub fn check(t: &OnchainTlsn, notary: &[u8; 20], sig: &impl NotarySignature) -> 
         return Err(TlsnError::BadMerkleRoot);
     }
     let leaf = |i: u32| t.leaves.get(i as usize).copied();
-    if t.ext_preimage != server_name_ext_preimage(SERVER_NAME)
-        || leaf(t.ext_index) != Some(leaf_hash(&DOMAIN_EXTENSION, &t.ext_preimage))
-    {
+    let server_name = SERVER_NAMES
+        .into_iter()
+        .find(|s| t.ext_preimage == server_name_ext_preimage(s))
+        .ok_or(TlsnError::BadServerName)?;
+    if leaf(t.ext_index) != Some(leaf_hash(&DOMAIN_EXTENSION, &t.ext_preimage)) {
         return Err(TlsnError::BadServerName);
     }
-    let body = parse_body_preimage(&t.body_preimage).ok_or(TlsnError::BadBodyCommitment)?;
+    let (body_start, body_end, body_commitment) =
+        parse_hash_preimage(&t.body_preimage, RECEIVED).ok_or(TlsnError::BadBodyCommitment)?;
     if leaf(t.body_index) != Some(leaf_hash(&DOMAIN_TRANSCRIPT_COMMITMENT, &t.body_preimage)) {
         return Err(TlsnError::BadBodyCommitment);
     }
-    Ok(body)
+    Ok(AttestedBody { server_name, body_commitment, body_start, body_end })
+}
+
+/// Open the request against a [`check`]ed attestation `t`: the
+/// `ConnectionInfo` leaf gives both transcript lengths; the three sent leaves
+/// must cover `[0, 4)`, `[4, p)`, `[p, sent_len)` and open (SHA-256 with their
+/// blinders) to `GET `, a path, and ` HTTP/1.1\r\n` + headers + `\r\n` with
+/// exactly one `Host` header equal to `body.server_name`; the body must end the
+/// received transcript. The path must be `/` + a non-empty key with no space,
+/// `?` or `#`; only its hash leaves the guest.
+pub fn open_request(
+    t: &OnchainTlsn,
+    body: &AttestedBody,
+    r: &OnchainRequest,
+    s: &RequestSecret,
+) -> Result<AttestedRequest, TlsnError> {
+    let leaf = |i: u32| t.leaves.get(i as usize).copied();
+    let c = &r.conn_preimage;
+    if c.len() != 17 || leaf(r.conn_index) != Some(leaf_hash(&DOMAIN_CONNECTION_INFO, c)) {
+        return Err(TlsnError::BadConnectionInfo);
+    }
+    let session_time = u64::from_le_bytes(c[..8].try_into().unwrap());
+    let sent_len = u32::from_le_bytes(c[9..13].try_into().unwrap()) as u64;
+    let recv_len = u32::from_le_bytes(c[13..17].try_into().unwrap()) as u64;
+    if body.body_end != recv_len {
+        return Err(TlsnError::BodyMismatch);
+    }
+
+    let req = &s.request;
+    if req.len() as u64 != sent_len || r.sent_index.len() != 3 || r.sent_preimage.len() != 3 || s.blinders.len() != 3 {
+        return Err(TlsnError::BadRequest);
+    }
+    let mut at = 0u64;
+    let mut parts: [&[u8]; 3] = [&[]; 3];
+    for i in 0..3 {
+        let pre = &r.sent_preimage[i];
+        let (start, end, hash) = parse_hash_preimage(pre, SENT).ok_or(TlsnError::BadRequest)?;
+        if start != at || leaf(r.sent_index[i]) != Some(leaf_hash(&DOMAIN_TRANSCRIPT_COMMITMENT, pre)) {
+            return Err(TlsnError::BadRequest);
+        }
+        let part = &req[start as usize..end as usize];
+        let mut b = Vec::with_capacity(part.len() + 16);
+        b.extend_from_slice(part);
+        b.extend_from_slice(&s.blinders[i]);
+        if sha256(&b) != hash {
+            return Err(TlsnError::BadRequest);
+        }
+        parts[i] = part;
+        at = end;
+    }
+    let [get, path, rest] = parts;
+    if at != sent_len || get != b"GET " || !request_tail_ok(rest, body.server_name) {
+        return Err(TlsnError::BadRequest);
+    }
+    let key = match path {
+        [b'/', key @ ..] if !key.is_empty() && !key.iter().any(|c| matches!(c, b' ' | b'?' | b'#')) => key,
+        _ => return Err(TlsnError::BadRequest),
+    };
+    Ok(AttestedRequest { session_time, key_sha256: sha256(key) })
+}
+
+/// ` HTTP/1.1\r\n`, header lines, `\r\n`; exactly one `Host` header (name case
+/// insensitive) whose value is `host`.
+fn request_tail_ok(rest: &[u8], host: &str) -> bool {
+    let Some(headers) = rest.strip_prefix(b" HTTP/1.1\r\n").and_then(|h| h.strip_suffix(b"\r\n")) else {
+        return false;
+    };
+    let mut hosts = 0;
+    let mut line_start = 0;
+    while line_start < headers.len() {
+        let Some(n) = headers[line_start..].windows(2).position(|w| w == b"\r\n") else { return false };
+        let line = &headers[line_start..line_start + n];
+        if line.len() >= 5 && line[..5].eq_ignore_ascii_case(b"host:") {
+            hosts += 1;
+            if line[5..].trim_ascii() != host.as_bytes() {
+                return false;
+            }
+        }
+        line_start += n + 2;
+    }
+    hosts == 1
 }
 
 /// The recomputed `SHA256(pdf || blinder)` and the PDF length must be exactly
 /// the attested commitment and body range.
 pub fn bind(body: &AttestedBody, out: &Output) -> Result<(), TlsnError> {
-    if out.body_commitment != body.body_commitment || out.pdf_len as u64 != body.body_end - body.body_start {
+    bind_body(body, &out.body_commitment, out.pdf_len as u64)
+}
+
+/// [`bind`] for any report format.
+pub fn bind_body(body: &AttestedBody, commitment: &[u8; 32], pdf_len: u64) -> Result<(), TlsnError> {
+    if *commitment != body.body_commitment || pdf_len != body.body_end - body.body_start {
         return Err(TlsnError::BodyMismatch);
     }
     Ok(())
@@ -197,18 +338,22 @@ pub fn server_name_ext_preimage(server: &str) -> Vec<u8> {
     b
 }
 
-/// `bcs(TranscriptCommitment::Hash(PlaintextHash { Received, [start..end), SHA-256 }))`:
-/// `0x00 | 0x01 | 0x01 (one range) | start u64 LE | end u64 LE | 0x01 | 0x20 | hash`.
-pub fn parse_body_preimage(b: &[u8]) -> Option<AttestedBody> {
-    if b.len() != 53 || b[0] != 0x00 || b[1] != 0x01 || b[2] != 0x01 || b[19] != 0x01 || b[20] != 0x20 {
+const SENT: u8 = 0x00;
+const RECEIVED: u8 = 0x01;
+
+/// `bcs(TranscriptCommitment::Hash(PlaintextHash { direction, [start..end), SHA-256 }))`:
+/// `0x00 | direction (0 Sent, 1 Received) | 0x01 (one range) | start u64 LE |
+/// end u64 LE | 0x01 | 0x20 | hash`. Returns `(start, end, hash)`.
+pub fn parse_hash_preimage(b: &[u8], direction: u8) -> Option<(u64, u64, [u8; 32])> {
+    if b.len() != 53 || b[0] != 0x00 || b[1] != direction || b[2] != 0x01 || b[19] != 0x01 || b[20] != 0x20 {
         return None;
     }
-    let body_start = u64::from_le_bytes(b[3..11].try_into().ok()?);
-    let body_end = u64::from_le_bytes(b[11..19].try_into().ok()?);
-    if body_end <= body_start {
+    let start = u64::from_le_bytes(b[3..11].try_into().ok()?);
+    let end = u64::from_le_bytes(b[11..19].try_into().ok()?);
+    if end <= start {
         return None;
     }
-    Some(AttestedBody { body_commitment: b[21..53].try_into().ok()?, body_start, body_end })
+    Some((start, end, b[21..53].try_into().ok()?))
 }
 
 fn uleb128(out: &mut Vec<u8>, mut v: u64) {
@@ -239,5 +384,27 @@ const fn nib(c: u8) -> u8 {
         b'0'..=b'9' => c - b'0',
         b'a'..=b'f' => c - b'a' + 10,
         _ => panic!("bad hex"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn request_tail() {
+        let h = EUREKHA_SERVER_NAME;
+        let ok = alloc::format!(" HTTP/1.1\r\nhost: {h}\r\naccept: */*\r\n\r\n");
+        assert!(request_tail_ok(ok.as_bytes(), h));
+        assert!(request_tail_ok(alloc::format!(" HTTP/1.1\r\nHost:  {h} \r\n\r\n").as_bytes(), h));
+        for bad in [
+            alloc::format!(" HTTP/1.1\r\nhost: {SERVER_NAME}\r\n\r\n"),
+            alloc::format!(" HTTP/1.1\r\nhost: {h}\r\nhost: {h}\r\n\r\n"),
+            alloc::format!(" HTTP/1.1\r\nhost: {h}\r\n"),
+            alloc::format!(" HTTP/1.0\r\nhost: {h}\r\n\r\n"),
+            " HTTP/1.1\r\naccept: */*\r\n\r\n".into(),
+        ] {
+            assert!(!request_tail_ok(bad.as_bytes(), h), "{bad:?}");
+        }
     }
 }
