@@ -47,7 +47,7 @@ Proof 534,601 B. Program `appExeCommit 007539b8...d3e3b2`, `appVmCommit 00773b10
 
 ## On-chain verification
 
-The STARK itself is not verified on-chain. OpenVM ships no Solidity STARK verifier, and the 534,601-byte proof would cost about 8.6M gas in calldata alone (16 gas per non-zero byte) before any verification work.
+The STARK itself is not verified on-chain. OpenVM ships no Solidity STARK verifier, and the 534,601-byte proof would cost up to about 8.6M gas in calldata alone (16 gas per non-zero byte, 4 per zero byte) before any verification work.
 
 OpenVM's route is `Sdk::prove_evm` (`openvm-sdk` feature `evm-prove`): it wraps the aggregated STARK in a Halo2/KZG proof on BN254, and `Sdk::generate_halo2_verifier_solidity` emits `OpenVmHalo2Verifier.sol` with `verify(bytes publicValues, bytes proofData, bytes32 appExeCommit, bytes32 appVmCommit)`. Here `publicValues` is the 32-byte digest the guest reveals and the two commits are `/program`'s. What it needs that this server does not have yet:
 
