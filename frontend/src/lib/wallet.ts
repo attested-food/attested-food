@@ -1,4 +1,3 @@
-import EthereumProvider from '@walletconnect/ethereum-provider';
 import { useSyncExternalStore } from 'react';
 import {
 	createPublicClient,
@@ -110,6 +109,8 @@ export async function connectInjected(provider?: EIP1193Provider) {
 }
 
 export async function connectWalletConnect() {
+	// Loaded on demand: the WalletConnect SDK is large and most visitors never use it.
+	const { default: EthereumProvider } = await import('@walletconnect/ethereum-provider');
 	const provider = await EthereumProvider.init({
 		projectId: wcProjectId!,
 		optionalChains: [chain.id],

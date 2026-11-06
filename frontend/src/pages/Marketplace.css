@@ -22,3 +22,12 @@
 .m-cta > div { flex: 1 1 420px; min-width: 0; }
 .m-cta-title { font-family: var(--label); font-weight: 700; font-size: 30px; text-transform: uppercase; letter-spacing: 0.01em; line-height: 1.05; }
 .m-cta p { margin: 6px 0 0; font-size: 15.5px; }
+@media (max-width: 600px) {
+	.m-body { gap: 24px; }
+	.m-filters { flex-basis: 100%; }
+	.m-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+	.m-tile { padding: 8px 8px 10px; }
+	.m-name { font-size: 15px; height: 36px; }
+	.m-grade { gap: 6px; font-size: 12px; }
+	.m-buy { margin: 10px 2px 0; min-height: 38px; font-size: 13px; }
+}

@@ -71,7 +71,7 @@ export function Fund({ requestId }: { requestId: string }) {
 		<section className="fund card" aria-labelledby="fund-h">
 			<h2 id="fund-h" className="fund-title">Fund this test</h2>
 			<p className="muted fund-lede">
-				Anyone can chip in. Anyone can also be the tester by putting down a refundable stake of {usd(FUND_STAKE)}; it comes back when the report is posted.
+				Anyone can chip in. Anyone can also be the tester by putting down a refundable stake; it comes back when the report is posted.
 				If the report isn't posted in time, the stake goes to the pool and the job reopens.
 			</p>
 			{!fundAddress ? (
