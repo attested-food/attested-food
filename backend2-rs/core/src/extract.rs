@@ -132,11 +132,15 @@ const MAX_PAGES: usize = usize::MAX;
 // Leaf pages in document order (depth-first over /Kids), up to MAX_PAGES, each
 // with the nearest inherited /Resources.
 fn page_list<'a>(doc: &Doc<'a>) -> Vec<(Dict<'a>, Option<Dict<'a>>)> {
+    page_list_max(doc, MAX_PAGES)
+}
+
+pub(crate) fn page_list_max<'a>(doc: &Doc<'a>, max: usize) -> Vec<(Dict<'a>, Option<Dict<'a>>)> {
     let cat = doc.resolve(&Obj::Ref(doc.root.0, doc.root.1)).dict();
     assert!(cat.name(b"Type") == Some(b"Catalog"), "root is not a /Catalog");
     let root = doc.resolve(cat.get(b"Pages").expect("/Pages")).dict();
     let mut out = Vec::new();
-    walk(doc, root, None, 0, &mut out);
+    walk(doc, root, None, 0, max, &mut out);
     assert!(!out.is_empty(), "no pages");
     out
 }
@@ -146,6 +150,7 @@ fn walk<'a>(
     node: Dict<'a>,
     inherited: Option<Dict<'a>>,
     depth: u32,
+    max: usize,
     out: &mut Vec<(Dict<'a>, Option<Dict<'a>>)>,
 ) {
     assert!(depth < 16, "page tree too deep");
@@ -162,19 +167,19 @@ fn walk<'a>(
             };
             assert!(!kids.is_empty(), "empty /Kids");
             for k in &kids {
-                if out.len() >= MAX_PAGES {
+                if out.len() >= max {
                     return;
                 }
                 assert!(matches!(k, Obj::Ref(..)), "page tree kid must be a reference");
                 let kid = doc.resolve(k).dict();
-                walk(doc, kid, inh.clone(), depth + 1, out);
+                walk(doc, kid, inh.clone(), depth + 1, max, out);
             }
         }
         _ => panic!("page tree node has no /Type /Page(s)"),
     }
 }
 
-fn page_fonts<'a>(doc: &Doc<'a>, res: &Dict<'a>) -> Vec<Font<'a>> {
+pub(crate) fn page_fonts<'a>(doc: &Doc<'a>, res: &Dict<'a>) -> Vec<Font<'a>> {
     let mut fonts = Vec::new();
     let fd = match res.get(b"Font") {
         Some(f) => doc.resolve(f).dict(),
@@ -201,7 +206,7 @@ fn page_fonts<'a>(doc: &Doc<'a>, res: &Dict<'a>) -> Vec<Font<'a>> {
 
 // Text inside a Form XObject would be invisible to the content-stream decoder,
 // so only image XObjects are allowed on a decoded page.
-fn check_xobjects<'a>(doc: &Doc<'a>, res: &Dict<'a>) {
+pub(crate) fn check_xobjects<'a>(doc: &Doc<'a>, res: &Dict<'a>) {
     if let Some(x) = res.get(b"XObject") {
         for (_, r) in &doc.resolve(x).dict().0 {
             let (n, g) = match r {

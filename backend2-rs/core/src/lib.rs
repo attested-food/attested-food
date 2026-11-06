@@ -31,6 +31,7 @@ extern crate alloc;
 #[cfg(all(feature = "track", not(feature = "std")))]
 extern crate std;
 
+pub mod eurekha;
 pub mod extract;
 pub mod inflate;
 pub mod pdf;

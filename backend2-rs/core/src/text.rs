@@ -25,7 +25,7 @@ impl CMap {
     }
 
     #[inline(always)]
-    fn get(&self, code: u16) -> Option<char> {
+    pub(crate) fn get(&self, code: u16) -> Option<char> {
         match self.map.get(code as usize) {
             Some(&cp) if cp != NONE => Some(unsafe { char::from_u32_unchecked(cp) }),
             _ => None,
