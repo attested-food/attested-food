@@ -10,6 +10,7 @@ const Request = lazy(() => import('./pages/Request'));
 const RequestDetail = lazy(() => import('./pages/RequestDetail'));
 const Sources = lazy(() => import('./pages/Sources'));
 const About = lazy(() => import('./pages/About'));
+const Prove = lazy(() => import('./pages/Prove'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 export function App() {
@@ -26,6 +27,7 @@ export function App() {
 						<Route path="requests/:id" element={<RequestDetail />} />
 						<Route path="sources" element={<Sources />} />
 						<Route path="about" element={<About />} />
+						<Route path="prove" element={<Prove />} />
 						<Route path="*" element={<NotFound />} />
 					</Route>
 				</Routes>
