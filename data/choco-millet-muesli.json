@@ -1,0 +1,146 @@
+{
+  "id": "choco-millet-muesli",
+  "report": {
+    "number": "EURK:001:NL:26:11:09311",
+    "reference": "001:NL:26:11:09311",
+    "ulr": "ULR-TC00002026000109311F",
+    "issue_date": "05-Nov-2026"
+  },
+  "lab": {
+    "address": "Eurekha House, Plot 42, TTC MIDC, Mahape, Navi Mumbai, Maharashtra 400710",
+    "accreditation": "TC-0000 (mock)",
+    "signatory": "Dr. Ananya Kulkarni",
+    "signatory_title": "Quality Manager"
+  },
+  "customer": {
+    "name": "Soham Zemse",
+    "address": [
+      "8&9, RK Towers, Khopoli,",
+      "Maharashtra, India - 410203."
+    ],
+    "contact": "Soham Zemse"
+  },
+  "sample": {
+    "name": "Choco Millet Muesli",
+    "sub_group": "Cereal, Pulses and its Products",
+    "location": "NA",
+    "batch": "EM6A280526",
+    "mfg_date": "28-May-2026",
+    "expiry_date": "22-Feb-2027",
+    "protocol": "NA",
+    "collected_by": "Client",
+    "condition": "Approx 400g of sample in client packaging, intact without any leaks or breaks."
+  },
+  "dates": {
+    "sampling": "NA",
+    "receipt": "22-Oct-2026",
+    "start": "22-Oct-2026",
+    "end": "03-Nov-2026"
+  },
+  "results": [
+    {
+      "discipline": "Chemical",
+      "group": "Food and Agricultural Products",
+      "rows": [
+        {
+          "parameter": "Added Sugars",
+          "unit": "g/100g",
+          "method": "SOP-CHM-139-00",
+          "result": "14.87",
+          "rda": "50",
+          "rda_pct": "29.74 %"
+        },
+        {
+          "parameter": "Carbohydrate",
+          "unit": "g/100g",
+          "method": "SOP-CHM-28-00",
+          "result": "79.89",
+          "rda": "-",
+          "rda_pct": "-"
+        },
+        {
+          "parameter": "Dietary Fibre",
+          "unit": "g/100g",
+          "method": "AOAC 985.29",
+          "result": "8.01",
+          "rda": "-",
+          "rda_pct": "-"
+        },
+        {
+          "parameter": "Energy",
+          "unit": "Kcal/100g",
+          "method": "SOP-CHM-29-00",
+          "result": "384.84",
+          "rda": "2000",
+          "rda_pct": "19.24 %"
+        },
+        {
+          "parameter": "Protein",
+          "unit": "g/100g",
+          "method": "SOP-CHM-137-00",
+          "result": "8.31",
+          "rda": "-",
+          "rda_pct": "-"
+        },
+        {
+          "parameter": "Total Fat",
+          "unit": "g/100g",
+          "method": "SOP-CHM-100-01",
+          "result": "3.56",
+          "rda": "67",
+          "rda_pct": "5.31 %"
+        },
+        {
+          "parameter": "Total Sugars",
+          "unit": "g/100g",
+          "method": "SOP-CHM-123-00",
+          "result": "21.03",
+          "rda": "-",
+          "rda_pct": "-"
+        }
+      ]
+    },
+    {
+      "discipline": "Chemical",
+      "group": "Food and Agricultural Products",
+      "rows": [
+        {
+          "parameter": "Cholesterol",
+          "unit": "mg/100g",
+          "method": "AOAC 994.10",
+          "result": "<1.0",
+          "rda": "-",
+          "rda_pct": "-"
+        },
+        {
+          "parameter": "Sodium",
+          "unit": "mg/100g",
+          "method": "SOP-CHM-27-02",
+          "result": "282.83",
+          "rda": "2000",
+          "rda_pct": "14.14 %"
+        },
+        {
+          "parameter": "Saturated Fat",
+          "unit": "g/100g",
+          "method": "AOAC 996.06",
+          "result": "0.66",
+          "rda": "22",
+          "rda_pct": "3.00 %"
+        },
+        {
+          "parameter": "Trans Fat",
+          "unit": "g/100g",
+          "method": "AOAC 996.06",
+          "result": "<0.10",
+          "rda": "2",
+          "rda_pct": "-"
+        }
+      ]
+    }
+  ],
+  "s3": {
+    "bucket": "eurekhalabs",
+    "key": "reports/2026/choco-millet-muesli-38e6ce6dad24bbef.pdf"
+  }
+}

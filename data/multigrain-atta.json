@@ -1,0 +1,122 @@
+{
+  "id": "multigrain-atta",
+  "report": {
+    "number": "EURK:001:NL:26:11:09367",
+    "reference": "001:NL:26:11:09367",
+    "ulr": "ULR-TC00002026000109367F",
+    "issue_date": "05-Nov-2026"
+  },
+  "lab": {
+    "address": "Eurekha House, Plot 42, TTC MIDC, Mahape, Navi Mumbai, Maharashtra 400710",
+    "accreditation": "TC-0000 (mock)",
+    "signatory": "Dr. Ananya Kulkarni",
+    "signatory_title": "Quality Manager"
+  },
+  "customer": {
+    "name": "Soham Zemse",
+    "address": [
+      "8&9, RK Towers, Khopoli,",
+      "Maharashtra, India - 410203."
+    ],
+    "contact": "Soham Zemse"
+  },
+  "sample": {
+    "name": "Multigrain Atta",
+    "sub_group": "Cereal, Pulses and its Products",
+    "location": "NA",
+    "batch": "MA5K020926",
+    "mfg_date": "02-Sep-2026",
+    "expiry_date": "01-Mar-2027",
+    "protocol": "NA",
+    "collected_by": "Client",
+    "condition": "Approx 1kg of sample in client packaging, intact without any leaks or breaks."
+  },
+  "dates": {
+    "sampling": "NA",
+    "receipt": "22-Oct-2026",
+    "start": "22-Oct-2026",
+    "end": "03-Nov-2026"
+  },
+  "results": [
+    {
+      "discipline": "Chemical",
+      "group": "Food and Agricultural Products",
+      "rows": [
+        {
+          "parameter": "Moisture",
+          "unit": "g/100g",
+          "method": "IS 4333 (P2)",
+          "result": "9.84",
+          "rda": "-",
+          "rda_pct": "-"
+        },
+        {
+          "parameter": "Protein",
+          "unit": "g/100g",
+          "method": "SOP-CHM-137-00",
+          "result": "12.06",
+          "rda": "-",
+          "rda_pct": "-"
+        },
+        {
+          "parameter": "Dietary Fibre",
+          "unit": "g/100g",
+          "method": "AOAC 985.29",
+          "result": "11.73",
+          "rda": "-",
+          "rda_pct": "-"
+        },
+        {
+          "parameter": "Total Ash",
+          "unit": "g/100g",
+          "method": "IS 4333 (P1)",
+          "result": "1.62",
+          "rda": "-",
+          "rda_pct": "-"
+        },
+        {
+          "parameter": "Energy",
+          "unit": "Kcal/100g",
+          "method": "SOP-CHM-29-00",
+          "result": "341.10",
+          "rda": "2000",
+          "rda_pct": "17.06 %"
+        }
+      ]
+    },
+    {
+      "discipline": "Biological",
+      "group": "Food and Agricultural Products",
+      "rows": [
+        {
+          "parameter": "Total Plate Count",
+          "unit": "cfu/g",
+          "method": "IS 5402",
+          "result": "3.1 x 10^3",
+          "rda": "-",
+          "rda_pct": "-"
+        },
+        {
+          "parameter": "Yeast & Mould",
+          "unit": "cfu/g",
+          "method": "IS 5403",
+          "result": "<10",
+          "rda": "-",
+          "rda_pct": "-"
+        },
+        {
+          "parameter": "E. coli",
+          "unit": "/g",
+          "method": "IS 16067 (P1)",
+          "result": "Absent",
+          "rda": "-",
+          "rda_pct": "-"
+        }
+      ]
+    }
+  ],
+  "s3": {
+    "bucket": "eurekhalabs",
+    "key": "reports/2026/multigrain-atta-1e867f83c4c70d71.pdf"
+  }
+}
