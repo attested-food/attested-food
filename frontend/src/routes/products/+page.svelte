@@ -21,7 +21,7 @@
 	}
 </script>
 
-<svelte:head><title>Products — attested.food</title></svelte:head>
+<svelte:head><title>Products — OpenLabel.fyi</title></svelte:head>
 
 <h1>Products</h1>
 

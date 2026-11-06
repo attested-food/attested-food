@@ -5,7 +5,7 @@
 	const req = $derived(api<TestRequest>(`/api/test-requests/${encodeURIComponent(page.params.id ?? '')}`));
 </script>
 
-<svelte:head><title>Test request — attested.food</title></svelte:head>
+<svelte:head><title>Test request — OpenLabel.fyi</title></svelte:head>
 
 {#await req}
 	<p class="muted">Loading…</p>

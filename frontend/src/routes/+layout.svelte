@@ -5,7 +5,7 @@
 </script>
 
 <header>
-	<a class="logo" href="/">attested.food</a>
+	<a class="logo" href="/">OpenLabel.fyi</a>
 	<nav>
 		<a href="/">Home</a>
 		<a href="/products">Products</a>
@@ -20,4 +20,4 @@
 	{@render children()}
 </main>
 
-<footer><p>attested.food — lab test reports for packaged food in India.</p></footer>
+<footer><p>OpenLabel.fyi — lab test reports for packaged food in India.</p></footer>

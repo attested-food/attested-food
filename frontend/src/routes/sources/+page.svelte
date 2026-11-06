@@ -5,7 +5,7 @@
 	const groups = [['lab', 'Labs'], ['website', 'Websites']] as const;
 </script>
 
-<svelte:head><title>Sources — attested.food</title></svelte:head>
+<svelte:head><title>Sources — OpenLabel.fyi</title></svelte:head>
 
 <h1>Sources</h1>
 <p>Labs that test products, and websites whose published results we show as fallback data.</p>

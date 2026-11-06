@@ -57,7 +57,7 @@
 	}
 </script>
 
-<svelte:head><title>Upload — attested.food</title></svelte:head>
+<svelte:head><title>Upload — OpenLabel.fyi</title></svelte:head>
 
 <h1>Upload a lab report</h1>
 <p class="notice"><strong>Demo — not connected yet.</strong> Nothing is uploaded; the file is only hashed in your browser and the extracted fields are sample data.</p>

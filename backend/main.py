@@ -25,7 +25,7 @@ set_json_loads(orjson.loads)
 DATABASE_URL = os.environ["DATABASE_URL"]
 BUILD_DIR = (Path(__file__).resolve().parent.parent / "frontend" / "build").resolve()
 
-app = FastAPI(title="attested.food", default_response_class=ORJSONResponse)
+app = FastAPI(title="OpenLabel.fyi", default_response_class=ORJSONResponse)
 
 SEARCH_TEXT = "p.brand || ' ' || p.name || ' ' || coalesce(p.variant, '')"
 REPORT_ORDER = "r.kind = 'user' DESC, r.tested_on DESC NULLS LAST, r.issued_on DESC NULLS LAST, r.created_at DESC"

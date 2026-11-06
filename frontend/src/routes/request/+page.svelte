@@ -147,7 +147,7 @@
 	}
 </script>
 
-<svelte:head><title>Request a test — attested.food</title></svelte:head>
+<svelte:head><title>Request a test — OpenLabel.fyi</title></svelte:head>
 
 <h1>Request a test</h1>
 
@@ -167,7 +167,7 @@
 	{#if existing}
 		<div class="notice" role="alert">
 			{#if existing.kind === 'product'}
-				<p><strong>{fullName(existing)}</strong> already exists on attested.food. Do you want to go to its page?</p>
+				<p><strong>{fullName(existing)}</strong> already exists on OpenLabel.fyi. Do you want to go to its page?</p>
 			{:else}
 				<p><strong>{fullName(existing)}</strong> was already requested on {existing.requested_on}. Do you want to go to its page?</p>
 			{/if}
@@ -195,7 +195,7 @@
 					<label>Brand *<input required maxlength="100" bind:value={form.brand} oninput={() => search()} placeholder="e.g. Pintola" autocomplete="off" /></label>
 					<label>Product name *<input required maxlength="200" bind:value={form.name} oninput={() => search()} placeholder="e.g. Peanut Butter" autocomplete="off" /></label>
 					{#if suggestions.length}
-						<ul aria-label="Products already on attested.food">
+						<ul aria-label="Products already on OpenLabel.fyi">
 							{#each suggestions as s (s.kind + s.id)}
 								<li><button type="button" onclick={() => choose(s)}>{fullName(s)}<span class="tag">{s.kind === 'product' ? 'Already listed' : 'Already requested'}</span></button></li>
 							{/each}

@@ -1,6 +1,6 @@
-<svelte:head><title>attested.food</title></svelte:head>
+<svelte:head><title>OpenLabel.fyi</title></svelte:head>
 
-<h1>attested.food</h1>
+<h1>OpenLabel.fyi</h1>
 <p>Verified lab test reports for packaged food sold in India, with the contributor's personal details kept private.</p>
 <form class="search" action="/products" method="get" role="search">
 	<label for="q" class="muted">Search products</label>

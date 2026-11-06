@@ -23,7 +23,7 @@
 	}
 </script>
 
-<svelte:head><title>{title} — attested.food</title></svelte:head>
+<svelte:head><title>{title} — OpenLabel.fyi</title></svelte:head>
 
 {#await product}
 	<p class="muted">Loading…</p>
@@ -71,7 +71,7 @@
 					{#if httpUrl(r.source_url)}<a href={httpUrl(r.source_url)} rel="noopener">{r.publisher?.name ?? 'source'}</a>{:else}{r.publisher?.name ?? '—'}{/if}
 					· Tested by {r.lab?.name ?? '—'}
 				</p>
-				<p class="notice">Data as published by {r.publisher?.name ?? 'the source'}; not independently verified by attested.food.</p>
+				<p class="notice">Data as published by {r.publisher?.name ?? 'the source'}; not independently verified by OpenLabel.fyi.</p>
 			{/if}
 
 			<dl class="fields">
