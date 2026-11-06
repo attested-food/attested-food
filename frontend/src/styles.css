@@ -196,3 +196,5 @@ a.card:hover, .card.hoverable:hover { border-color: var(--field-line); }
 .ab-sec { margin-top: 40px; }
 .ab-sec ul { padding-left: 20px; }
 .ab-sec li { margin: 6px 0; }
+.post-report { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.post-report input[type=file] { max-width: 100%; }
