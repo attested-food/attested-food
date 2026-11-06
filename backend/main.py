@@ -37,6 +37,12 @@ SEARCH_TEXT = "p.brand || ' ' || p.name || ' ' || coalesce(p.variant, '')"
 REPORT_ORDER = "r.kind = 'user' DESC, r.tested_on DESC NULLS LAST, r.issued_on DESC NULLS LAST, r.created_at DESC"
 SOURCE_JSON = "CASE WHEN {a}.id IS NULL THEN NULL ELSE json_build_object('id', {a}.id, 'name', {a}.name, 'url', {a}.url, 'accreditation', {a}.accreditation) END"
 
+# A product is listed only when we can show why it passed or failed: test results with values or statuses,
+# its ingredient list and its pack nutrition. Products missing any of these stay reachable by direct link.
+LISTABLE = """(p.ingredients IS NOT NULL AND p.label_nutrition IS NOT NULL
+    AND EXISTS (SELECT 1 FROM reports r JOIN results x ON x.report_id = r.id
+                WHERE r.product_id = p.id AND (x.value IS NOT NULL OR x.status IS NOT NULL)))"""
+
 # Letter (A–E) for the latest third-party report's grade: "86/100", "B+", "A grade", Pass/Fail.
 GRADE_LETTER = f"""(SELECT CASE
         WHEN x.pct IS NOT NULL THEN CASE WHEN x.pct >= 80 THEN 'A' WHEN x.pct >= 60 THEN 'B' WHEN x.pct >= 40 THEN 'C'
@@ -56,7 +62,8 @@ WITH filtered AS (
            (SELECT count(*) FROM reports r WHERE r.product_id = p.id) AS report_count,
            EXISTS (SELECT 1 FROM reports r WHERE r.product_id = p.id AND r.kind = 'user') AS has_user_report
     FROM products p
-    WHERE (%(q)s::text IS NULL
+    WHERE {LISTABLE}
+      AND (%(q)s::text IS NULL
            OR to_tsvector('simple', {SEARCH_TEXT}) @@ plainto_tsquery('simple', %(q)s::text)
            OR {SEARCH_TEXT} ILIKE %(like)s::text)
       AND (%(brands)s::text[] IS NULL OR lower(p.brand) = ANY(%(brands)s::text[]))
@@ -325,6 +332,7 @@ JOIN LATERAL (
     ORDER BY {REPORT_ORDER}
     LIMIT 1
 ) rep ON true
+WHERE {LISTABLE}
 ORDER BY (rep.kind = 'user') DESC, (p.image_url IS NOT NULL) DESC, (p.ingredients IS NOT NULL) DESC,
          (json_array_length(rep.results) > 0) DESC, p.brand, p.name
 LIMIT %(limit)s
@@ -379,15 +387,18 @@ def all_categories() -> list[str]:
     return [c["category"] for c in fetch(CATEGORIES_SQL)]
 
 
+LISTED_CATEGORIES_SQL = f"SELECT category, count(*) AS product_count FROM products p WHERE {LISTABLE} GROUP BY category"
+
+
 @app.get("/api/departments")
 def list_departments() -> list[dict]:
-    """Departments (groups of categories) in shelf order, with product counts."""
-    return departments.group({c["category"]: c["product_count"] for c in fetch(CATEGORIES_SQL)})
+    """Departments (groups of categories) in shelf order, with counts of listed products."""
+    return departments.group({c["category"]: c["product_count"] for c in fetch(LISTED_CATEGORIES_SQL)})
 
 
-BRANDS_SQL = """
+BRANDS_SQL = f"""
 SELECT max(p.brand) AS brand, count(*) AS product_count FROM products p
-WHERE (%(categories)s::text[] IS NULL OR p.category = ANY(%(categories)s::text[]))
+WHERE {LISTABLE} AND (%(categories)s::text[] IS NULL OR p.category = ANY(%(categories)s::text[]))
 GROUP BY lower(p.brand) ORDER BY count(*) DESC, lower(p.brand) LIMIT %(limit)s
 """
 

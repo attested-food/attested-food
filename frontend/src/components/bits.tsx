@@ -12,22 +12,15 @@ export function StateTag({ state, text, style }: { state: TestState; text?: stri
 	);
 }
 
-/** Split "84/100" into a big score and a small "/100"; letters and Pass/Fail stay whole. */
-export function splitGrade(grade: string) {
-	const m = /^(\d+(?:\.\d+)?)\s*(\/\s*\d+)$/.exec(grade.trim());
-	return m ? { main: m[1], sub: m[2].replace(/\s/g, '') } : { main: grade, sub: '' };
-}
-
-/** A grade as its source gives it. Renders nothing when there is no grade. */
+/** A grade as its source gives it ("A+", "82/100", "Pass"), on one line; the box widens to fit. */
 export function GradeChip({ grade, size = 28 }: { grade: string | null; size?: number }) {
 	const c = gradeColors(grade);
 	if (!grade || !c) return null;
-	const { main, sub } = splitGrade(grade);
-	const font = main.length <= 2 ? size * 0.52 : main.length <= 4 ? size * 0.36 : size * 0.3;
+	const text = grade.replace(/\s+/g, '');
+	const font = text.length <= 2 ? size * 0.54 : Math.max(11, size * 0.4);
 	return (
-		<span className="grade" style={{ minWidth: size, height: size, padding: `0 ${Math.round(size * 0.18)}px`, fontSize: font, background: c[0], color: c[1] }} title={grade}>
-			{main}
-			{sub && <small style={{ fontSize: Math.max(9, size * 0.22) }}>{sub}</small>}
+		<span className="grade" style={{ minWidth: size, height: size, padding: `0 ${Math.round(size * 0.2)}px`, fontSize: font, background: c[0], color: c[1] }} title={grade}>
+			{text}
 		</span>
 	);
 }
@@ -83,11 +76,11 @@ export function Photo({ src, alt, className = '', style }: { src: string | null 
 export function LogoMark({ size = 32, outline = false }: { size?: number; outline?: boolean }) {
 	return (
 		<svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" className="logo-mark">
-			<path d="M2 4a2 2 0 0 1 2-2h25l9 9v25a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" fill="#FFFFFF" stroke={outline ? '#1D4A37' : 'none'} strokeWidth={outline ? 1.4 : 0} />
-			<path d="M29 2v7a2 2 0 0 0 2 2h7z" fill="#D9D6CC" />
-			<path d="M29 9a2 2 0 0 0 2 2h7" fill="none" stroke="rgba(0,0,0,0.12)" strokeWidth="0.8" />
-			<circle cx="12.6" cy="22.5" r="6.4" fill="none" stroke="#1D4A37" strokeWidth="3.6" />
-			<path d="M23.6 13.4l3.4 15.6 7.4-4.6" fill="none" stroke="#1D4A37" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round" />
+			<path d="M4 2h32a2 2 0 0 1 2 2v25l-9 9H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#FFFFFF" stroke={outline ? '#1D4A37' : 'none'} strokeWidth={outline ? 1.4 : 0} />
+			<path d="M38 29h-7a2 2 0 0 0-2 2v7z" fill="#D9D6CC" />
+			<path d="M31 29a2 2 0 0 0-2 2v7" fill="none" stroke="rgba(0,0,0,0.14)" strokeWidth="0.8" />
+			<circle cx="12.4" cy="19.6" r="6.3" fill="none" stroke="#1D4A37" strokeWidth="3.4" />
+			<path d="M23.4 12.2l1.8 15.4 6.6-5.2" fill="none" stroke="#1D4A37" strokeWidth="3.4" strokeLinecap="square" strokeLinejoin="miter" />
 		</svg>
 	);
 }

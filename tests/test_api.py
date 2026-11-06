@@ -366,3 +366,14 @@ def test_openlabel_grade_on_our_reports(kelloggs):
     assert all(p["openlabel_grade"] for p in listed)
     published = client.get("/api/products", params={"evidence": "published", "page_size": 5}).json()["items"]
     assert all(p["openlabel_grade"] is None for p in published)
+
+
+def test_only_complete_products_are_listed():
+    body = client.get("/api/products", params={"page_size": 100}).json()
+    assert body["total"] >= 1
+    for p in body["items"][:20]:
+        d = client.get(f"/api/products/{p['id']}").json()
+        assert d["ingredients"] and d["label_nutrition"]
+        assert any(x["value"] is not None or x["status"] for r in d["reports"] for x in r["results"])
+    depts = client.get("/api/departments").json()
+    assert sum(d["product_count"] for d in depts) == body["total"]

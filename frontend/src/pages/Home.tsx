@@ -173,8 +173,8 @@ export default function Home() {
 					Find better food
 					<svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5.5l4.5 4.5-4.5 4.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
 				</Link>
-				<Link className="cta-glass" to="/request">Request a test</Link>
-				<Link className="cta-glass" to="/tests">Fund a test</Link>
+				<Link className="cta-second" to="/request">Request a test</Link>
+				<Link className="cta-second" to="/tests">Fund a test</Link>
 			</div>
 		</div>
 	);

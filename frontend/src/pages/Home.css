@@ -8,18 +8,15 @@
 	position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; padding: 72px 16px 32px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; pointer-events: none;
 	background: linear-gradient(0deg, rgba(7, 22, 15, 0.85) 0%, rgba(7, 22, 15, 0.5) 50%, rgba(7, 22, 15, 0) 100%);
 }
-.ctas { align-items: center; gap: 12px; }
-.ctas .cta-main { pointer-events: auto; min-height: 60px; padding: 0 30px; font-size: 17px; border-radius: 999px; box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.6); }
+.ctas { align-items: center; gap: 10px; }
+.ctas .cta-main { pointer-events: auto; min-height: 58px; padding: 0 30px; font-size: 17px; }
 .ctas .cta-main svg { transition: transform 0.2s ease; }
 .ctas .cta-main:hover svg { transform: translateX(3px); }
-.cta-glass {
-	pointer-events: auto; display: inline-flex; align-items: center; min-height: 50px; padding: 0 22px; border-radius: 999px;
-	background: rgba(255, 255, 255, 0.14); color: #fff; font-weight: 600; font-size: 15px; text-decoration: none;
-	-webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-}
-.cta-glass:hover { background: rgba(255, 255, 255, 0.24); color: #fff; }
+/* Secondary: same gold-on-green family, quieter (deeper green, smaller, lighter weight) */
+.cta-second { pointer-events: auto; display: inline-flex; align-items: center; min-height: 50px; padding: 0 20px; border-radius: var(--r); background: var(--green-deep); color: var(--gold); font-weight: 550; font-size: 15px; text-decoration: none; }
+.cta-second:hover { background: #12301f; color: #e3c68f; }
 @media (max-width: 520px) {
 	.ctas { padding: 56px 16px 20px; }
 	.ctas .cta-main { flex: 1 1 100%; min-height: 54px; }
-	.cta-glass { flex: 1 1 0; justify-content: center; min-height: 46px; padding: 0 12px; font-size: 14px; }
+	.cta-second { flex: 1 1 0; justify-content: center; min-height: 46px; padding: 0 12px; font-size: 14px; }
 }

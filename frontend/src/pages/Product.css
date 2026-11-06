@@ -79,7 +79,7 @@
 /* Amazon-style top: gallery | details | buy box */
 .p-top { margin-top: 18px; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 5fr) 300px; gap: 36px; align-items: start; }
 .p-gallery { position: sticky; top: 20px; }
-.p-main-photo { border: 1px solid var(--card-line); border-radius: 10px; }
+.p-main-photo { border: 1px solid var(--card-line); border-radius: 6px; }
 .p-main-photo img { padding: 8%; }
 .p-store { font-size: 14px; color: var(--green); font-weight: 600; text-decoration: none; }
 .p-store:hover { text-decoration: underline; }
@@ -98,9 +98,9 @@
 .p-about li.bad strong { color: var(--red); }
 .p-about li.good strong { color: var(--good); }
 
-.p-buy { position: sticky; top: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; border-radius: 10px; }
+.p-buy { position: sticky; top: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; border-radius: 6px; }
 .p-buy-price { margin: 0; font-size: 15px; color: var(--sub); }
-.p-buy-btn { width: 100%; border-radius: 999px; }
+.p-buy-btn { width: 100%; }
 .p-buy-meta { margin: 6px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 13.5px; }
 .p-buy-meta dt { color: var(--sub); }
 .p-buy-meta dd { margin: 0; }
@@ -125,7 +125,7 @@
 }
 
 /* Reports */
-.rp { margin-top: 20px; border-radius: 10px; overflow: hidden; }
+.rp { margin-top: 20px; border-radius: 6px; overflow: hidden; }
 .rp-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 18px; padding: 20px 24px 16px; }
 .rp-title { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; }
 .rp-kind { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sub); }
@@ -133,7 +133,7 @@
 .rp-acc { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.04em; color: var(--sub); }
 .rp-sub { margin-top: 4px; font-size: 14px; color: var(--sub); }
 .rp-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-size: 14px; }
-.rp-pill { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.rp-pill { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: var(--r); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
 .rp-pill.ok { background: #e7f1ea; color: var(--good); }
 .rp-pill.bad { background: #fdecec; color: var(--red); }
 .rp-pill.wait { background: #f7f0e2; color: var(--gold-ink); }

@@ -6,7 +6,7 @@
 .lc-back { position: absolute; inset: 0; padding: 22px 26px 20px; border-radius: 6px; background: var(--bg); color: var(--fg); display: flex; flex-direction: column; box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6); }
 .lc-back-in { flex: 1; min-height: 0; display: flex; flex-direction: column; opacity: 0; visibility: hidden; transition: opacity 0.15s ease, visibility 0s linear 0.15s; }
 .lc-back-in.show { opacity: 1; visibility: visible; transition: opacity 0.35s ease 0.3s, visibility 0s; }
-.lc-head { display: flex; align-items: center; gap: 14px; }
+.lc-head { display: flex; align-items: center; gap: 14px; padding-left: 40px; }
 .lc-head-text { flex: 1; min-width: 0; }
 .lc-counts { margin-top: 6px; }
 .lc .rc { color: var(--fg); }
@@ -15,11 +15,11 @@
 .lc-rows { margin: 12px 0 0; padding: 0; list-style: none; flex: 0 0 auto; }
 .lc-rows li { display: flex; align-items: center; gap: 12px; height: 34px; border-top: 1px solid var(--line); }
 .lc-rt { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lc-rr { flex: 0 0 auto; font-size: 13.5px; font-weight: 650; }
+.lc-rr { flex: 0 1 auto; max-width: 58%; font-size: 13.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lc-rr.good { color: var(--good); }
 .lc-rr.bad { color: var(--red); }
 .lc-rr.unk, .lc-rr.info { color: var(--sub); }
-.lc-foot { margin-top: auto; display: flex; align-items: center; gap: 10px; padding-top: 12px; padding-right: 58px; border-top: 1px solid var(--line); }
+.lc-foot { margin-top: auto; display: flex; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
 .lc-src { flex: 1; min-width: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lc-foot .btn { min-height: 38px; }
 .lc-buy.btn { background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1.5px var(--fg); }
@@ -32,10 +32,10 @@
 .lc-front.lc-moving .lc-peel { display: none; }
 .lc-flap { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; opacity: 0; filter: drop-shadow(-6px -4px 10px rgba(0, 0, 0, 0.35)) drop-shadow(-1px -1px 1px rgba(0, 0, 0, 0.2)); }
 .lc-flap.on { opacity: 1; }
-.lc-stick { position: absolute; right: 0; bottom: 0; width: 72px; height: 72px; padding: 0; border: 0; background: none; cursor: pointer; }
-.lc-stick svg { position: absolute; inset: 0; overflow: visible; filter: drop-shadow(-2px -2px 5px rgba(0, 0, 0, 0.35)); transition: transform 0.25s ease; transform-origin: 100% 100%; }
-.lc-stick:hover svg, .lc-stick:focus-visible svg { transform: scale(1.12); }
-.lc-stick span { position: absolute; right: 64px; bottom: 6px; padding: 3px 8px; border-radius: 999px; background: var(--fg); color: var(--bg); font-size: 11px; font-weight: 600; white-space: nowrap; opacity: 0; transform: translateX(4px); transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
+.lc-stick { position: absolute; left: 0; top: 0; width: 72px; height: 72px; padding: 0; border: 0; background: none; cursor: pointer; z-index: 2; }
+.lc-stick svg { position: absolute; inset: 0; overflow: visible; transform: rotate(180deg); filter: drop-shadow(-2px -2px 5px rgba(0, 0, 0, 0.35)); transition: transform 0.25s ease; transform-origin: 50% 50%; }
+.lc-stick:hover svg, .lc-stick:focus-visible svg { transform: rotate(180deg) scale(1.12); }
+.lc-stick span { position: absolute; left: 64px; top: 6px; padding: 3px 8px; border-radius: var(--r); background: var(--fg); color: var(--bg); font-size: 11px; font-weight: 600; white-space: nowrap; opacity: 0; transform: translateX(-4px); transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
 .lc-stick:hover span, .lc-stick:focus-visible span { opacity: 1; transform: none; }
 .lc-sheet { position: absolute; inset: 0; border-radius: 6px; background: var(--bg); color: var(--fg); clip-path: path('M0 0 H600 V320.3 L536.4 380 H0 Z'); display: flex; box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6); }
 .lc-photo { flex: 0 0 236px; padding: 14px 0 14px 14px; }

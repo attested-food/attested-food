@@ -126,7 +126,7 @@ a.card:hover, .card.hoverable:hover { border-color: var(--field-line); }
 .tag.requested { color: var(--sub); box-shadow: inset 0 0 0 1px #d6d0c2; background: var(--white); }
 
 /* Grade chip */
-.grade { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--r); font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.grade { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--r); font-weight: 700; letter-spacing: -0.01em; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 /* Forms */
 .field { display: grid; gap: 6px; font-weight: 650; font-size: 14px; }
@@ -187,8 +187,6 @@ a.card:hover, .card.hoverable:hover { border-color: var(--field-line); }
 .ab-sec ul { padding-left: 20px; }
 .ab-sec li { margin: 6px 0; }
 
-/* Grade chip: big score, small "/100" */
-.grade small { margin-left: 1px; font-weight: 600; opacity: 0.85; align-self: flex-end; padding-bottom: 0.32em; }
 
 /* Result icons and counts. Colours follow --good / --red / --sub, so they work on light and dark labels. */
 .ri { flex: 0 0 auto; display: block; }
@@ -207,6 +205,6 @@ a.card:hover, .card.hoverable:hover { border-color: var(--field-line); }
 .rc-lg { font-size: 16px; gap: 6px 20px; }
 
 /* Grade ownership tag */
-.gtag { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 999px; font-family: var(--mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.gtag { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: var(--r); font-family: var(--mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
 .gtag.ours { background: var(--green); color: var(--gold); }
 .gtag.third { color: var(--sub); box-shadow: inset 0 0 0 1px var(--field-line); }

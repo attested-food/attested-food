@@ -6,6 +6,10 @@ All endpoints are JSON. Everything is read-only except `POST /api/test-requests`
 
 Query: `q` (search brand/name/variant), `brand`, `category`, `page` (1-based, default 1), `page_size` (default 24, max 100).
 
+Only **listed** products are returned here, in `/api/wall`, `/api/departments` and `/api/brands`: a product is listed
+when it has test results with values or statuses, an ingredient list and pack nutrition. Others still open by
+`/api/products/{id}`.
+
 Filters, all optional:
 
 - `dept`: a department key from `/api/departments` (e.g. `dairy`). `category` narrows further and wins over `dept`.

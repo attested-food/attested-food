@@ -314,28 +314,24 @@ export default function Product() {
 			)}
 
 			<div className="p-two">
-				<section aria-labelledby="ing" className="p-ing-col">
-					<h2 id="ing" className="section-title">Ingredients{a.segments.some((s) => s.mark) ? ', marked up' : ''}</h2>
-					{p.ingredients ? (
-						<>
-							<p className="p-ing">{a.segments.length ? <Segments segments={a.segments} /> : p.ingredients}</p>
-							<p className="small muted">
-								{a.segments.some((s) => s.mark) && 'Marks come from the lab results; notes are numbers only. '}
-								{p.ingredients_source === 'open_food_facts' && <>Ingredient list from <a className="link" href="https://world.openfoodfacts.org" rel="noopener">Open Food Facts</a> (CC BY-SA).</>}
-							</p>
-						</>
-					) : (
-						<p className="muted">Not on file yet.</p>
-					)}
-				</section>
+				{p.ingredients && (
+					<section aria-labelledby="ing" className="p-ing-col">
+						<h2 id="ing" className="section-title">Ingredients{a.segments.some((s) => s.mark) ? ', marked up' : ''}</h2>
+						<p className="p-ing">{a.segments.length ? <Segments segments={a.segments} /> : p.ingredients}</p>
+						<p className="small muted">
+							{a.segments.some((s) => s.mark) && 'Marks come from the lab results; notes are numbers only. '}
+							{p.ingredients_source === 'open_food_facts' && <>Ingredient list from <a className="link" href="https://world.openfoodfacts.org" rel="noopener">Open Food Facts</a> (CC BY-SA).</>}
+						</p>
+					</section>
+				)}
 				<section aria-labelledby="pack" className="p-pack-col">
-					<h2 id="pack" className="section-title">On the pack</h2>
-					{nut.length ? (
-						<div className="nut-rows">{nut.map((n) => <div key={n.key}><span>{n.name}</span><strong>{n.value}</strong></div>)}</div>
-					) : (
-						<p className="muted">Not on file yet.</p>
+					{nut.length > 0 && (
+						<>
+							<h2 id="pack" className="section-title">On the pack</h2>
+							<div className="nut-rows" style={{ marginBottom: 36 }}>{nut.map((n) => <div key={n.key}><span>{n.name}</span><strong>{n.value}</strong></div>)}</div>
+						</>
 					)}
-					<h2 className="section-title" style={{ marginTop: 36 }}>What's been tested</h2>
+					<h2 className="section-title">What's been tested</h2>
 					<ul className="p-cov">
 						{p.tests.map((t) => (
 							<li key={t.name}>

@@ -125,7 +125,7 @@ export function LabelCard({ item, theme, peeled, onPeel, onUnpeel }: { item: Wal
 							<li key={i}>
 								<ResultIcon kind={x.kind as 'good' | 'bad' | 'info' | 'unk'} size={18} />
 								<span className="lc-rt">{x.t}</span>
-								<span className={`lc-rr ${x.kind}`}>{x.r}</span>
+								<span className={`lc-rr ${x.kind}`} title={x.r}>{x.r}</span>
 							</li>
 						))}
 					</ul>
