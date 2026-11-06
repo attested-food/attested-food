@@ -48,22 +48,37 @@ def _label_key(parameter: str) -> tuple[str, bool] | None:
     return None
 
 
+UNCLOSED_PCT_RE = re.compile(r"\(\s*\d+(?:\.\d+)?\s*%\s*$")
+
+
+def _top_level_commas(text: str) -> list[int]:
+    """Indexes of commas outside brackets. A bracket like "(4.5%," that never closes is treated as closed."""
+    stack, unmatched = [], set()
+    for i, ch in enumerate(text):
+        if ch in "([{":
+            stack.append(i)
+        elif ch in ")]}" and stack:
+            stack.pop()
+    unmatched = set(stack)  # opening brackets that never close are ignored
+    commas, opens = [], []
+    for i, ch in enumerate(text):
+        if ch in "([{" and i not in unmatched:
+            opens.append(i)
+        elif ch in ")]}":
+            if opens:
+                opens.pop()
+        elif ch == ",":
+            if opens and UNCLOSED_PCT_RE.search(text[opens[-1]:i]):
+                opens.pop()
+            if not opens:
+                commas.append(i)
+    return commas
+
+
 def split_ingredients(text: str) -> list[str]:
     """Split an ingredient list on top-level commas, keeping bracketed sub-lists together."""
-    items, depth, cur = [], 0, ""
-    for ch in text:
-        if ch in "([{":
-            depth += 1
-        elif ch in ")]}":
-            depth = max(0, depth - 1)
-        if ch == "," and depth == 0:
-            items.append(cur.strip())
-            cur = ""
-        else:
-            cur += ch
-    if cur.strip():
-        items.append(cur.strip())
-    return [i for i in items if i]
+    bounds = [-1, *_top_level_commas(text), len(text)]
+    return [p for a, b in zip(bounds, bounds[1:]) if (p := text[a + 1:b].strip())]
 
 
 def findings(results: list[dict], label_nutrition: dict | None) -> list[dict]:
@@ -126,24 +141,16 @@ def segments(ingredients: str | None, name: str, fnds: list[dict]) -> list[dict]
     sugar = by_key.get("added_sugars_g") or by_key.get("sugars_g")
     sodium, fibre = by_key.get("sodium_mg"), by_key.get("fiber_g")
 
-    # Walk the text so separators are kept exactly.
-    pieces, depth, start = [], 0, 0
-    for i, ch in enumerate(ingredients):
-        if ch in "([{":
-            depth += 1
-        elif ch in ")]}":
-            depth = max(0, depth - 1)
-        elif ch == "," and depth == 0:
-            pieces.append(ingredients[start:i])
-            start = i
-            pieces.append(None)  # marker for separator start
+    # Cut at top-level commas so separators are kept exactly.
+    pieces, start = [], 0
+    for i in _top_level_commas(ingredients):
+        pieces.append(ingredients[start:i])
+        start = i
     pieces.append(ingredients[start:])
 
     segs: list[dict] = []
     items: list[str] = []
     for chunk in pieces:
-        if chunk is None:
-            continue
         lead = ""
         if chunk.startswith(","):
             m = re.match(r",\s*", chunk)
@@ -178,10 +185,10 @@ def segments(ingredients: str | None, name: str, fnds: list[dict]) -> list[dict]
                     note += f", {_pct(sugar['tested'] / sugar['label'] * 100 - 100)} vs label"
                 s["note"] = note
                 sugar_noted = True
-        elif _has(t, SALT) and sodium and sodium["kind"] == "bad":
+        elif _has(t, SALT) and len(t) <= 40 and sodium and sodium["kind"] == "bad":
             s["mark"] = "circle"
             s["note"] = f"sodium {sodium['text']}"
-        elif _has(t, FIBRE) and fibre and fibre["kind"] in ("good", "info"):
+        elif _has(t, FIBRE) and len(t) <= 40 and fibre and fibre["kind"] in ("good", "info"):
             s["mark"] = "good"
             s["note"] = f"fibre {fibre['text']}"
     if last_millet is not None and millet_pct is not None:

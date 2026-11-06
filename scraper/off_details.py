@@ -32,6 +32,12 @@ UPDATE products SET
 WHERE id = %(id)s
 """
 
+# Pack barcodes we have checked by hand, keyed by (brand, name, variant). Used for lookup only; the
+# products.barcode column is left alone.
+KNOWN_CODES = {
+    ("Kellogg's", "Millet Muesli", "Choco"): "8901499027610",
+}
+
 # OFF nutriment key -> (our key, multiplier)
 NUTRIENTS = {
     "energy-kcal_100g": ("energy_kcal", 1),
@@ -98,15 +104,18 @@ def lookup(http: httpx.Client, brand: str, name: str, variant: str | None, barco
     return hit
 
 
-def main(apply: bool, limit: int | None = None, delay: float = 3.0) -> None:
+def main(apply: bool, limit: int | None = None, delay: float = 3.0, known_only: bool = False) -> None:
     conn = connect()
-    rows = conn.execute(MISSING).fetchall()[:limit]
+    rows = conn.execute(MISSING).fetchall()
+    if known_only:
+        rows = [row for row in rows if (row[1], row[2], row[3]) in KNOWN_CODES]
+    rows = rows[:limit]
     found = 0
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=30) as http:
         for pid, brand, name, variant, barcode, image in rows:
             time.sleep(delay)
             try:
-                hit = lookup(http, brand, name, variant, barcode)
+                hit = lookup(http, brand, name, variant, barcode or KNOWN_CODES.get((brand, name, variant)))
             except httpx.HTTPError:
                 logging.exception("OFF lookup failed for %s %s", brand, name)
                 continue
@@ -128,4 +137,4 @@ def main(apply: bool, limit: int | None = None, delay: float = 3.0) -> None:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     lim = next((int(a.split("=", 1)[1]) for a in sys.argv if a.startswith("--limit=")), None)
-    main("--apply" in sys.argv, lim)
+    main("--apply" in sys.argv, lim, known_only="--known" in sys.argv)

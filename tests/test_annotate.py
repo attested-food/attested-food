@@ -94,3 +94,16 @@ def test_summary_counts():
     s = summarize(product)
     assert s["counts"] == {"pass": 1, "fail": 1, "untested": 1}
     assert set(s) == {"segments", "findings", "counts"}
+
+
+def test_split_tolerates_unclosed_percent_bracket():
+    text = "RAGI FLOUR (6.7%), JOWAR FLOUR (4.5%, SUGAR, IODIZED SALT"
+    assert split_ingredients(text) == ["RAGI FLOUR (6.7%)", "JOWAR FLOUR (4.5%", "SUGAR", "IODIZED SALT"]
+    segs = segments(text, "Millet Muesli", [])
+    assert "".join(s["t"] for s in segs) == text
+    assert next(s for s in segs if s["t"] == "SUGAR")["mark"] == "hl"
+
+
+def test_split_ignores_bracket_that_never_closes():
+    text = "SEEDS (9%) (CRANBERRIES (3%), WHEAT BRAN, IODIZED SALT"
+    assert split_ingredients(text) == ["SEEDS (9%) (CRANBERRIES (3%)", "WHEAT BRAN", "IODIZED SALT"]
