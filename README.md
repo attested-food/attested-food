@@ -6,6 +6,7 @@ Mock lab reports (fictional lab "Eurekha Labs") for the EthGlobal Mumbai 2026 pr
 
 - `template/eurekha-report.typ`: Typst template, data from `--input data=/data/<id>.json`
 - `data/*.json`: one report each; `customer` = PII, `s3.key` = object key (random suffix)
+- `data/opt-keys.json`: S3 keys of the prover-friendly variants (written by `build-opt.mjs`)
 - `scripts/pdf.mjs`: minimal PDF reader (classic xref, streams, page tree, ToUnicode, text ops), Node built-ins only
 - `scripts/normalize.mjs`: Typst PDF -> raw PDF (lab side)
 - `scripts/redact.mjs`: raw PDF -> redacted PDF + manifest (holder side)
@@ -19,7 +20,8 @@ Mock lab reports (fictional lab "Eurekha Labs") for the EthGlobal Mumbai 2026 pr
 
 ```sh
 node scripts/build.mjs            # needs typst 0.14; first run downloads @preview/tiaoma (QR)
-scripts/upload.sh                 # AWS_PROFILE honoured
+scripts/upload.sh                 # AWS_PROFILE honoured; checks served sha256
+node scripts/build-opt.mjs && scripts/upload.sh --variant template && scripts/upload.sh --variant full
 node scripts/redact.mjs out/raw/<id>.pdf /tmp/r.pdf --expect data/<id>.json
 node scripts/check.mjs out/raw/<id>.pdf /tmp/r.pdf /tmp/r.manifest.json
 ```
@@ -68,7 +70,7 @@ Since non-span bytes are identical, the redacted file's structure is the origina
 - `out/opt/template/`: template with `--input opt=1`: QR as raster Image XObject (sized like the vector one), no kerning, no bold face
 - `out/opt/full/`: template + `optimize.mjs`: one BT per page with Td moves, Tf / colour only on change, Tj, `q cm ... Q` table strokes flattened into one group, numbers rounded (coords 2 dp, colours 3 dp), ICC -> Device colour spaces, no XMP, no /ProcSet, unreachable objects dropped
 - Checked per file: text-show runs (trimmed) equal the original's, redact + check pass; pixel diff vs `template` only anti-aliasing plus one 0.4pt border shifted 1 px
-- Not S3-uploaded; choco: 90,718 B -> 69,426 B (template) -> 49,577 B (full), content ops 4,123 -> 686
+- On S3 under `reports/2026/opt/<variant>/`; manifests carry `original.s3`; choco: 90,718 B -> 69,426 B (template) -> 49,577 B (full), content ops 4,123 -> 686
 - ToUnicode CMaps are already uncompressed in Typst output; remaining Flate streams: 2 font files, 2 CIDSets, QR image + SMask
 
 ## Known leaks / limits

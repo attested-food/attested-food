@@ -9,7 +9,7 @@ import { normalize } from "./normalize.mjs";
 
 const ids = process.argv.slice(2).length
   ? process.argv.slice(2)
-  : readdirSync("data").filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5));
+  : readdirSync("data").filter((f) => f.endsWith(".json") && f !== "opt-keys.json").map((f) => f.slice(0, -5));
 for (const d of ["typst", "raw", "redacted"]) mkdirSync(`out/${d}`, { recursive: true });
 
 for (const id of ids) {
@@ -23,4 +23,8 @@ for (const id of ids) {
   writeFileSync(`out/raw/${id}.pdf`, normalize(readFileSync(`out/typst/${id}.pdf`)));
   execFileSync("node", ["scripts/redact.mjs", `out/raw/${id}.pdf`, `out/redacted/${id}.pdf`, "--expect", `data/${id}.json`], { stdio: "inherit" });
   execFileSync("node", ["scripts/check.mjs", `out/raw/${id}.pdf`, `out/redacted/${id}.pdf`, `out/redacted/${id}.manifest.json`], { stdio: "inherit" });
+  const manifest = `out/redacted/${id}.manifest.json`;
+  const m = JSON.parse(readFileSync(manifest, "utf8"));
+  m.original.s3 = { bucket: data.s3.bucket, key: data.s3.key };
+  writeFileSync(manifest, JSON.stringify(m, null, 2) + "\n");
 }
