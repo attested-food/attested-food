@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router';
-import { buyUrl, dash, httpUrl, label, nameOf, nutritionRows, productName, verdictText, type Finding, type Product as P, type ProductCard, type Report, type Result } from '@/lib/api';
+import { buyUrl, dash, httpUrl, imgFallback, imgSrc, label, nameOf, nutritionRows, productName, verdictText, type Finding, type Product as P, type ProductCard, type Report, type Result } from '@/lib/api';
 import { sourceGrade } from '@/lib/grade';
 import { useApi } from '@/lib/useApi';
 import { GradeChip, Photo, StateTag } from '@/components/bits';
@@ -35,17 +35,6 @@ function gradeLabel(r: Report | undefined) {
 	if (!r) return 'Not tested yet';
 	if (r.kind === 'user') return 'Lab results · OpenLabel grade coming soon';
 	return sourceGrade(r) ? `Grade by ${r.publisher?.name ?? 'the source'}` : 'No grade from the source';
-}
-
-function Key({ f }: { f: Finding }) {
-	const bad = f.kind === 'bad';
-	return (
-		<li className="p-key">
-			<span className={`p-ico ${f.kind}`} aria-hidden="true">{bad ? '✕' : '✓'}</span>
-			<span className="p-key-t"><span>{f.parameter}</span><span className="muted">Label says {num(f.label)} {f.unit ?? ''}</span></span>
-			<span className={bad ? 'off' : 'ok'}>{f.text.replace(' vs label', '')}</span>
-		</li>
-	);
 }
 
 function LabelVsLab({ findings }: { findings: Finding[] }) {
@@ -140,20 +129,21 @@ function ReportBlock({ r }: { r: Report }) {
 }
 
 function Others({ product }: { product: P }) {
-	const others = useApi<{ items: ProductCard[] }>(product.category ? `/api/products?category=${encodeURIComponent(product.category)}&page_size=4` : null);
-	const items = (others.data?.items ?? []).filter((x) => x.id !== product.id).slice(0, 3);
+	const others = useApi<{ items: ProductCard[] }>(product.category ? `/api/products?category=${encodeURIComponent(product.category)}&page_size=9` : null);
+	const items = (others.data?.items ?? []).filter((x) => x.id !== product.id).slice(0, 8);
 	if (!items.length) return null;
 	return (
 		<section className="p-section" aria-labelledby="alt">
 			<h2 id="alt" className="section-title">Others on this shelf</h2>
-			<div className="p-others">
+			<div className="p-shelf">
 				{items.map((x) => (
-					<Link key={x.id} to={`/products/${x.id}`} className="p-other card hoverable">
-						<Photo src={x.image_url} alt="" style={{ width: 88, flex: '0 0 88px' }} />
-						<span className="p-other-t">
-							<span className="muted small">{x.brand}</span>
-							<span className="p-other-name">{productName(x)}</span>
-							<span className="p-other-g"><GradeChip grade={sourceGrade(x.latest)} /> <span className="eyebrow">{x.latest?.kind === 'user' ? 'Lab-tested' : x.latest ? `by ${nameOf(x.latest.publisher)}` : 'Not tested'}</span></span>
+					<Link key={x.id} to={`/products/${x.id}`} className="p-shelf-item card hoverable">
+						<Photo src={x.image_url} alt="" />
+						<span className="muted small p-shelf-brand">{x.brand}</span>
+						<span className="p-shelf-name">{productName(x)}</span>
+						<span className="p-shelf-g">
+							<GradeChip grade={sourceGrade(x.latest)} />
+							<span>{x.latest?.kind === 'user' ? 'Lab-tested' : x.latest ? `by ${nameOf(x.latest.publisher)}` : 'Not tested'}</span>
 						</span>
 					</Link>
 				))}
@@ -191,37 +181,66 @@ export default function Product() {
 				{p.category && <><span aria-hidden="true">/</span><Link to={`/products?category=${p.category}`}>{label(p.category)}</Link></>}
 			</nav>
 
-			<div className="p-hero">
-				<Photo src={p.image_url} alt={`${p.brand} ${name} pack`} className="p-photo" />
-				<div className="p-summary">
-					<div className="p-row">
-						<span className="eyebrow">{label(p.category)}{p.net_quantity ? ` · ${p.net_quantity}` : ''}</span>
-						<StateTag state={p.reports.length ? 'tested' : 'requested'} />
-					</div>
-					<Link className="p-brand" to={`/products?q=${encodeURIComponent(p.brand)}`}>{p.brand}</Link>
-					<h1 className="p-name">{name}</h1>
-					<p className="p-lede">{summary(first)}</p>
-					<div className="p-verdict">
-						<GradeChip grade={sourceGrade(first)} size={64} />
-						<div>
-							<div className="eyebrow">{gradeLabel(first)}</div>
-							<div className="p-counts">
-								<span className="ok">✓ {a.counts.pass} pass</span>
-								<span className="off">✕ {a.counts.fail} fail</span>
-								<span className="muted">? {a.counts.untested} not tested</span>
-							</div>
-						</div>
-					</div>
-					{keys.length > 0 && <ul className="p-keys">{keys.map((f) => <Key key={f.parameter} f={f} />)}</ul>}
-					<div className="p-actions">
-						<a className="btn lg" href={buyUrl(p)} target="_blank" rel="sponsored noopener">Buy on Amazon</a>
-						<Link className="btn lg outline" to="/request">Request more tests</Link>
-					</div>
+			<div className="p-top">
+				<div className="p-gallery">
+					<span className="photo contain p-main-photo">
+						<img src={imgSrc(p.image_url)} alt={`${p.brand} ${name} pack`} referrerPolicy="no-referrer" onError={imgFallback} />
+					</span>
 				</div>
+
+				<div className="p-center">
+					<Link className="p-store" to={`/products?q=${encodeURIComponent(p.brand)}`}>Brand: {p.brand}</Link>
+					<h1 className="p-title">{name}{p.net_quantity ? `, ${p.net_quantity}` : ''}</h1>
+					<a className="p-rating" href={compared.length ? '#results' : '#rep'}>
+						<GradeChip grade={sourceGrade(first)} size={26} />
+						<span className="p-rating-src">{gradeLabel(first)}</span>
+						<span className="p-rating-counts">
+							<span className="ok">✓ {a.counts.pass} pass</span>
+							<span className="off">✕ {a.counts.fail} fail</span>
+							<span className="muted">? {a.counts.untested} not tested</span>
+						</span>
+					</a>
+					<hr />
+					<table className="p-facts">
+						<tbody>
+							<tr><th>Brand</th><td>{p.brand}</td></tr>
+							<tr><th>Category</th><td>{label(p.category)}</td></tr>
+							{p.net_quantity && <tr><th>Net quantity</th><td>{p.net_quantity}</td></tr>}
+							<tr><th>Evidence</th><td>{first ? (first.kind === 'user' ? `OpenLabel lab report · ${first.lab?.name ?? 'accredited lab'}` : `Published test · ${first.publisher?.name ?? 'testing website'}`) : 'Not tested yet'}</td></tr>
+							{first?.tested_on && <tr><th>Tested</th><td>{day(first.tested_on)}</td></tr>}
+						</tbody>
+					</table>
+					<hr />
+					<h2 className="p-about-h">About this item</h2>
+					<ul className="p-about">
+						<li>{summary(first)}</li>
+						{keys.map((f) => (
+							<li key={f.parameter} className={f.kind}>
+								<strong>{f.parameter}:</strong> lab found {num(f.tested)} {f.unit ?? ''} against {num(f.label)} {f.unit ?? ''} on the label ({pct(f.deviation_pct ?? 0)}), {f.kind === 'bad' ? 'off label' : 'better than the label'}.
+							</li>
+						))}
+						{compared.length > keys.length && <li>{compared.length - keys.length} more nutrients are within 10% of what the pack says.</li>}
+						{p.tests.some((t) => t.tested) && <li>Covered by the results on file: {p.tests.filter((t) => t.tested).map((t) => t.name).join(', ')}.</li>}
+						{p.tests.some((t) => !t.tested) && <li>Standard tests not covered yet: {p.tests.filter((t) => !t.tested).map((t) => t.name).join(', ')}.</li>}
+					</ul>
+				</div>
+
+				<aside className="p-buy card" aria-label="Buy">
+					<div className="p-buy-state"><StateTag state={p.reports.length ? 'tested' : 'requested'} /></div>
+					<p className="p-buy-price">See today’s price on Amazon</p>
+					<a className="btn lg p-buy-btn" href={buyUrl(p)} target="_blank" rel="sponsored noopener">Buy on Amazon</a>
+					<Link className="btn lg outline p-buy-btn" to="/request">Request more tests</Link>
+					<dl className="p-buy-meta">
+						{first && <><dt>Tested by</dt><dd>{first.lab?.name ?? first.publisher?.name ?? '—'}</dd></>}
+						{first?.kind === 'fallback' && <><dt>Published by</dt><dd>{first.publisher?.name ?? '—'}</dd></>}
+						{compared.length > 0 && <><dt>Results</dt><dd><a className="link" href="#results">Label vs lab ↓</a></dd></>}
+					</dl>
+					<p className="p-buy-note">We may earn a commission from Amazon. It never changes a grade or a result.</p>
+				</aside>
 			</div>
 
 			{compared.length > 0 && (
-				<section className="p-section" aria-labelledby="lvl">
+				<section className="p-section" id="results" aria-labelledby="lvl">
 					<div className="p-lvl-title">
 						<h2 id="lvl">Label vs lab</h2>
 						<span className="muted">Per 100 g. Shaded band = within 10% of the label. Dot = what the lab found.</span>
@@ -269,16 +288,6 @@ export default function Product() {
 			<section className="p-section" aria-labelledby="rep">
 				<h2 id="rep" className="section-title">{p.reports.length === 1 ? 'Lab report' : `Reports (${p.reports.length})`}</h2>
 				{p.reports.length ? p.reports.map((r) => <ReportBlock key={r.id} r={r} />) : <p className="muted">No reports yet.</p>}
-			</section>
-
-			<section className="p-section" aria-labelledby="details">
-				<h2 id="details" className="section-title">Product details</h2>
-				<dl className="p-meta" style={{ marginTop: 18 }}>
-					<dt>Manufacturer</dt><dd>{dash(p.manufacturer)}</dd>
-					<dt>FSSAI licence</dt><dd className="mono">{dash(p.fssai_license)}</dd>
-					<dt>Barcode</dt><dd className="mono">{dash(p.barcode)}</dd>
-					<dt>Net quantity</dt><dd>{dash(p.net_quantity)}</dd>
-				</dl>
 			</section>
 
 			<Others product={p} />
