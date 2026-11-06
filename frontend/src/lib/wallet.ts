@@ -22,7 +22,8 @@ export const fundAddress = env.VITE_FUND_ADDRESS as Address | undefined;
 export const usdAddress = env.VITE_USD_ADDRESS as Address | undefined;
 const wcProjectId: string | undefined = env.VITE_WC_PROJECT_ID;
 export const hasWalletConnect = !!wcProjectId;
-export const allowPrivateKey = env.DEV || env.VITE_ALLOW_PRIVATE_KEY === 'true';
+// Only for local testnets (anvil): set VITE_ALLOW_PRIVATE_KEY=true in .env to show it in Sign in.
+export const allowPrivateKey = env.VITE_ALLOW_PRIVATE_KEY === 'true';
 
 export const fundAbi = parseAbi([
 	'function campaigns(bytes32) view returns (uint256 pool, address tester, uint64 deadline, uint8 status)',

@@ -78,20 +78,10 @@ h1, h2, h3 { margin: 0; }
 	.site-header .signin { margin-left: auto; }
 }
 
-/* Sign-in menu */
+/* Signed-in pill (dialog styles live in SignIn.css) */
 .signin { position: relative; display: flex; align-items: center; gap: 10px; }
-.signin summary { list-style: none; }
-.signin summary::-webkit-details-marker { display: none; }
 .signin .addr { font-family: var(--mono); font-size: 13px; }
 .signin .out { background: transparent; color: #fff; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.6); min-height: 38px; font-size: 13px; }
-.signin-menu {
-	position: absolute; right: 0; top: 100%; z-index: 30; margin-top: 8px; width: 19rem; display: grid; gap: 8px; padding: 12px;
-	background: var(--white); color: var(--ink); border-radius: 6px; border: 1px solid var(--card-line); box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.35);
-}
-.signin-menu .head { margin: 0 0 2px; font-size: 13px; color: var(--sub); }
-.signin-menu .opt { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 12px; border: 0; border-radius: var(--r); background: var(--tile); cursor: pointer; font-weight: 600; text-align: left; }
-.signin-menu .opt:hover { background: var(--line); }
-.signin-menu form { display: grid; gap: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
 
 /* Footer */
 .site-footer { border-top: 1px solid var(--line); color: var(--sub); font-size: 13px; }
