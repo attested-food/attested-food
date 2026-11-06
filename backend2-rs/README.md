@@ -1,0 +1,58 @@
+# backend2-rs
+
+Rust server that takes an Equinox lab-report PDF and returns an OpenVM 2.1 STARK proof of the chosen test values: report number, product, ULR, issue date, the analyte rows, and the commitment `SHA256(pdf || blinder)`, with a check that no customer-block word is published.
+
+- `core/`: `equinox-core`, the `no_std` PDF logic (xref walk, our own DEFLATE, glyph decoding, row extraction, SHA-256, public-values layout). Copied from the Equinox backend, revision in `core/UPSTREAM_REV`.
+- `guest/`: the OpenVM guest, a thin wrapper over `equinox_core::run`, and `openvm.toml` (RV32IM, IO, SHA-2 extension). It reveals `sha256(PublicValues::encode())`, since OpenVM user public values are a fixed 32 bytes.
+- `server/`: `equinox-openvm-server` (axum). `build.rs` compiles the guest; one thread owns the OpenVM SDK and serves execute, prove and verify jobs.
+
+## Build and run
+
+```sh
+rustup toolchain install nightly-2026-08-23 --component rust-src   # guest toolchain, pinned for a reproducible program commitment
+cargo build --release
+./target/release/equinox-openvm-server                            # http://127.0.0.1:8793 (BIND to change)
+```
+
+`OPENVM_SKIP_BUILD=1` builds the server without the guest (`/health` then reports it). A STARK proof takes the machine-wide lock `/tmp/equinox-prove.lock.d` shared with the Equinox backend, so heavy proofs never overlap on one host.
+
+## API
+
+```sh
+curl -X POST 'localhost:8793/prove?mode=stark' -F pdf=@report.pdf -F 'labels=Energy, Protein' [-F blinder=<32 hex>]
+```
+
+| Route | In | Out |
+|---|---|---|
+| `GET /health` | | `{ ok, guestElfBytes }` |
+| `GET /program` | | `{ appExeCommit, appVmCommit }`, the pinned program (keygen on first call) |
+| `POST /prove?mode=stark\|execute` | multipart `pdf`, optional `labels` (default `Energy, Protein`), optional `blinder` (16 bytes hex, random if absent) | `publicValues` (decoded), `publicValuesHex`, `revealed`, `blinder`, `instructions`, `program`, `proof` (base64 bincode `VersionedVmStarkProof`), `proofBytes`, `timingsMs` |
+| `POST /verify` | JSON `{ proof, publicValues }` | `{ valid, publicValues, program }`, or 400 |
+
+Before proving, the server runs the same extraction natively: a PDF the guest would reject fails in milliseconds, and a result that would publish PII is refused. `/prove` checks the guest revealed `sha256(publicValues)` and verifies the proof before returning it. `/verify` checks the proof against the pinned program and that it commits to the given public values (a flipped public-value byte is rejected).
+
+## Measured
+
+This Mac (M2 Max, 12 cores, 96 GB), the sample report (393,722 B), CPU prover, one run each:
+
+| Step | Time |
+|---|---|
+| execute (1,654,284 instructions) | 2.0 s |
+| app + aggregation keygen (first STARK only) | 3.1 s |
+| prove (app segments + STARK aggregation) | 31.6 s |
+| verify | 17 ms |
+| `/prove?mode=stark` end to end | 36.7 s |
+
+Proof 534,601 B. Program `appExeCommit 007539b8...d3e3b2`, `appVmCommit 00773b10...ba0f93` (pinned by the guest toolchain and source).
+
+## On-chain verification
+
+The STARK itself is not verified on-chain. OpenVM ships no Solidity STARK verifier, and the 534,601-byte proof would cost about 8.6M gas in calldata alone (16 gas per non-zero byte) before any verification work.
+
+OpenVM's route is `Sdk::prove_evm` (`openvm-sdk` feature `evm-prove`): it wraps the aggregated STARK in a Halo2/KZG proof on BN254, and `Sdk::generate_halo2_verifier_solidity` emits `OpenVmHalo2Verifier.sol` with `verify(bytes publicValues, bytes proofData, bytes32 appExeCommit, bytes32 appVmCommit)`. Here `publicValues` is the 32-byte digest the guest reveals and the two commits are `/program`'s. What it needs that this server does not have yet:
+
+- KZG SRS files `kzg_bn254_{k}.srs` in `~/.openvm/params` (`cargo openvm setup` downloads them).
+- A one-time Halo2 proving-key keygen, which OpenVM documents as memory and compute heavy.
+- `solc` to compile the generated verifier.
+
+Gas for `verify` has not been measured here.

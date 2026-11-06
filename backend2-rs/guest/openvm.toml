@@ -1,0 +1,6 @@
+# App VM config the host adapter loads (src/lib.rs): RV32IM, IO and the SHA-2
+# extension the equinox-core `openvm` feature calls.
+[app_vm_config.rv32i]
+[app_vm_config.rv32m]
+[app_vm_config.io]
+[app_vm_config.sha2]

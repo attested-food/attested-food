@@ -1,0 +1,17 @@
+[package]
+name = "equinox-openvm-guest"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Built by ../server/build.rs for riscv32im-risc0-zkvm-elf, not by the main workspace.
+[workspace]
+
+[dependencies]
+openvm = "2.1.0"
+equinox-core = { path = "../core", features = ["openvm"] }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+opt-level = 3

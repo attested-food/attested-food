@@ -1,0 +1,38 @@
+[package]
+name = "equinox-core"
+description = "no_std PDF extraction, commitment check and public-values layout (copy of the Equinox backend's crate, rev in UPSTREAM_REV)"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[features]
+default = []
+std = []
+# Other backends' SHA-256 paths, unused here; kept so the copied source builds unchanged.
+sp1 = []
+pico = []
+risc0 = []
+# SHA-256 through the OpenVM SHA-2 extension's compress instruction (OpenVM guest target only).
+openvm = ["dep:openvm-sha2-guest"]
+track = []
+# Decode every page instead of page 1 only.
+all-pages = []
+serde = ["dep:serde"]
+# `tlsn::K256Recover`: notary signature recovery with k256 + keccak256, no_std.
+k256 = ["dep:k256", "dep:sha3"]
+
+[dependencies]
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"], optional = true }
+openvm-sha2-guest = { version = "2.1.0", optional = true }
+k256 = { version = "0.13", default-features = false, features = ["ecdsa"], optional = true }
+sha3 = { version = "0.10", default-features = false, optional = true }
+
+[dev-dependencies]
+equinox-core = { path = ".", features = ["std", "serde", "k256"] }
+miniz_oxide = { version = "0.7", features = ["with-alloc"] }
+sha2 = "0.10.9"
+k256 = { version = "0.13", features = ["ecdsa"] }
+sha3 = "0.10"
+hex = "0.4"
+serde_json = "1.0"
