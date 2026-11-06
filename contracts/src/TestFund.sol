@@ -3,11 +3,13 @@ pragma solidity ^0.8.24;
 
 interface IERC20 {
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function transfer(address to, uint256 amount) external returns (bool);
 }
 
 /// Community-funded lab testing. Each test request (keyed by its id) is a campaign:
-/// contributors pool USD up to GOAL, a tester stakes STAKE to take the job, and must
-/// submit the report within DEADLINE or anyone can slash the stake into the pool.
+/// contributors pool USD up to GOAL. Anyone can take the job at any time by staking STAKE;
+/// the stake is returned when they submit the report within DEADLINE, otherwise anyone
+/// can slash it into the pool.
 contract TestFund {
     enum Status { Open, Pending, Submitted }
 
@@ -19,7 +21,7 @@ contract TestFund {
     }
 
     uint256 public constant GOAL = 100e6;
-    uint256 public constant STAKE = 50e6;
+    uint256 public constant STAKE = 110e6;
     uint256 public constant DEADLINE = 30 days;
 
     IERC20 public immutable usd;
@@ -37,7 +39,7 @@ contract TestFund {
 
     function contribute(bytes32 id, uint256 amount) external {
         Campaign storage c = campaigns[id];
-        require(c.status == Status.Open, "not open");
+        require(c.status != Status.Submitted, "closed");
         require(amount > 0 && c.pool + amount <= GOAL, "bad amount");
         require(usd.transferFrom(msg.sender, address(this), amount), "transfer failed");
         c.pool += amount;
@@ -47,7 +49,7 @@ contract TestFund {
 
     function commit(bytes32 id) external {
         Campaign storage c = campaigns[id];
-        require(c.status == Status.Open && c.pool >= GOAL, "not funded");
+        require(c.status == Status.Open, "taken");
         require(usd.transferFrom(msg.sender, address(this), STAKE), "transfer failed");
         c.tester = msg.sender;
         c.deadline = uint64(block.timestamp + DEADLINE);
@@ -55,13 +57,14 @@ contract TestFund {
         emit Committed(id, msg.sender, c.deadline);
     }
 
-    // ponytail: status flip only; pool + stake stay locked until ZK report verification pays them out.
+    // ponytail: no report check yet and the pool stays locked; ZK verification will gate this and pay out the pool.
     function submitReport(bytes32 id) external {
         Campaign storage c = campaigns[id];
         require(c.status == Status.Pending && msg.sender == c.tester, "not your job");
         require(block.timestamp <= c.deadline, "deadline passed");
         c.status = Status.Submitted;
         emit ReportSubmitted(id, msg.sender);
+        require(usd.transfer(msg.sender, STAKE), "transfer failed");
     }
 
     /// After the deadline the stake is forfeited into the pool and the job reopens.

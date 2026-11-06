@@ -8,7 +8,7 @@
 	let { requestId }: { requestId: string } = $props();
 
 	const GOAL = parseUnits('100', 6);
-	const STAKE = parseUnits('50', 6);
+	const STAKE = parseUnits('110', 6);
 	const STATUS = ['Open', 'Pending', 'Submitted'] as const;
 	const id = $derived(campaignId(requestId));
 
@@ -63,7 +63,7 @@
 	const call = (fn: 'submitReport' | 'slash') =>
 		act(fn, () => send({ address: fundAddress!, abi: fundAbi, functionName: fn, args: [id] }));
 	const faucet = () =>
-		act('faucet', () => send({ address: usdAddress!, abi: usdAbi, functionName: 'mint', args: [wallet.address!, parseUnits('100', 6)] }));
+		act('faucet', () => send({ address: usdAddress!, abi: usdAbi, functionName: 'mint', args: [wallet.address!, parseUnits('200', 6)] }));
 
 	const remaining = $derived(s && s.pool < GOAL ? GOAL - s.pool : 0n);
 	const customAmount = $derived(/^\d+(\.\d{1,6})?$/.test(custom) ? parseUnits(custom, 6) : 0n);
@@ -73,9 +73,9 @@
 
 <section class="fund">
 	<h2>Fund this test</h2>
-	<p>Testing costs <strong>{usd(GOAL)}</strong>. Anyone can chip in. Once fully funded, a tester stakes
-		<strong>{usd(STAKE)}</strong> to take the job. <strong>If the tester doesn't submit the report within 1 month, the stake is lost</strong>
-		and the job reopens for someone else.</p>
+	<p>Testing costs <strong>{usd(GOAL)}</strong>. Anyone can chip in. Anyone can also take the job at any time by staking
+		<strong>{usd(STAKE)}</strong>. The stake is returned when the report is submitted.
+		<strong>If the tester doesn't submit the report within 1 month, the stake is lost</strong> and the job reopens for someone else.</p>
 
 	{#if !fundAddress}
 		<p class="notice">On-chain funding isn't configured for this deployment.</p>
@@ -99,9 +99,9 @@
 			<p class="notice">Connect your wallet (top right) to contribute or take this test.</p>
 		{:else}
 			<p class="muted">Your contribution: {usd(s.mine)} · Wallet balance: {usd(s.balance)} tUSD
-				<button onclick={faucet} disabled={!!busy}>{busy === 'faucet' ? 'Minting…' : 'Get 100 test USD'}</button></p>
+				<button onclick={faucet} disabled={!!busy}>{busy === 'faucet' ? 'Minting…' : 'Get 200 test USD'}</button></p>
 
-			{#if s.status === 'Open' && remaining > 0n}
+			{#if s.status !== 'Submitted' && remaining > 0n}
 				<div class="row">
 					{#each [1, 2, 10, 20] as d (d)}
 						{@const amount = parseUnits(String(d), 6)}
@@ -113,7 +113,8 @@
 					</form>
 				</div>
 				<p class="muted">{usd(remaining)} still needed.</p>
-			{:else if s.status === 'Open'}
+			{/if}
+			{#if s.status === 'Open'}
 				<button class="primary" disabled={!!busy} onclick={commit}>{busy === 'commit' ? 'Staking…' : `Take this test (stake ${usd(STAKE)})`}</button>
 			{:else if s.status === 'Pending' && isTester && !late}
 				<button class="primary" disabled={!!busy} onclick={() => call('submitReport')}>{busy === 'submitReport' ? 'Submitting…' : 'Submit report'}</button>
