@@ -28,6 +28,23 @@ Display rule per product:
 
 Candidate fallback sources are tracked in [data-sources.md](data-sources.md).
 
+Target market: **India**. Products, brands, labs and fallback sources are all India-focused.
+
+## Reference report (first user-tested product)
+
+Kellogg's Choco Millet Muesli, tested at **Equinox Labs** (Navi Mumbai, NABL accredited, lab code TC-6820). The PDF is kept out of the repo because it contains personal details.
+
+| Section | Fields | Public? |
+|---|---|---|
+| Report identity | ULR number (NABL), report number `EQNX:001:NL:26:10:09217`, issue date, "Download Report" QR | Yes (proof of origin) |
+| Customer info | Client name, address, contact person | **No, hidden** |
+| Sample | Product name, sub group, batch no., mfg/expiry date, quantity and condition, collected by | Yes |
+| Dates | Receipt, analysis start and end | Yes |
+| Results | Parameter, unit, method (SOP / AOAC), value, RDA, %RDA. In this report: added sugars, total sugars, carbohydrate, dietary fibre, energy, protein, total/saturated/unsaturated/trans fat, MUFA, PUFA, cholesterol, sodium | Yes |
+| Authorisation | Signatory name and role, lab stamp | Yes |
+
+Verification notes: the PDF has **no embedded digital signature** (it was rendered by headless Chrome), so origin cannot be proved from the file alone. Options are a ZK proof of the lab email that delivered the report, or proving the copy fetched from the lab's "Download Report" QR URL matches (e.g. zkTLS). The NABL ULR number can also be cross-checked.
+
 ## The solution
 
 attested.food gives contributors a way to submit lab reports, prove selected details about their source and contents, and share the results with others while keeping personal information private.

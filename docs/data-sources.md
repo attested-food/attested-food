@@ -1,24 +1,25 @@
-# Fallback data sources
+# Fallback data sources (India)
 
-Third-party sites that publish product test results. Used only as **fallback** data when no verified user lab report exists (see [idea.md](idea.md#two-data-layers)). Always shown with source attribution and a link back.
+Third-party sites that publish lab test results for products sold in India. Used only as **fallback** data when no verified user lab report exists (see [idea.md](idea.md#two-data-layers)). Always shown with source attribution and a link back.
 
-Status: candidate list. Not yet approved for scraping; check each site's terms before scraping.
+Status: candidate list, checked Nov 2026. Not yet approved for scraping; check each site's terms first.
 
-## India
+## Recommended
 
-| Source | What it publishes | Sample product page |
+| Source | Coverage | What a product page shows | Sample |
+|---|---|---|---|
+| Unbox Health | Broad Indian packaged food plus supplements: cereals and muesli, snacks, biscuits, ghee, oils, honey, noodles, protein and more | Grade A+ to D, labs used (Eurofins, ALS), batch no., **label claim vs tested value** with an accuracy score per parameter, toxins (aflatoxin, lead, mercury). Report PDFs require login. | https://www.unboxhealth.in/explore/product/patanjali-cow-ghee/0ecbe039-9606-4e5d-8df9-b7b4e2299fa3 |
+| Trustified | Mostly Indian protein and supplement brands (MuscleBlaze, Avvatar, AS-IT-IS, Nutrabox, Nakpro, The Whole Truth, Mille...), a few foods (protein bar, protein flour) | Pass/fail per batch, tested by Eurofins, published date; label accuracy, amino and melamine spiking, heavy metals, aflatoxins, pesticides (some values only as images) | https://www.trustified.in/passandfail/truebasicsplantprotein |
+
+## Maybe
+
+| Source | Why maybe | Sample |
 |---|---|---|
-| Trustified | Pass/fail per batch: label accuracy, amino and melamine spiking, heavy metals, aflatoxins, pesticides. Some values are shown only as images. | https://www.trustified.in/passandfail/truebasicsplantprotein |
-| Unbox Health | Letter grade (A+ to D) based on lab tests, with lab reports published. Covers protein, supplements and foods. | https://unboxhealth.in/explore/product/nakpro-impact-whey-protein-isolate-concentrate-chocolate-flavour/eec64a4a-fe84-4e6e-8964-4aedaa7f1d30 |
-| Food Pharmer (foodpharmer.health) | Curated "picks" by category. A lab PDF is attached only for some products. | https://foodpharmer.health/c/peanut-butter (category page) |
-| Citizens Protein Project (TheLiverDoc et al.) | One-off peer-reviewed study of about 36 protein powders: protein content, aflatoxins, pesticides. A per-brand table is in the paper. | https://pmc.ncbi.nlm.nih.gov/articles/PMC10994440/ |
+| Labdoor | US site, but has graded a few Indian protein products (MuscleBlaze, Bal Bharat, MyProtein India) | https://labdoor.com/review/muscleblaze-biozyme-performance-whey |
+| Consumer Voice (VOICE magazine) | Indian comparative lab tests of named brands, including breakfast cereals, but old and published as PDFs, not per-product pages | https://consumeraffairs.nic.in/sites/default/files/file-uploads/ctocpas/corn%20flakes-12.pdf |
+| Citizens Protein Project | One-off peer-reviewed study of about 36 Indian protein powders with brand-wise results; static paper, not a feed | https://pmc.ncbi.nlm.nih.gov/articles/PMC10994440/ (behind a captcha, not verified) |
 
-## Global
+## Dropped
 
-| Source | What it publishes | Sample product page |
-|---|---|---|
-| Labdoor | Grade plus scores for label accuracy, purity, nutritional value and safety. Has protein rankings. | https://labdoor.com/review/legion-grass-fed-protein-isolate |
-| Clean Label Project | Certification plus category studies on heavy metals, pesticides and BPA. | https://cleanlabelproject.org/protein-study-v2/ |
-| ConsumerLab | Pass/fail plus measured values. Paywalled. | https://www.consumerlab.com/reviews/protein-powders-shakes-drinks/protein-powders/ |
-| Informed Sport / Informed Choice | Certification of banned-substance testing per batch. No nutrient values. | https://sport.wetestyoutrust.com |
-| NSF Certified for Sport | Certified-product listing. No values. | https://www.nsfsport.com/certified-products/ |
+- **Food Pharmer**: "label reviewed" only, no lab values on product pages.
+- **Clean Label Project, ConsumerLab, Informed Sport, NSF**: US/global brands; little or no Indian coverage.
