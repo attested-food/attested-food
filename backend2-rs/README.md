@@ -19,6 +19,8 @@ cargo build --release
 
 ## API
 
+For `format=eurekha-attested` the PDF alone is enough: the server reads the report link from the QR code printed on it (`server/src/report_url.rs`; only `https://eurekhalabs.s3.amazonaws.com/reports/...pdf`), fetches it under TLSNotary itself (stage `zktls fetch`, `equinox-tls-prove` in proxy mode, `EUREKHA_TLS_BIN`), requires the fetched bytes to equal the upload, then proves. In this mode the server is both the TLS prover and the notary (`EQUINOX_NOTARY_KEY`, default the public dev key), so the attestation says the server fetched those bytes from the bucket; an independent notary is what makes it evidence against the server's operator. Uploads that bring their own zktls session (`onchain`, `request`, `blinder`) skip the fetch.
+
 Proving is a job: `POST /prove` answers `202 { jobId, statusUrl }` once the native preflight passes (a bad PDF, attestation or PII leak is still an immediate 400), and the caller polls `GET /jobs/{id}`. `&wait=1` holds the request and answers with the result instead.
 
 ```sh

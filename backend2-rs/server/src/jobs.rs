@@ -137,6 +137,13 @@ impl Jobs {
         }
     }
 
+    /// Set the preview once it is known (after a server-side zktls fetch).
+    pub fn set_preview(&self, id: &str, preview: Value) {
+        if let Some(j) = self.jobs.lock().unwrap().get_mut(id) {
+            j.preview = preview;
+        }
+    }
+
     pub fn finish(&self, id: &str, result: Result<Value, String>) {
         let mut all = self.jobs.lock().unwrap();
         if let Some(j) = all.get_mut(id) {

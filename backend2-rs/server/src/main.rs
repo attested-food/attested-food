@@ -42,7 +42,9 @@
 mod jobs;
 mod lock;
 mod prover;
+mod report_url;
 mod sp1;
+mod zktls;
 
 use std::{
     panic::AssertUnwindSafe,
@@ -363,35 +365,57 @@ async fn prove(State(prover): State<Prover>, Query(q): Query<ProveQuery>, mp: Mu
         return Err(ApiError(StatusCode::NOT_IMPLEMENTED, "mode=openvm-halo2 is not built yet".into()));
     }
     let total = Instant::now();
-    let buffer = equinox_core::input_buffer(&form.pdf, &form.blinder);
-
-    let t = Instant::now();
-    let format = form.format;
-    let attested = match (format, &form.onchain, &form.request) {
-        (Format::EurekhaAttested | Format::EurekhaAttestedSig, Some(o), Some(r)) if form.blinder_given => {
-            Some(parse_attested(o, r)?)
-        }
-        (Format::EurekhaAttested | Format::EurekhaAttestedSig, ..) => {
-            return Err(bad("attested formats need `onchain`, `request` and the TLS body `blinder`"))
-        }
-        _ => None,
+    // An attested upload without its zktls session: the server reads the
+    // report link from the PDF's QR code and fetches it under TLSNotary itself.
+    let attested = matches!(form.format, Format::EurekhaAttested | Format::EurekhaAttestedSig);
+    let fetch_url = match attested && form.onchain.is_none() && form.request.is_none() && !form.blinder_given {
+        true => Some(report_url::report_url(&form.pdf).map_err(bad)?),
+        false => None,
     };
-    let labels = form.labels.clone();
-    let (buffer, attested, pre) = tokio::task::spawn_blocking(move || {
-        let pre = preflight(format, &buffer, &labels, attested.as_ref())?;
-        Ok::<_, ApiError>((buffer, attested, pre))
-    })
-    .await
-    .map_err(|e| internal(e.to_string()))??;
-    let preflight_ms = t.elapsed().as_millis() as u64;
-    tracing::info!(format = format.name(), pdf_bytes = form.pdf.len(), preflight_ms, "preflight ok");
+    let format = form.format;
+    let (prepared, fetch) = match fetch_url {
+        Some(url) => (None, Some((url, form))),
+        None => {
+            let mode = q.mode.clone();
+            let job = tokio::task::spawn_blocking(move || prepare(form, mode, total))
+                .await
+                .map_err(|e| internal(e.to_string()))??;
+            (Some(job), None)
+        }
+    };
 
-    let preview = json!({ "publicValues": pre.json, "publicValuesHex": hex::encode(&pre.public_values) });
+    let preview = prepared.as_ref().map_or(serde_json::Value::Null, |j| j.preview());
     let id = JOBS.create(&q.mode, format.name(), preview);
-    let job = JobInput { mode: q.mode.clone(), format, form, attested, buffer, pre, preflight_ms, total };
     let (jid, progress) = (id.clone(), JOBS.progress(&id));
+    let mode = q.mode.clone();
     let done = tokio::spawn(async move {
-        let r = run_job(prover, job, progress).await;
+        let r = async {
+            let job = match (prepared, fetch) {
+                (Some(job), _) => job,
+                (None, Some((url, mut form))) => {
+                    progress.stage("zktls fetch");
+                    let session =
+                        tokio::task::spawn_blocking(move || zktls::fetch(&url)).await.map_err(|e| e.to_string())??;
+                    if session.body != form.pdf {
+                        return Err("the uploaded PDF differs from the lab's copy at its QR link".to_string());
+                    }
+                    form.onchain = Some(session.onchain);
+                    form.request = Some(session.request);
+                    form.blinder = session.blinder;
+                    form.blinder_given = true;
+                    progress.stage("preflight");
+                    let job = tokio::task::spawn_blocking(move || prepare(form, mode, total))
+                        .await
+                        .map_err(|e| e.to_string())?
+                        .map_err(|e| e.1)?;
+                    JOBS.set_preview(&jid, job.preview());
+                    job
+                }
+                (None, None) => unreachable!(),
+            };
+            run_job(prover, job, progress).await
+        }
+        .await;
         if let Err(e) = &r {
             tracing::warn!(job = %jid, "job failed: {e}");
         }
@@ -407,6 +431,35 @@ async fn prove(State(prover): State<Prover>, Query(q): Query<ProveQuery>, mp: Mu
     }
     let body = json!({ "jobId": id, "status": "queued", "statusUrl": format!("/jobs/{id}") });
     Ok((StatusCode::ACCEPTED, Json(body)).into_response())
+}
+
+/// Parse the attestation (attested formats) and run the statement natively:
+/// rejects a bad PDF or attestation and anything that would publish customer
+/// PII before any proving starts.
+fn prepare(form: Form, mode: String, total: Instant) -> Result<JobInput, ApiError> {
+    let t = Instant::now();
+    let format = form.format;
+    let attested = match (format, &form.onchain, &form.request) {
+        (Format::EurekhaAttested | Format::EurekhaAttestedSig, Some(o), Some(r)) if form.blinder_given => {
+            Some(parse_attested(o, r)?)
+        }
+        (Format::EurekhaAttested | Format::EurekhaAttestedSig, ..) => {
+            return Err(bad("attested formats need `onchain`, `request` and the TLS body `blinder`, or the PDF alone"))
+        }
+        _ => None,
+    };
+    let buffer = equinox_core::input_buffer(&form.pdf, &form.blinder);
+    let pre = preflight(format, &buffer, &form.labels, attested.as_ref())?;
+    let preflight_ms = t.elapsed().as_millis() as u64;
+    tracing::info!(format = format.name(), pdf_bytes = form.pdf.len(), preflight_ms, "preflight ok");
+    Ok(JobInput { mode, format, form, attested, buffer, pre, preflight_ms, total })
+}
+
+impl JobInput {
+    /// What is known before proving: the public values the proof will commit.
+    fn preview(&self) -> serde_json::Value {
+        json!({ "publicValues": self.pre.json, "publicValuesHex": hex::encode(&self.pre.public_values) })
+    }
 }
 
 /// Everything a job needs after the preflight.

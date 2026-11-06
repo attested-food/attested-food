@@ -1,27 +1,22 @@
 import { useState } from 'react';
 import { pollJob, PROVER_URL, startProof, type Job } from '@/lib/prover';
 
-// Prover test page: sends a lab report PDF and its zktls session files to the backend2-rs
-// prover as an SP1 Groth16 job and logs every response to the browser console.
+// Prover test page: sends a lab report PDF to the backend2-rs prover as an SP1 Groth16 job
+// and logs every response to the browser console.
 export default function Prove() {
 	const [pdf, setPdf] = useState<File | null>(null);
-	const [onchain, setOnchain] = useState<File | null>(null);
-	const [request, setRequest] = useState<File | null>(null);
-	const [blinder, setBlinder] = useState('');
 	const [job, setJob] = useState<Job | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState('');
 
-	const ready = !!(pdf && onchain && request && blinder.trim());
-
 	async function submit(e: React.FormEvent) {
 		e.preventDefault();
-		if (!ready) return;
+		if (!pdf) return;
 		setError('');
 		setJob(null);
 		setBusy(true);
 		try {
-			const id = await startProof(pdf!, { onchain: onchain!, request: request!, blinder });
+			const id = await startProof(pdf);
 			const done = await pollJob(id, setJob);
 			if (done.status === 'failed') setError(done.error ?? 'proof failed');
 		} catch (err) {
@@ -38,24 +33,15 @@ export default function Prove() {
 			<div className="page-head">
 				<div>
 					<h1>Prove a lab report</h1>
-					<p className="lede">Sends the PDF and its zktls session to the prover at <code>{PROVER_URL}</code> for an SP1 Groth16 proof. Responses are logged to the browser console.</p>
+					<p className="lede">Sends the PDF to the prover at <code>{PROVER_URL}</code>. It fetches the lab's copy from the link in the report's QR code under TLSNotary, checks it matches, and makes an SP1 Groth16 proof. Responses are logged to the browser console.</p>
 				</div>
 			</div>
 			<form className="stack" onSubmit={submit}>
 				<label className="field">Lab report PDF *
 					<input type="file" accept="application/pdf" required onChange={(e) => setPdf(e.target.files?.[0] ?? null)} />
 				</label>
-				<label className="field">onchain.json (zktls session) *
-					<input type="file" accept="application/json" required onChange={(e) => setOnchain(e.target.files?.[0] ?? null)} />
-				</label>
-				<label className="field">request.json (zktls session) *
-					<input type="file" accept="application/json" required onChange={(e) => setRequest(e.target.files?.[0] ?? null)} />
-				</label>
-				<label className="field">blinder.hex (zktls session) *
-					<input value={blinder} required onChange={(e) => setBlinder(e.target.value)} placeholder="32 hex characters" />
-				</label>
 				<div>
-					<button className="btn" type="submit" disabled={!ready || busy}>
+					<button className="btn" type="submit" disabled={!pdf || busy}>
 						{busy ? 'Proving…' : 'Generate SP1 Groth16 proof'}
 					</button>
 				</div>

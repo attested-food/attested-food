@@ -220,6 +220,12 @@ pub(crate) fn check_xobjects<'a>(doc: &Doc<'a>, res: &Dict<'a>) {
     }
 }
 
+/// The decoded content stream of every page (for hosts, e.g. reading a QR code).
+pub fn page_contents(pdf: &[u8]) -> Vec<Vec<u8>> {
+    let doc = Doc::open(pdf);
+    page_list_max(&doc, usize::MAX).iter().map(|(page, _)| page_content(&doc, page)).collect()
+}
+
 // /Contents: one stream, or an array of streams concatenated with whitespace.
 fn page_content<'a>(doc: &Doc<'a>, page: &Dict<'a>) -> Vec<u8> {
     let c = page.get(b"Contents").expect("page has no /Contents");

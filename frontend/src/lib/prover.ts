@@ -3,9 +3,6 @@
 
 export const PROVER_URL: string = import.meta.env.VITE_PROVER_URL ?? 'https://prover.openlabel.fyi';
 
-/** The `onchain.json`, `request.json` and `blinder.hex` of the zktls session that fetched the PDF. */
-export type Attestation = { onchain: File; request: File; blinder: string };
-
 export type Job = {
 	id: string;
 	mode: string;
@@ -28,17 +25,16 @@ async function json(res: Response): Promise<any> {
 }
 
 /**
- * Start an SP1 Groth16 job (the proof `EurekhaReportRegistry.submit` takes); resolves to its id
- * once the server's preflight accepts the PDF and attestation. The job shows the SP1 STARK under
- * `partial["sp1-compressed"]` first, then the Groth16 artifact under `result.artifact`.
+ * Start an SP1 Groth16 job (the proof `EurekhaReportRegistry.submit` takes) for a lab report PDF;
+ * resolves to its id once the server has read the report link from the PDF's QR code. The server
+ * fetches the lab's copy under TLSNotary (stage `zktls fetch`), checks it equals the upload, then
+ * proves: the SP1 STARK shows up under `partial["sp1-compressed"]` first, the Groth16 artifact
+ * under `result.artifact` at the end.
  */
-export async function startProof(pdf: File, attestation: Attestation): Promise<string> {
+export async function startProof(pdf: File): Promise<string> {
 	const form = new FormData();
 	form.append('pdf', pdf);
 	form.append('format', 'eurekha-attested');
-	form.append('onchain', await attestation.onchain.text());
-	form.append('request', await attestation.request.text());
-	form.append('blinder', attestation.blinder.trim());
 	const body = await json(await fetch(`${PROVER_URL}/prove?mode=sp1-groth16`, { method: 'POST', body: form }));
 	console.log('[prover] POST /prove', body);
 	return body.jobId;
