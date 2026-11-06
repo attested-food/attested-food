@@ -3,9 +3,7 @@
 
 export const PROVER_URL: string = import.meta.env.VITE_PROVER_URL ?? 'https://prover.openlabel.fyi';
 
-export type ProveMode = 'execute' | 'stark' | 'sp1-groth16';
-
-/** The `onchain.json`, `request.json` and `blinder.hex` of a zktls run (eurekha-attested only). */
+/** The `onchain.json`, `request.json` and `blinder.hex` of the zktls session that fetched the PDF. */
 export type Attestation = { onchain: File; request: File; blinder: string };
 
 export type Job = {
@@ -18,6 +16,7 @@ export type Job = {
 	elapsedMs: number;
 	progress: { fraction: number; etaMs?: number } | null;
 	preview: { publicValues: unknown; publicValuesHex: string };
+	partial: Record<string, unknown>;
 	result: Record<string, unknown> | null;
 	error: string | null;
 };
@@ -28,19 +27,19 @@ async function json(res: Response): Promise<any> {
 	return body;
 }
 
-/** Start a proving job; resolves to its id once the server's preflight accepts the PDF. */
-export async function startProof(pdf: File, mode: ProveMode, attestation?: Attestation): Promise<string> {
+/**
+ * Start an SP1 Groth16 job (the proof `EurekhaReportRegistry.submit` takes); resolves to its id
+ * once the server's preflight accepts the PDF and attestation. The job shows the SP1 STARK under
+ * `partial["sp1-compressed"]` first, then the Groth16 artifact under `result.artifact`.
+ */
+export async function startProof(pdf: File, attestation: Attestation): Promise<string> {
 	const form = new FormData();
 	form.append('pdf', pdf);
-	if (attestation) {
-		form.append('format', 'eurekha-attested');
-		form.append('onchain', await attestation.onchain.text());
-		form.append('request', await attestation.request.text());
-		form.append('blinder', attestation.blinder.trim());
-	} else {
-		form.append('format', 'eurekha');
-	}
-	const body = await json(await fetch(`${PROVER_URL}/prove?mode=${mode}`, { method: 'POST', body: form }));
+	form.append('format', 'eurekha-attested');
+	form.append('onchain', await attestation.onchain.text());
+	form.append('request', await attestation.request.text());
+	form.append('blinder', attestation.blinder.trim());
+	const body = await json(await fetch(`${PROVER_URL}/prove?mode=sp1-groth16`, { method: 'POST', body: form }));
 	console.log('[prover] POST /prove', body);
 	return body.jobId;
 }
