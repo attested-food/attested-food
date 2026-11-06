@@ -19,16 +19,27 @@ cargo build --release
 
 ## API
 
+Proving is a job: `POST /prove` answers `202 { jobId, statusUrl }` once the native preflight passes (a bad PDF, attestation or PII leak is still an immediate 400), and the caller polls `GET /jobs/{id}`. `&wait=1` holds the request and answers with the result instead.
+
 ```sh
-curl -X POST 'localhost:8793/prove?mode=stark' -F pdf=@report.pdf -F 'labels=Energy, Protein' [-F blinder=<32 hex>]
+J=$(curl -s -X POST 'localhost:8793/prove?mode=sp1-groth16' -F format=eurekha-attested \
+  -F pdf=@body.pdf -F blinder=$(cat blinder.hex) -F onchain=@onchain.json -F request=@request.json)
+curl -s localhost:8793/jobs/$(echo $J | jq -r .jobId)
 ```
 
 | Route | In | Out |
 |---|---|---|
-| `GET /health` | | `{ ok, guestElfBytes }` |
-| `GET /program` | | `{ appExeCommit, appVmCommit }`, the pinned program (keygen on first call) |
-| `POST /prove?mode=stark\|execute` | multipart `pdf`, optional `labels` (default `Energy, Protein`), optional `blinder` (16 bytes hex, random if absent) | `publicValues` (decoded), `publicValuesHex`, `revealed`, `blinder`, `instructions`, `program`, `proof` (base64 bincode `VersionedVmStarkProof`), `proofBytes`, `timingsMs` |
-| `POST /verify` | JSON `{ proof, publicValues }` | `{ valid, publicValues, program }`, or 400 |
+| `GET /health` | | `{ ok, guestElfBytes, sp1 }` (`sp1`: the warm worker's setup and warm-up status) |
+| `GET /program` | | `{ appExeCommit, appVmCommit }`, the pinned OpenVM program |
+| `POST /prove?mode=...` | multipart `pdf`, `format` (`equinox`, `eurekha`, `eurekha-attested`, `eurekha-attested-sig`), `labels` (Equinox), `blinder` (16 bytes hex; random if absent, required for attested formats), `onchain` + `request` (attested formats: `onchain.json`, `request.json` of a `zktls` run) | `202 { jobId, status, statusUrl }` |
+| `GET /jobs/{id}` | | `{ status: queued\|running\|done\|failed, stage, stages: [{ name, ms \| elapsedMs }], elapsedMs, progress: { fraction, etaMs }, preview: { publicValues, publicValuesHex }, result, error }` |
+| `POST /verify` | JSON `{ proof, publicValues }` | `{ valid, publicValues, program }`, or 400 (OpenVM STARKs) |
+
+Modes: `execute` (no proof), `stark` (OpenVM STARK, `proof` base64 bincode `VersionedVmStarkProof`), `sp1-groth16` (`format=eurekha-attested`: `artifact { vkey, publicValues, proof, notarySignature }`, the arguments of `EurekhaReportRegistry.submit`), `openvm-halo2` (reserved, 501). `result` is `{ mode, format, publicValues, publicValuesHex, notarySignature, redactedPdf, revealed, blinder, instructions, program, proof, proofBytes, artifact, timingsMs }`.
+
+Stages: `queued`, `starting sp1 worker`, `waiting for prove lock`, `execute`, `keygen`, `prove`, `verify`. `progress` is an estimate, since neither SDK reports a fraction done: working time so far over the working time of the last finished job of the same mode (queue and lock waits excluded); `null` until one has finished. Jobs live in memory for an hour after they finish.
+
+Both provers stay warm: OpenVM keygen runs at start and its keys stay in the prover thread; SP1 runs as one long-lived `eurekha-sp1 serve` child that sets up at start and, with `EUREKHA_SP1_WARM_RUN=<zktls run dir>`, proves once so gnark's Groth16 proving key is loaded before the first request. Proofs take the machine-wide lock: `/tmp/equinox-prove.lock.d`, or `PROVE_FLOCK=<file>` (an `flock`, as the GPU box's `heavy` uses).
 
 Before proving, the server runs the same extraction natively: a PDF the guest would reject fails in milliseconds, and a result that would publish PII is refused. `/prove` checks the guest revealed `sha256(publicValues)` and verifies the proof before returning it. `/verify` checks the proof against the pinned program and that it commits to the given public values (a flipped public-value byte is rejected).
 

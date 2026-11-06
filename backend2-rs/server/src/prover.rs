@@ -22,6 +22,8 @@ use openvm_sdk_config::SdkVmConfig;
 use openvm_stark_backend::p3_field::PrimeField32;
 use tokio::sync::oneshot;
 
+use crate::jobs::Progress;
+
 mod guest {
     include!(concat!(env!("OUT_DIR"), "/guest.rs"));
 }
@@ -43,9 +45,10 @@ pub(crate) enum ProveLock {
 }
 
 impl ProveLock {
-    pub(crate) fn acquire() -> std::io::Result<Self> {
+    /// Blocks until held; reports `waiting for prove lock` to `progress` if it has to wait.
+    pub(crate) fn acquire(progress: &Progress) -> std::io::Result<Self> {
         if let Some(path) = std::env::var_os("PROVE_FLOCK") {
-            return Self::flock(std::path::Path::new(&path));
+            return Self::flock(std::path::Path::new(&path), progress);
         }
         let mut waited = false;
         loop {
@@ -54,6 +57,7 @@ impl ProveLock {
                 Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
                     if !waited {
                         tracing::info!("waiting for {PROVE_LOCK} ...");
+                        progress.stage("waiting for prove lock");
                         waited = true;
                     }
                     std::thread::sleep(Duration::from_secs(5));
@@ -63,11 +67,12 @@ impl ProveLock {
         }
     }
 
-    fn flock(path: &std::path::Path) -> std::io::Result<Self> {
+    fn flock(path: &std::path::Path, progress: &Progress) -> std::io::Result<Self> {
         use std::os::fd::AsRawFd;
         let file = std::fs::OpenOptions::new().create(true).append(true).open(path)?;
         if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
             tracing::info!("waiting for {} ...", path.display());
+            progress.stage("waiting for prove lock");
             if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } != 0 {
                 return Err(std::io::Error::last_os_error());
             }
@@ -149,7 +154,7 @@ pub struct Attested {
 
 enum Job {
     Program(oneshot::Sender<Result<ProgramCommit, String>>),
-    Run { input: GuestInput, stark: bool, reply: oneshot::Sender<Result<Proved, String>> },
+    Run { input: GuestInput, stark: bool, progress: Progress, reply: oneshot::Sender<Result<Proved, String>> },
     Verify { proof: Vec<u8>, reply: oneshot::Sender<Result<Vec<u8>, String>> },
 }
 
@@ -179,8 +184,8 @@ impl Prover {
                         Job::Program(reply) => {
                             let _ = reply.send(engine.program());
                         }
-                        Job::Run { input, stark, reply } => {
-                            let _ = reply.send(engine.run(input, stark));
+                        Job::Run { input, stark, progress, reply } => {
+                            let _ = reply.send(engine.run(input, stark, &progress));
                         }
                         Job::Verify { proof, reply } => {
                             let _ = reply.send(engine.verify(&proof));
@@ -204,8 +209,8 @@ impl Prover {
     }
 
     /// Execute (and, with `stark`, prove and verify) the guest on `input`.
-    pub async fn run(&self, input: GuestInput, stark: bool) -> Result<Proved, String> {
-        self.call(|reply| Job::Run { input, stark, reply }).await
+    pub async fn run(&self, input: GuestInput, stark: bool, progress: Progress) -> Result<Proved, String> {
+        self.call(|reply| Job::Run { input, stark, progress, reply }).await
     }
 
     /// Verify a STARK against the pinned program; returns the revealed bytes.
@@ -294,9 +299,10 @@ impl Engine {
         s
     }
 
-    fn run(&mut self, input: GuestInput, stark: bool) -> Result<Proved, String> {
+    fn run(&mut self, input: GuestInput, stark: bool, progress: &Progress) -> Result<Proved, String> {
         let mut timings = Timings::default();
         let t = Instant::now();
+        progress.stage("execute");
         self.ensure_setup()?;
         timings.setup_ms = ms(t);
 
@@ -310,17 +316,22 @@ impl Engine {
             return Ok(Proved { revealed, instructions, proof: Vec::new(), program: None, timings });
         }
 
-        let _lock = ProveLock::acquire().map_err(|e| format!("prove lock: {e}"))?;
+        let _lock = ProveLock::acquire(progress).map_err(|e| format!("prove lock: {e}"))?;
         let t = Instant::now();
+        if self.baseline.is_none() {
+            progress.stage("keygen");
+        }
         self.ensure_baseline()?;
         timings.keygen_ms = ms(t);
 
+        progress.stage("prove");
         let t = Instant::now();
         let mut prover = self.sdk().prover(self.exe()).map_err(err)?;
         let (proof, _) = prover.prove(Self::stdin(&input), &[]).map_err(|e| format!("openvm prove: {e}"))?;
         let proof = bincode::serialize(&VersionedVmStarkProof::new(proof).map_err(err)?).map_err(err)?;
         timings.prove_ms = ms(t);
 
+        progress.stage("verify");
         let t = Instant::now();
         let proved_revealed = self.verify(&proof)?;
         timings.verify_ms = ms(t);

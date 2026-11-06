@@ -3,7 +3,17 @@
 //!
 //! - `GET  /health`: is the guest built.
 //! - `GET  /program`: the pinned program's commitments (runs keygen once).
-//! - `POST /prove?mode=stark|execute`: multipart `pdf` (file), optional
+//! - `POST /prove?mode=...`: starts a proving job and answers `202 { jobId,
+//!   statusUrl }` after the native preflight (input errors are still an
+//!   immediate 400); `&wait=1` answers with the result instead.
+//! - `GET  /jobs/{id}`: `status` (`queued`, `running`, `done`, `failed`),
+//!   current `stage`, `stages` with timings, `progress` (an estimate from the
+//!   last job of the same mode), `preview` (the public values the proof will
+//!   commit, known at once), and `result` (the `/prove` response) or `error`.
+//!
+//! Modes and fields of `/prove`:
+//!
+//! - `mode=stark|execute`: multipart `pdf` (file), optional
 //!   `labels` (comma-separated analytes) and `blinder` (32 hex chars; random
 //!   if absent), `format` (`equinox`, `eurekha`, `eurekha-attested`,
 //!   `eurekha-attested-sig`). The attested ones also take `onchain` and
@@ -29,13 +39,18 @@
 //! `../sp1/target/release/eurekha-sp1`), `EUREKHA_SP1_WARM_RUN`, `NOTARY_ADDRESS` (the notary attested
 //! reports must be signed by, hex; default the public dev notary), `RUST_LOG`.
 
+mod jobs;
 mod prover;
 mod sp1;
 
-use std::{panic::AssertUnwindSafe, sync::LazyLock, time::Instant};
+use std::{
+    panic::AssertUnwindSafe,
+    sync::{Arc, LazyLock},
+    time::Instant,
+};
 
 use axum::{
-    extract::{DefaultBodyLimit, Multipart, Query, State},
+    extract::{DefaultBodyLimit, Multipart, Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -48,6 +63,9 @@ use prover::{Attested, GuestInput, ProgramCommit, Prover, Timings};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
+
+/// Proving jobs (`POST /prove`, `GET /jobs/{id}`).
+static JOBS: LazyLock<Arc<jobs::Jobs>> = LazyLock::new(Default::default);
 
 /// The warm SP1 Groth16 worker.
 static SP1: LazyLock<sp1::Worker> = LazyLock::new(sp1::Worker::new);
@@ -79,6 +97,8 @@ fn pv_json(pv: &PublicValues) -> serde_json::Value {
 struct ProveQuery {
     #[serde(default = "default_mode")]
     mode: String,
+    /// `1`: hold the request until the proof is done and answer with the result.
+    wait: Option<String>,
 }
 
 fn default_mode() -> String {
@@ -330,11 +350,7 @@ fn preflight(
     }
 }
 
-async fn prove(
-    State(prover): State<Prover>,
-    Query(q): Query<ProveQuery>,
-    mp: Multipart,
-) -> Result<Json<ProveResponse>, ApiError> {
+async fn prove(State(prover): State<Prover>, Query(q): Query<ProveQuery>, mp: Multipart) -> Result<Response, ApiError> {
     let stark = match q.mode.as_str() {
         "stark" | "sp1-groth16" | "openvm-halo2" => true,
         "execute" => false,
@@ -362,29 +378,67 @@ async fn prove(
         }
         _ => None,
     };
-    let (buffer, labels, attested, pre) = tokio::task::spawn_blocking(move || {
-        let pre = preflight(format, &buffer, &form.labels, attested.as_ref())?;
-        Ok::<_, ApiError>((buffer, form.labels, attested, pre))
+    let labels = form.labels.clone();
+    let (buffer, attested, pre) = tokio::task::spawn_blocking(move || {
+        let pre = preflight(format, &buffer, &labels, attested.as_ref())?;
+        Ok::<_, ApiError>((buffer, attested, pre))
     })
     .await
     .map_err(|e| internal(e.to_string()))??;
-    let public_values = pre.public_values;
     let preflight_ms = t.elapsed().as_millis() as u64;
     tracing::info!(format = format.name(), pdf_bytes = form.pdf.len(), preflight_ms, "preflight ok");
 
+    let preview = json!({ "publicValues": pre.json, "publicValuesHex": hex::encode(&pre.public_values) });
+    let id = JOBS.create(&q.mode, format.name(), preview);
+    let job = JobInput { mode: q.mode.clone(), stark, format, form, attested, buffer, pre, preflight_ms, total };
+    let (jid, progress) = (id.clone(), JOBS.progress(&id));
+    let done = tokio::spawn(async move {
+        let r = run_job(prover, job, progress).await;
+        if let Err(e) = &r {
+            tracing::warn!(job = %jid, "job failed: {e}");
+        }
+        JOBS.finish(&jid, r.map(|r| serde_json::to_value(r).unwrap_or_default()));
+    });
+    if q.wait.as_deref().is_some_and(|w| w == "1" || w == "true") {
+        done.await.map_err(|e| internal(e.to_string()))?;
+        let view = JOBS.view(&id).unwrap_or_default();
+        return match view["result"].is_null() {
+            true => Err(internal(view["error"].as_str().unwrap_or("job failed").to_string())),
+            false => Ok(Json(view["result"].clone()).into_response()),
+        };
+    }
+    let body = json!({ "jobId": id, "status": "queued", "statusUrl": format!("/jobs/{id}") });
+    Ok((StatusCode::ACCEPTED, Json(body)).into_response())
+}
+
+/// Everything a job needs after the preflight.
+struct JobInput {
+    mode: String,
+    stark: bool,
+    format: Format,
+    form: Form,
+    attested: Option<Attested>,
+    buffer: Vec<u8>,
+    pre: Preflight,
+    preflight_ms: u64,
+    total: Instant,
+}
+
+async fn run_job(prover: Prover, job: JobInput, progress: jobs::Progress) -> Result<ProveResponse, String> {
+    let JobInput { mode, stark, format, form, attested, buffer, pre, preflight_ms, total } = job;
+    let public_values = pre.public_values;
     let notary_signature = attested.as_ref().map(|a| hex::encode(&a.tlsn.signature));
-    if q.mode == "sp1-groth16" {
+    if mode == "sp1-groth16" {
         let (pdf, blinder) = (form.pdf.clone(), form.blinder);
         let (onchain, request) = (form.onchain.clone().unwrap_or_default(), form.request.clone().unwrap_or_default());
-        let artifact = tokio::task::spawn_blocking(move || SP1.prove(&pdf, &blinder, &onchain, &request))
+        let artifact = tokio::task::spawn_blocking(move || SP1.prove(&pdf, &blinder, &onchain, &request, &progress))
             .await
-            .map_err(|e| internal(e.to_string()))?
-            .map_err(internal)?;
+            .map_err(|e| e.to_string())??;
         if artifact["publicValues"].as_str() != Some(format!("0x{}", hex::encode(&public_values)).as_str()) {
-            return Err(internal("SP1 proof commits other public values than the native run"));
+            return Err("SP1 proof commits other public values than the native run".into());
         }
-        return Ok(Json(ProveResponse {
-            mode: q.mode,
+        return Ok(ProveResponse {
+            mode,
             format: format.name().into(),
             public_values: pre.json,
             notary_signature,
@@ -402,16 +456,16 @@ async fn prove(
                 total: total.elapsed().as_millis() as u64,
             },
             artifact: Some(artifact),
-        }));
+        });
     }
-    let proved =
-        prover.run(GuestInput { format: format.byte(), labels, attested, buffer }, stark).await.map_err(internal)?;
+    let input = GuestInput { format: format.byte(), labels: form.labels, attested, buffer };
+    let proved = prover.run(input, stark, progress).await?;
     if proved.revealed != equinox_core::sha::sha256(&public_values) {
-        return Err(internal("guest revealed digest is not sha256(public values)"));
+        return Err("guest revealed digest is not sha256(public values)".into());
     }
     tracing::info!(instructions = proved.instructions, proof_bytes = proved.proof.len(), "done");
-    Ok(Json(ProveResponse {
-        mode: q.mode,
+    Ok(ProveResponse {
+        mode,
         format: format.name().into(),
         public_values: pre.json,
         notary_signature,
@@ -429,7 +483,11 @@ async fn prove(
             prover: proved.timings,
             total: total.elapsed().as_millis() as u64,
         },
-    }))
+    })
+}
+
+async fn job(Path(id): Path<String>) -> Result<Json<serde_json::Value>, ApiError> {
+    JOBS.view(&id).map(Json).ok_or_else(|| ApiError(StatusCode::NOT_FOUND, format!("no job {id}")))
 }
 
 #[derive(Deserialize)]
@@ -493,6 +551,7 @@ async fn main() {
         .route("/health", get(health))
         .route("/program", get(program))
         .route("/prove", post(prove))
+        .route("/jobs/{id}", get(job))
         .route("/verify", post(verify))
         // A report PDF is a few hundred KB; a base64 proof under 1 MB.
         .layer(DefaultBodyLimit::max(16 << 20))

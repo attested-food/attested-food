@@ -8,7 +8,8 @@
 //!
 //! `serve` is the warm prover the server keeps running: setup once, then one
 //! job per stdin line `{"run": <dir>, "out": <path>}`, one stdout reply line
-//! per job prefixed `EUREKHA_SP1 ` (the prove reply, or `{"error"}`). gnark
+//! per job prefixed `EUREKHA_SP1 ` (the prove reply, or `{"error"}`), after
+//! `{"stage": "prove" | "verify"}` lines as the job advances. gnark
 //! keeps the Groth16 R1CS and proving key in process globals after the first
 //! proof, so only that one pays the load; `--warm` proves a saved run at start
 //! (result discarded) so the first real job is warm too. It replies
@@ -67,8 +68,10 @@ enum Cmd {
 /// Prefix of every protocol line `serve` writes to stdout.
 const REPLY: &str = "EUREKHA_SP1 ";
 
-/// One Groth16 proof of `run`, verified, written to `out`; returns the summary line.
+/// One Groth16 proof of `run`, verified, written to `out`; returns the summary
+/// line. Reports its stages (`prove`, `verify`) to `stage`.
 fn prove(
+    stage: &dyn Fn(&str),
     client: &EnvProver,
     pk: &EnvProvingKey,
     setup_ms: u64,
@@ -79,6 +82,7 @@ fn prove(
     let expected = input.preflight()?;
     let vkey = pk.verifying_key().bytes32();
 
+    stage("prove");
     let t = Instant::now();
     let proof = client.prove(pk, input.stdin()).groth16().run()?;
     let prove_ms = t.elapsed().as_millis() as u64;
@@ -88,6 +92,7 @@ fn prove(
     }
     let bytes = proof.bytes();
 
+    stage("verify");
     let t = Instant::now();
     sp1_verifier::Groth16Verifier::verify(&bytes, &public_values, &vkey, &sp1_verifier::GROTH16_VK_BYTES)
         .map_err(|e| anyhow::anyhow!("groth16 verify: {e:?}"))?;
@@ -186,7 +191,7 @@ fn main() -> Result<()> {
         Cmd::Prove { run, out } => {
             let t = Instant::now();
             let pk = client.setup(ELF)?;
-            println!("{}", prove(&client, &pk, t.elapsed().as_millis() as u64, &run, &out)?);
+            println!("{}", prove(&|_| {}, &client, &pk, t.elapsed().as_millis() as u64, &run, &out)?);
         }
         Cmd::Serve { warm } => {
             let t = Instant::now();
@@ -196,7 +201,7 @@ fn main() -> Result<()> {
             if let Some(run) = warm {
                 let t = Instant::now();
                 let out = std::env::temp_dir().join(format!("eurekha-sp1-warm-{}.json", std::process::id()));
-                ready["warm"] = match prove(&client, &pk, setup_ms, &run, &out) {
+                ready["warm"] = match prove(&|_| {}, &client, &pk, setup_ms, &run, &out) {
                     Ok(_) => json!({ "ms": t.elapsed().as_millis() as u64 }),
                     Err(e) => json!({ "error": format!("{e:#}") }),
                 };
@@ -207,7 +212,8 @@ fn main() -> Result<()> {
                 let job = (|| -> Result<serde_json::Value> {
                     let j: serde_json::Value = serde_json::from_str(&line?)?;
                     let path = |k: &str| j[k].as_str().map(PathBuf::from).with_context(|| format!("job has no {k}"));
-                    prove(&client, &pk, 0, &path("run")?, &path("out")?)
+                    let stage = |s: &str| println!("{REPLY}{}", json!({ "stage": s }));
+                    prove(&stage, &client, &pk, 0, &path("run")?, &path("out")?)
                 })();
                 let reply = job.unwrap_or_else(|e| json!({ "error": format!("{e:#}") }));
                 println!("{REPLY}{reply}");

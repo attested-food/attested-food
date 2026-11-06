@@ -15,7 +15,7 @@ use std::{
 
 use serde_json::{json, Value};
 
-use crate::prover::ProveLock;
+use crate::{jobs::Progress, prover::ProveLock};
 
 /// Prefix of the worker's protocol lines (`eurekha-sp1 serve`).
 const REPLY: &str = "EUREKHA_SP1 ";
@@ -38,8 +38,20 @@ fn bin() -> String {
 }
 
 impl Proc {
+    /// Next reply, forwarding `{"stage"}` lines to `progress`; `None` when the
+    /// worker exited.
+    fn reply(&mut self, progress: &Progress) -> Option<Value> {
+        loop {
+            let v = self.line()?;
+            match v["stage"].as_str() {
+                Some(s) => progress.stage(s),
+                None => return Some(v),
+            }
+        }
+    }
+
     /// Next protocol line; `None` when the worker exited.
-    fn reply(&mut self) -> Option<Value> {
+    fn line(&mut self) -> Option<Value> {
         let mut line = String::new();
         loop {
             line.clear();
@@ -66,10 +78,10 @@ impl Worker {
     /// the warm-up proof; takes the prove lock for them.
     pub fn ensure_started(&self) -> Result<(), String> {
         let mut proc = self.proc.lock().unwrap();
-        self.start_locked(&mut proc)
+        self.start_locked(&mut proc, &Progress::none())
     }
 
-    fn start_locked(&self, proc: &mut Option<Proc>) -> Result<(), String> {
+    fn start_locked(&self, proc: &mut Option<Proc>, progress: &Progress) -> Result<(), String> {
         if let Some(p) = proc.as_mut() {
             if p.child.try_wait().map_err(|e| e.to_string())?.is_none() {
                 return Ok(());
@@ -82,14 +94,15 @@ impl Worker {
         if let Ok(run) = std::env::var("EUREKHA_SP1_WARM_RUN") {
             cmd.arg("--warm").arg(run);
         }
-        let _lock = ProveLock::acquire().map_err(|e| format!("prove lock: {e}"))?;
+        progress.stage("starting sp1 worker");
+        let _lock = ProveLock::acquire(progress).map_err(|e| format!("prove lock: {e}"))?;
         let mut child = cmd.spawn().map_err(|e| format!("start {bin}: {e}"))?;
         let mut p = Proc {
             stdin: child.stdin.take().expect("piped stdin"),
             stdout: BufReader::new(child.stdout.take().expect("piped stdout")),
             child,
         };
-        let ready = p.reply().ok_or_else(|| format!("{bin} exited during setup"))?;
+        let ready = p.reply(&Progress::none()).ok_or_else(|| format!("{bin} exited during setup"))?;
         tracing::info!(%ready, "sp1 worker ready");
         *self.status.lock().unwrap() = ready;
         *proc = Some(p);
@@ -99,11 +112,18 @@ impl Worker {
     /// Groth16 proof of `eurekha-attested`: writes a private `zktls`-style run
     /// dir, sends it to the worker under the prove lock, returns its artifact.
     /// The run dir (it holds the PDF) is removed afterwards.
-    pub fn prove(&self, pdf: &[u8], blinder: &[u8], onchain: &str, request: &str) -> Result<Value, String> {
+    pub fn prove(
+        &self,
+        pdf: &[u8],
+        blinder: &[u8],
+        onchain: &str,
+        request: &str,
+        progress: &Progress,
+    ) -> Result<Value, String> {
         let mut id = [0u8; 8];
         getrandom::getrandom(&mut id).map_err(|e| e.to_string())?;
         let dir = std::env::temp_dir().join(format!("eurekha-sp1-{}", hex::encode(id)));
-        let res = self.prove_in(&dir, pdf, blinder, onchain, request);
+        let res = self.prove_in(&dir, pdf, blinder, onchain, request, progress);
         let _ = std::fs::remove_dir_all(&dir);
         res
     }
@@ -115,6 +135,7 @@ impl Worker {
         blinder: &[u8],
         onchain: &str,
         request: &str,
+        progress: &Progress,
     ) -> Result<Value, String> {
         std::fs::create_dir(dir).map_err(|e| format!("run dir: {e}"))?;
         let blinder = hex::encode(blinder);
@@ -130,15 +151,15 @@ impl Worker {
         let out = dir.join("artifact.json");
 
         let mut proc = self.proc.lock().unwrap();
-        self.start_locked(&mut proc)?;
-        let _lock = ProveLock::acquire().map_err(|e| format!("prove lock: {e}"))?;
+        self.start_locked(&mut proc, progress)?;
+        let _lock = ProveLock::acquire(progress).map_err(|e| format!("prove lock: {e}"))?;
         let p = proc.as_mut().expect("started");
         let job = json!({ "run": dir, "out": out });
         if writeln!(p.stdin, "{job}").and_then(|_| p.stdin.flush()).is_err() {
             *proc = None;
             return Err("sp1 worker exited; it restarts on the next job".into());
         }
-        let Some(reply) = p.reply() else {
+        let Some(reply) = p.reply(progress) else {
             *proc = None;
             return Err("sp1 worker exited during the proof; it restarts on the next job".into());
         };
