@@ -311,3 +311,46 @@ def test_thumb_refuses_unknown_images():
 
 def test_thumb_width_bounds():
     assert client.get("/api/thumb", params={"src": "x", "w": 10}).status_code == 422
+
+
+def test_departments_cover_every_product():
+    depts = client.get("/api/departments").json()
+    total = client.get("/api/products", params={"page_size": 1}).json()["total"]
+    assert sum(d["product_count"] for d in depts) == total
+    assert {"key", "name", "product_count", "categories"} <= set(depts[0])
+    cats = [c["category"] for d in depts for c in d["categories"]]
+    assert "instant_noodle" not in cats and len(cats) == len(set(cats))
+
+
+def test_dept_filter():
+    body = client.get("/api/products", params={"dept": "dairy", "page_size": 100}).json()
+    assert body["total"] >= 1
+    assert all(p["category"] in {"milk", "paneer", "curd", "butter", "cheese", "dairy_whitener"} for p in body["items"])
+    assert client.get("/api/products", params={"dept": "nope"}).json()["total"] == 0
+
+
+def _letter(g):
+    import re as _re
+    m = _re.match(r"^\s*([0-9.]+)\s*/\s*([0-9.]+)\s*$", g)
+    if m:
+        pct = float(m[1]) / float(m[2]) * 100
+        return "A" if pct >= 80 else "B" if pct >= 60 else "C" if pct >= 40 else "D" if pct >= 20 else "E"
+    return {"PASS": "A", "FAIL": "E"}.get(g.upper(), g.strip()[0].upper())
+
+
+def test_grade_filter():
+    body = client.get("/api/products", params=[("grade", "A"), ("page_size", "100")]).json()
+    assert body["total"] >= 1
+    for p in body["items"]:
+        latest = p["latest"]
+        g = latest["grade"] or {"pass": "Pass", "fail": "Fail"}.get(latest["verdict"])
+        assert latest["kind"] == "fallback" and _letter(g) == "A"
+    assert client.get("/api/products", params={"grade": "Z"}).status_code == 422
+
+
+def test_brands():
+    brands = client.get("/api/brands", params={"category": "paneer"}).json()
+    assert brands and {"brand", "product_count"} == set(brands[0])
+    one = brands[0]["brand"]
+    body = client.get("/api/products", params={"brand": one, "category": "paneer"}).json()
+    assert body["total"] == brands[0]["product_count"]

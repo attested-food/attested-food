@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend import amazon
 from backend.annotate import summarize
+from backend import departments
 from backend.thumbs import thumbnail
 from backend.category_tests import coverage, names_for
 
@@ -35,6 +36,19 @@ SEARCH_TEXT = "p.brand || ' ' || p.name || ' ' || coalesce(p.variant, '')"
 REPORT_ORDER = "r.kind = 'user' DESC, r.tested_on DESC NULLS LAST, r.issued_on DESC NULLS LAST, r.created_at DESC"
 SOURCE_JSON = "CASE WHEN {a}.id IS NULL THEN NULL ELSE json_build_object('id', {a}.id, 'name', {a}.name, 'url', {a}.url, 'accreditation', {a}.accreditation) END"
 
+# Letter (A–E) for the latest third-party report's grade: "86/100", "B+", "A grade", Pass/Fail.
+GRADE_LETTER = f"""(SELECT CASE
+        WHEN x.pct IS NOT NULL THEN CASE WHEN x.pct >= 80 THEN 'A' WHEN x.pct >= 60 THEN 'B' WHEN x.pct >= 40 THEN 'C'
+                                         WHEN x.pct >= 20 THEN 'D' ELSE 'E' END
+        WHEN upper(x.g) = 'PASS' THEN 'A'
+        WHEN upper(x.g) = 'FAIL' THEN 'E'
+        WHEN upper(left(btrim(x.g), 1)) IN ('A', 'B', 'C', 'D', 'E') THEN upper(left(btrim(x.g), 1)) END
+    FROM (SELECT coalesce(r.grade, CASE r.verdict WHEN 'pass' THEN 'Pass' WHEN 'fail' THEN 'Fail' END) AS g,
+                 CASE WHEN coalesce(r.grade, '') ~ '^\\s*[0-9.]+\\s*/\\s*[0-9.]+\\s*$'
+                      THEN 100 * split_part(r.grade, '/', 1)::numeric / nullif(split_part(r.grade, '/', 2)::numeric, 0) END AS pct
+          FROM reports r WHERE r.product_id = p.id AND r.kind = 'fallback'
+          ORDER BY {REPORT_ORDER} LIMIT 1) x)"""
+
 LIST_SQL = f"""
 WITH filtered AS (
     SELECT p.id, p.brand, p.name, p.variant, p.category, p.image_url, p.label_nutrition,
@@ -44,8 +58,9 @@ WITH filtered AS (
     WHERE (%(q)s::text IS NULL
            OR to_tsvector('simple', {SEARCH_TEXT}) @@ plainto_tsquery('simple', %(q)s::text)
            OR {SEARCH_TEXT} ILIKE %(like)s::text)
-      AND (%(brand)s::text IS NULL OR lower(p.brand) = lower(%(brand)s::text))
-      AND (%(category)s::text IS NULL OR p.category = %(category)s::text)
+      AND (%(brands)s::text[] IS NULL OR lower(p.brand) = ANY(%(brands)s::text[]))
+      AND (%(categories)s::text[] IS NULL OR p.category = ANY(%(categories)s::text[]))
+      AND (%(grades)s::text[] IS NULL OR {GRADE_LETTER} = ANY(%(grades)s::text[]))
       AND (NOT %(any_evidence)s::bool
            OR (%(lab)s::bool AND EXISTS (SELECT 1 FROM reports r WHERE r.product_id = p.id AND r.kind = 'user'))
            OR (%(published)s::bool AND EXISTS (SELECT 1 FROM reports r WHERE r.product_id = p.id)
@@ -234,8 +249,10 @@ def health() -> dict:
 @app.get("/api/products")
 def list_products(
     q: str | None = None,
-    brand: str | None = None,
+    brand: list[str] = Query(default=[]),
     category: str | None = None,
+    dept: str | None = None,
+    grade: list[Literal["A", "B", "C", "D", "E"]] = Query(default=[]),
     evidence: list[Literal["lab", "published"]] = Query(default=[]),
     no_added_sugar: bool = False,
     high_fibre: bool = False,
@@ -248,8 +265,9 @@ def list_products(
     row = fetch(LIST_SQL, {
         "q": q,
         "like": f"%{q}%" if q else None,
-        "brand": brand or None,
-        "category": category or None,
+        "brands": [b.lower() for b in brand if b] or None,
+        "categories": departments.with_aliases(category) if category else (departments.categories_in(dept, all_categories()) or ["-"]) if dept else None,
+        "grades": list(grade) or None,
         "any_evidence": bool(evidence),
         "lab": "lab" in evidence,
         "published": "published" in evidence,
@@ -344,6 +362,30 @@ def wall(limit: int = Query(16, ge=1, le=48)) -> dict:
 @app.get("/api/sources")
 def list_sources() -> list[dict]:
     return fetch(SOURCES_SQL)
+
+
+def all_categories() -> list[str]:
+    return [c["category"] for c in fetch(CATEGORIES_SQL)]
+
+
+@app.get("/api/departments")
+def list_departments() -> list[dict]:
+    """Departments (groups of categories) in shelf order, with product counts."""
+    return departments.group({c["category"]: c["product_count"] for c in fetch(CATEGORIES_SQL)})
+
+
+BRANDS_SQL = """
+SELECT max(p.brand) AS brand, count(*) AS product_count FROM products p
+WHERE (%(categories)s::text[] IS NULL OR p.category = ANY(%(categories)s::text[]))
+GROUP BY lower(p.brand) ORDER BY count(*) DESC, lower(p.brand) LIMIT %(limit)s
+"""
+
+
+@app.get("/api/brands")
+def list_brands(category: str | None = None, dept: str | None = None, limit: int = Query(30, ge=1, le=100)) -> list[dict]:
+    """Brands with the most products, optionally within a category or department."""
+    cats = departments.with_aliases(category) if category else (departments.categories_in(dept, all_categories()) or ["-"]) if dept else None
+    return fetch(BRANDS_SQL, {"categories": cats, "limit": limit})
 
 
 @app.get("/api/categories")

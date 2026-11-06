@@ -139,6 +139,8 @@ export type Prefill = {
 };
 
 export type Category = { category: string; product_count: number; tests: string[] };
+export type Department = { key: string; name: string; product_count: number; categories: { category: string; product_count: number }[] };
+export type Brand = { brand: string; product_count: number };
 
 export type ProductCard = {
 	id: string;

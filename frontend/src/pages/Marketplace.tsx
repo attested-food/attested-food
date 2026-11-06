@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { buyUrl, label, nameOf, productName, type Category, type ProductCard, type TestRequest } from '@/lib/api';
-import { sourceGrade } from '@/lib/grade';
+import { buyUrl, label, nameOf, productName, type Brand, type Department, type ProductCard, type TestRequest } from '@/lib/api';
+import { gradeColors, sourceGrade } from '@/lib/grade';
 import { useApi } from '@/lib/useApi';
 import { GradeChip, Photo, StateTag } from '@/components/bits';
 import './Marketplace.css';
@@ -51,13 +51,18 @@ export default function Marketplace() {
 	const navigate = useNavigate();
 	const q = params.get('q') ?? '';
 	const category = params.get('category') ?? '';
+	const dept = params.get('dept') ?? '';
 	const evidence = params.getAll('evidence');
+	const grades = params.getAll('grade');
+	const brands = params.getAll('brand');
 	const page = Number(params.get('page') ?? '1');
 	const [query, setQuery] = useState(q);
 
 	const results = useApi<Page>(`/api/products?${params}`);
-	const cats = useApi<Category[]>('/api/categories');
-	const filtered = evidence.length > 0 || ON_LABEL.some(([k]) => params.get(k));
+	const depts = useApi<Department[]>('/api/departments');
+	const brandScope = category ? `category=${encodeURIComponent(category)}` : dept ? `dept=${encodeURIComponent(dept)}` : '';
+	const brandList = useApi<Brand[]>(`/api/brands?limit=12${brandScope ? `&${brandScope}` : ''}`);
+	const filtered = evidence.length > 0 || grades.length > 0 || brands.length > 0 || !!dept || ON_LABEL.some(([k]) => params.get(k));
 	const reqParams = new URLSearchParams();
 	if (q) reqParams.set('q', q);
 	if (category) reqParams.set('category', category);
@@ -83,10 +88,16 @@ export default function Marketplace() {
 		}));
 	};
 
-	const shelves = [...(cats.data ?? [])].sort((a, b) => b.product_count - a.product_count).slice(0, 9);
+	const current = depts.data?.find((d) => d.key === dept);
 	const r = results.data;
 	const pages = r ? Math.max(1, Math.ceil(r.total / r.page_size)) : 1;
-	const heading = category ? label(category) : q ? `Results for “${q}”` : 'All products';
+	const heading = category ? label(category) : current ? current.name : q ? `Results for “${q}”` : 'All products';
+	const toggle = (key: string, value: string, on: boolean) =>
+		change((p) => {
+			const next = p.getAll(key).filter((x) => x !== value);
+			p.delete(key);
+			(on ? [...next, value] : next).forEach((x) => p.append(key, x));
+		});
 
 	return (
 		<div className="page">
@@ -105,16 +116,59 @@ export default function Marketplace() {
 			</div>
 
 			<nav className="shelves" aria-label="Shelves">
-				<Link to={hrefFor((p) => { p.delete('category'); p.delete('page'); })} aria-current={!category ? 'page' : undefined}>All</Link>
-				{shelves.map((c) => (
-					<Link key={c.category} to={hrefFor((p) => { p.set('category', c.category); p.delete('page'); })} aria-current={c.category === category ? 'page' : undefined}>
-						{label(c.category)}
+				<Link to={hrefFor((p) => { p.delete('category'); p.delete('dept'); p.delete('brand'); p.delete('page'); })} aria-current={!category && !dept ? 'page' : undefined}>All</Link>
+				{(depts.data ?? []).map((d) => (
+					<Link key={d.key} to={hrefFor((p) => { p.set('dept', d.key); p.delete('category'); p.delete('brand'); p.delete('page'); })} aria-current={d.key === dept ? 'page' : undefined}>
+						{d.name}
 					</Link>
 				))}
 			</nav>
 
 			<div className="m-body">
 				<aside className="m-filters" aria-label="Filters">
+					{current && (
+						<fieldset>
+							<legend>Category</legend>
+							<nav className="m-cats" aria-label={`Categories in ${current.name}`}>
+								<Link to={hrefFor((p) => { p.delete('category'); p.delete('page'); })} aria-current={!category ? 'page' : undefined}>
+									<span>All {current.name.toLowerCase()}</span><span className="m-count">{current.product_count}</span>
+								</Link>
+								{current.categories.map((c) => (
+									<Link key={c.category} to={hrefFor((p) => { p.set('category', c.category); p.delete('brand'); p.delete('page'); })} aria-current={c.category === category ? 'page' : undefined}>
+										<span>{label(c.category)}</span><span className="m-count">{c.product_count}</span>
+									</Link>
+								))}
+							</nav>
+						</fieldset>
+					)}
+					<fieldset>
+						<legend>Grade</legend>
+						<div className="m-grades">
+							{['A', 'B', 'C', 'D', 'E'].map((g) => {
+								const c = gradeColors(g)!;
+								const on = grades.includes(g);
+								return (
+									<label key={g} className={on ? 'on' : ''} style={on ? { background: c[0], color: c[1], borderColor: c[0] } : undefined}>
+										<input className="sr-only" type="checkbox" checked={on} onChange={(e) => toggle('grade', g, e.target.checked)} />
+										{g}
+									</label>
+								);
+							})}
+						</div>
+						<p className="hint">Third-party grades. Scores like 86/100 count as A.</p>
+					</fieldset>
+					{(brandList.data?.length ?? 0) > 1 && (
+						<fieldset>
+							<legend>Brand</legend>
+							{brandList.data!.map((b) => (
+								<label key={b.brand}>
+									<input type="checkbox" checked={brands.some((x) => x.toLowerCase() === b.brand.toLowerCase())} onChange={(e) => toggle('brand', b.brand, e.target.checked)} />
+									<span>{b.brand}</span>
+									<span className="m-count">{b.product_count}</span>
+								</label>
+							))}
+						</fieldset>
+					)}
 					<fieldset>
 						<legend>Evidence</legend>
 						{EVIDENCE.map(([k, text]) => (

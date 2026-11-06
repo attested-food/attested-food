@@ -8,6 +8,12 @@ Query: `q` (search brand/name/variant), `brand`, `category`, `page` (1-based, de
 
 Filters, all optional:
 
+- `dept`: a department key from `/api/departments` (e.g. `dairy`). `category` narrows further and wins over `dept`.
+  Duplicate categories are folded (`instant_noodle` → `instant_noodles`), so either spelling matches.
+- `brand`: one or more brands (repeat the parameter), case-insensitive.
+- `grade`: one or more of `A`–`E`, matched against the latest third-party report. Scores map to letters by percentage
+  (80+ A, 60+ B, 40+ C, 20+ D, else E); Pass = A, Fail = E; letter grades use their first letter (`B+` → B).
+
 - `evidence`: `lab` (has an OpenLabel lab report) and/or `published` (only third-party published tests). Repeat it to
   allow both, e.g. `?evidence=lab&evidence=published`. Anything else is a 422.
 - `no_added_sugar=true` (label says 0 g added sugar), `high_fibre=true` (6 g+ fibre), `high_protein=true` (20 g+
@@ -129,6 +135,16 @@ ingredients and results), followed by up to `limit / 4` newest test requests. `l
   `label_claim` (or `label_nutrition`) by more than 10%; higher is worse for sugar, sodium, fat and energy, lower is
   worse for protein and fibre. `status` and `limit` decide the rest. `segments` join back to `ingredients`;
   `mark` is `under`, `circle`, `hl`, `good` or `null`. Notes hold numbers only.
+
+## `GET /api/departments`
+
+Shop departments in shelf order: `[{"key": "dairy", "name": "Dairy", "product_count": 98, "categories": [{"category": "milk", "product_count": 39}, …]}]`.
+Every product falls in exactly one department (supplements and "other" catch the rest). Defined in
+[backend/departments.py](../backend/departments.py).
+
+## `GET /api/brands?dept=&category=&limit=30`
+
+Brands with the most products, optionally within a department or category: `[{"brand": "Amul", "product_count": 12}]`.
 
 ## `GET /api/sources`
 
