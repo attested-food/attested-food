@@ -71,10 +71,25 @@ def words(text: str | None) -> set[str]:
     return {w for w in re.findall(r"[a-z0-9]+", (text or "").lower()) if len(w) > 2}
 
 
+def sold_in_india(hit: dict) -> bool:
+    return "en:india" in (hit.get("countries_tags") or []) or str(hit.get("code") or "").startswith("890")
+
+
+def clean_ingredients(text: str | None) -> str | None:
+    """OFF marks allergens as _wheat_; drop the markers and tidy spaces."""
+    if not text:
+        return None
+    text = re.sub(r"_+", "", text)
+    return re.sub(r"\s+", " ", text).strip() or None
+
+
 def pick(hits: list[dict], brand: str, name: str, variant: str | None) -> dict | None:
+    """Best search hit: sold in India, brand overlaps, and most of our name words appear."""
     want_brand, want_name = words(brand), words(f"{name} {variant or ''}")
     best = None
     for hit in hits:
+        if not sold_in_india(hit):
+            continue
         brands = hit.get("brands") or []
         brand_text = " ".join(brands) if isinstance(brands, list) else str(brands)
         if not want_brand & words(f"{brand_text} {hit.get('product_name')}"):
@@ -82,7 +97,7 @@ def pick(hits: list[dict], brand: str, name: str, variant: str | None) -> dict |
         overlap = len(want_name & words(hit.get("product_name")))
         if not want_name or overlap / len(want_name) < 0.75:
             continue
-        score = (overlap / len(want_name), "en:india" in (hit.get("countries_tags") or []), -len(words(hit.get("product_name"))))
+        score = (overlap / len(want_name), -len(words(hit.get("product_name"))))
         if best is None or score > best[0]:
             best = (score, hit)
     return best[1] if best else None
@@ -121,7 +136,7 @@ def main(apply: bool, limit: int | None = None, delay: float = 3.0, known_only: 
                 continue
             if not hit:
                 continue
-            ingredients = (hit.get("ingredients_text_en") or hit.get("ingredients_text") or "").strip() or None
+            ingredients = clean_ingredients(hit.get("ingredients_text_en") or hit.get("ingredients_text"))
             nutrition = off_nutrition(hit.get("nutriments") or {}) or None
             if not ingredients and not nutrition:
                 continue

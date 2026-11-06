@@ -102,8 +102,22 @@ def test_pick_needs_most_name_words():
     from scraper.off_details import pick
 
     hits = [
-        {"code": "1", "brands": "Kellogg's", "product_name": "Kellogg's crunchy muesli"},
-        {"code": "2", "brands": "Kellogg's", "product_name": "Choco Millet Muesli"},
+        {"code": "1", "brands": "Kellogg's", "product_name": "Kellogg's crunchy muesli", "countries_tags": ["en:india"]},
+        {"code": "2", "brands": "Kellogg's", "product_name": "Choco Millet Muesli", "countries_tags": ["en:india"]},
     ]
     assert pick(hits, "Kellogg's", "Millet Muesli", "Choco")["code"] == "2"
     assert pick(hits[:1], "Kellogg's", "Millet Muesli", "Choco") is None
+
+
+def test_pick_skips_products_not_sold_in_india():
+    from scraper.off_details import pick
+    hits = [{"code": "4001234", "brands": "Double Diamond", "product_name": "Black Tea", "countries_tags": ["en:germany"]}]
+    assert pick(hits, "Double Diamond", "Black Tea", None) is None
+    hits[0]["code"] = "8901234567890"
+    assert pick(hits, "Double Diamond", "Black Tea", None) is hits[0]
+
+
+def test_clean_ingredients_drops_allergen_markers():
+    from scraper.off_details import clean_ingredients
+    assert clean_ingredients("_WHEAT_ GLUTEN,  _OATS_") == "WHEAT GLUTEN, OATS"
+    assert clean_ingredients("  ") is None
