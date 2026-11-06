@@ -80,7 +80,7 @@ export function LogoMark({ size = 32, outline = false }: { size?: number; outlin
 			<path d="M38 29h-7a2 2 0 0 0-2 2v7z" fill="#D9D6CC" />
 			<path d="M31 29a2 2 0 0 0-2 2v7" fill="none" stroke="rgba(0,0,0,0.14)" strokeWidth="0.8" />
 			<circle cx="12.4" cy="19.6" r="6.3" fill="none" stroke="#1D4A37" strokeWidth="3.4" />
-			<path d="M23.4 12.2l1.8 15.4 6.6-5.2" fill="none" stroke="#1D4A37" strokeWidth="3.4" strokeLinecap="square" strokeLinejoin="miter" />
+			<path d="M21.4 11.6l6 14.2 7-7" fill="none" stroke="#1D4A37" strokeWidth="3.4" strokeLinecap="square" strokeLinejoin="miter" />
 		</svg>
 	);
 }
