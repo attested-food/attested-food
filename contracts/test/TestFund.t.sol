@@ -72,7 +72,12 @@ contract TestFundTest is Test {
         vm.prank(alice);
         vm.expectRevert("not your job");
         fund.submitReport(id, SP1, pv, proof, sig);
+        vm.roll(42);
+        vm.expectEmit(address(fund));
+        emit TestFund.ReportSubmitted(id, tester, 210e6, pv);
         submit();
+        (,,,,, uint64 reportBlock) = fund.campaigns(id);
+        assertEq(reportBlock, 42);
         assertEq(usd.balanceOf(tester), 1100e6);
         assertEq(fund.contributed(id, tester), 0);
         vm.expectRevert("closed");
@@ -85,7 +90,7 @@ contract TestFundTest is Test {
         submit();
         assertEq(usd.balanceOf(tester), 1060e6);
         assertEq(fund.contributed(id, tester), 40e6);
-        (,,,, uint256 shares) = fund.campaigns(id);
+        (,,,, uint256 shares,) = fund.campaigns(id);
         assertEq(shares, 100e6);
     }
 
@@ -139,7 +144,7 @@ contract TestFundTest is Test {
         vm.expectRevert("deadline passed");
         fund.submitReport(id, SP1, pv, proof, sig);
         fund.slash(id);
-        (uint256 pool, address t,,,) = fund.campaigns(id);
+        (uint256 pool, address t,,,,) = fund.campaigns(id);
         assertEq(pool, 210e6);
         assertEq(t, address(0));
     }
