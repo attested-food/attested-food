@@ -120,11 +120,25 @@ ORDER BY created_at
 LIMIT 1
 """
 
-SEARCH_REQUESTS_SQL = f"""
-SELECT {REQUEST_FIELDS} FROM test_requests
-WHERE (brand || ' ' || name || ' ' || coalesce(variant, '')) ILIKE %(like)s
-ORDER BY created_at DESC
-LIMIT 8
+DUPLICATES_SQL = """
+WITH words AS (
+    SELECT DISTINCT w FROM unnest(regexp_split_to_array(lower(%(q)s), '[^[:alnum:]]+')) w WHERE length(w) >= 2
+),
+candidates AS (
+    SELECT 'product' AS kind, id::text AS id, brand, name, variant, category, NULL AS requested_on FROM products
+    UNION ALL
+    SELECT 'request', id::text, brand, name, variant, category, created_at::date::text FROM test_requests
+),
+scored AS (
+    SELECT c.*, (SELECT count(*) FROM words
+                 WHERE lower(c.brand || ' ' || c.name || ' ' || coalesce(c.variant, '')) LIKE '%%' || w || '%%')
+           + CASE WHEN position(lower(c.brand) IN lower(%(q)s)) > 0 THEN 2 ELSE 0 END AS score
+    FROM candidates c
+)
+SELECT kind, id, brand, name, variant, category, requested_on FROM scored
+WHERE score > 0 AND score >= ceil((SELECT count(*) FROM words) * 0.6)
+ORDER BY score DESC, kind DESC, brand, name, variant NULLS FIRST
+LIMIT 10
 """
 
 GET_REQUEST_SQL = f"""
@@ -235,9 +249,10 @@ def list_categories() -> list[dict]:
     return [{**c, "tests": names_for(c["category"])} for c in fetch(CATEGORIES_SQL)]
 
 
-@app.get("/api/test-requests")
-def search_test_requests(q: str = Query(min_length=2, max_length=200)) -> list[dict]:
-    return fetch(SEARCH_REQUESTS_SQL, {"like": f"%{q.strip()}%"})
+@app.get("/api/duplicates")
+def find_duplicates(q: str = Query(min_length=2, max_length=300)) -> list[dict]:
+    """Products and test requests matching most of the words in q, best match first."""
+    return fetch(DUPLICATES_SQL, {"q": q})
 
 
 def request_id(value: str) -> uuid.UUID:

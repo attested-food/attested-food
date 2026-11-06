@@ -204,8 +204,10 @@ def test_test_request_already_requested():
             resp = client.post("/api/test-requests", json=body)
             assert resp.status_code == 409
             assert resp.json()["detail"]["request"]["id"] == rid
-        found = client.get("/api/test-requests", params={"q": "zzqq test"}).json()
-        assert [r["id"] for r in found] == [rid]
+        for q in ("zzqq test", "Zzqq Brand Product", "product zzqq", "Zzqq Test Brand Test Product Extra"):
+            found = client.get("/api/duplicates", params={"q": q}).json()
+            assert found[0] == {"kind": "request", "id": rid, "brand": GOOD_REQUEST["brand"], "name": GOOD_REQUEST["name"],
+                                "variant": None, "category": "peanut_butter", "requested_on": found[0]["requested_on"]}
     finally:
         main.fetch("DELETE FROM test_requests WHERE id = %s RETURNING id", (rid,))
 
@@ -219,3 +221,14 @@ def test_prefill_rejects_non_amazon(url):
 def test_test_request_not_found(rid):
     assert client.get(f"/api/test-requests/{rid}").status_code == 404
     assert client.get(f"/api/test-requests/{rid}/image").status_code == 404
+
+
+@pytest.mark.parametrize("q", ["Kellogg's Millet", "muesli kelloggs choco", "Kellogg's Choco Millet Muesli 400g"])
+def test_duplicates_finds_product(q, kelloggs):
+    found = client.get("/api/duplicates", params={"q": q}).json()
+    assert {"kind": "product", "id": kelloggs["id"]}.items() <= found[0].items()
+
+
+@pytest.mark.parametrize("q", ["zzqqxx nothing here", "%%", "__"])
+def test_duplicates_no_match(q):
+    assert client.get("/api/duplicates", params={"q": q}).json() == []

@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { api, post, label, ApiError, type Category, type Prefill, type ProductCard, type TestRequest } from '$lib/api';
+	import { api, post, label, ApiError, type Category, type Prefill, type TestRequest } from '$lib/api';
 
 	const MAX_IMAGE = 5 * 1024 * 1024;
 	const empty = () => ({ brand: '', name: '', variant: '', category: '', net_quantity: '', manufacturer: '', fssai_license: '', barcode: '', buy_url: '' });
 
-	type Match = { kind: 'product' | 'request'; id: string; brand: string; name: string; variant: string | null; requested_on?: string };
+	type Match = { kind: 'product' | 'request'; id: string; brand: string; name: string; variant: string | null; category?: string | null; requested_on?: string | null };
 
 	let mode = $state<'link' | 'manual'>('link');
 	let link = $state('');
@@ -36,21 +36,13 @@
 
 	let timer: ReturnType<typeof setTimeout>;
 	let latestQuery = '';
-	async function lookup(q: string) {
-		const enc = encodeURIComponent(q);
-		const [products, requests] = await Promise.all([
-			api<{ items: ProductCard[] }>(`/api/products?q=${enc}&page_size=8`),
-			api<TestRequest[]>(`/api/test-requests?q=${enc}`)
-		]);
-		return [...products.items.map((p): Match => ({ kind: 'product', ...p })), ...requests.map(asRequest)];
-	}
 	function search(q = `${form.brand} ${form.name}`.trim()) {
 		clearTimeout(timer);
 		latestQuery = q;
 		if (q.length < 2) return (suggestions = []);
 		timer = setTimeout(async () => {
 			try {
-				const found = await lookup(q);
+				const found = await api<Match[]>(`/api/duplicates?q=${encodeURIComponent(q)}`);
 				if (q === latestQuery) suggestions = found;
 			} catch (e) {
 				console.error('duplicate search failed', e);
@@ -59,7 +51,7 @@
 	}
 
 	function choose(m: Match) {
-		form = { ...empty(), brand: m.brand, name: m.name, variant: m.variant ?? '', category: (m as { category?: string }).category ?? '' };
+		form = { ...empty(), brand: m.brand, name: m.name, variant: m.variant ?? '', category: m.category ?? '' };
 		existing = m;
 		suggestions = [];
 	}
@@ -98,7 +90,7 @@
 			fetched = true;
 			linkNote = 'Filled in from Amazon. Check the details and fix anything that looks wrong before sending.';
 			if (p.existing_request) existing = asRequest(p.existing_request);
-			else if (p.brand) search(p.brand);
+			else search();
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
 			if (msg.includes('(422)')) {
