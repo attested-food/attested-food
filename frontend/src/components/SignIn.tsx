@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
-	allowPrivateKey, connectInjected, connectPrivateKey, connectWalletConnect, disconnect,
+	allowPrivateKey, chain, connectInjected, connectPrivateKey, connectWalletConnect, disconnect,
 	hasWalletConnect, short, useInjected, useWallet
 } from '@/lib/wallet';
 import { useSocialLogin } from '@/lib/privy';
@@ -135,12 +135,16 @@ export function SignIn() {
 								</button>
 							)}
 							{allowPrivateKey && (
-								<form className="si-dev" onSubmit={(e: FormEvent) => { e.preventDefault(); run(() => connectPrivateKey(key.trim())); }}>
-									<label className="field"><span>Developer: private key (local testnet only)</span>
-										<input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder="0x…" autoComplete="off" />
-									</label>
-									<button type="submit" className="btn sm outline" disabled={!key.trim() || busy}>Use key</button>
-								</form>
+								<details className="si-dev">
+									<summary><span>Testing: use a private key</span><svg className="si-chev" width="10" height="10" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
+									<form onSubmit={(e: FormEvent) => { e.preventDefault(); run(() => connectPrivateKey(key.trim())); }}>
+										<label className="field"><span>Private key</span>
+											<input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder="0x…" autoComplete="off" spellCheck={false} />
+										</label>
+										<p className="si-dev-warn">Testnet ({chain.name}) only. Use a throwaway key, never one that holds real funds. It's kept in this tab and forgotten when you close it.</p>
+										<button type="submit" className="btn sm" disabled={!key.trim() || busy}>Use this key</button>
+									</form>
+								</details>
 							)}
 						</div>
 					</details>

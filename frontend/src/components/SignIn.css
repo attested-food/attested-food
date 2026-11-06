@@ -45,6 +45,13 @@
 .si-wallet-ico { display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 6px; background: var(--tile); color: var(--ink); }
 .si-wallet-ico.wc { background: #3b99fc; color: #fff; }
 .si-hint { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--sub); }
-.si-dev { margin-top: 6px; padding-top: 12px; border-top: 1px dashed var(--line); display: grid; gap: 8px; }
+.si-dev { margin-top: 6px; border-top: 1px dashed var(--line); }
+.si-dev summary { list-style: none; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 0 4px; font-size: 13px; font-weight: 600; color: var(--sub); cursor: pointer; }
+.si-dev summary::-webkit-details-marker { display: none; }
+.si-dev summary:hover { color: var(--ink); }
+.si-dev form { display: grid; gap: 8px; padding-top: 6px; }
+.si-dev-warn { margin: 0; font-size: 12px; line-height: 1.45; color: var(--sub); }
 .si-error { margin: 16px 0 0; padding: 10px 12px; border-radius: var(--r); background: #fdecec; color: var(--red); font-size: 13.5px; text-align: left; }
 .si-legal { margin: 20px 0 0; font-size: 12px; line-height: 1.45; color: var(--sub); }
+.si-dev .si-chev { transition: transform 0.2s ease; }
+.si-dev[open] .si-chev { transform: rotate(180deg); }
