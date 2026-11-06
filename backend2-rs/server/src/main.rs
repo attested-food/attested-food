@@ -128,7 +128,6 @@ struct ProveResponse {
     public_values_hex: String,
     /// What the guest revealed: `sha256(public_values)`.
     revealed: String,
-    blinder: String,
     instructions: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     program: Option<ProgramCommit>,
@@ -445,7 +444,6 @@ async fn run_job(prover: Prover, job: JobInput, progress: jobs::Progress) -> Res
             redacted_pdf: pre.redacted_pdf.map(|b| B64.encode(b)),
             public_values_hex: hex::encode(&public_values),
             revealed: String::new(),
-            blinder: hex::encode(form.blinder),
             instructions: 0,
             program: None,
             proof_bytes: artifact["proof"].as_str().map_or(0, |p| p.len() / 2 - 1),
@@ -472,7 +470,6 @@ async fn run_job(prover: Prover, job: JobInput, progress: jobs::Progress) -> Res
         redacted_pdf: pre.redacted_pdf.map(|b| B64.encode(b)),
         public_values_hex: hex::encode(&public_values),
         revealed: hex::encode(&proved.revealed),
-        blinder: hex::encode(form.blinder),
         instructions: proved.instructions,
         program: proved.program,
         proof_bytes: proved.proof.len(),
