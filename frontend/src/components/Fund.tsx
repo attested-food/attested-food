@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { parseUnits, stringToHex, type Hex } from 'viem';
-import { pollJob, startProof, type Job } from '@/lib/prover';
+import { MOCK_PROVER, mockProof, pollJob, startProof, type Job } from '@/lib/prover';
+import { ProvenReport } from './ProvenReport';
 import {
 	FUND_GOAL, FUND_STAKE, campaignId, ensureAllowance, fundAbi, fundAddress, publicClient, send, usd, usdAbi, usdAddress, useWallet
 } from '@/lib/wallet';
 
 const STATUS = ['Open', 'Pending', 'Submitted'] as const;
-type Campaign = { pool: bigint; tester: string; deadline: Date; status: (typeof STATUS)[number]; mine: bigint; balance: bigint };
+type Campaign = { pool: bigint; tester: Hex; deadline: Date; status: (typeof STATUS)[number]; reportBlock: bigint; mine: bigint; balance: bigint };
 
 const firstLine = (e: unknown) =>
 	e instanceof Error ? ('shortMessage' in e && String(e.shortMessage)) || e.message.split('\n')[0] : String(e);
@@ -21,7 +22,7 @@ export function Fund({ requestId }: { requestId: string }) {
 	const [custom, setCustom] = useState('');
 
 	const load = useCallback(async () => {
-		const [pool, tester, deadline, status] = await publicClient.readContract({ address: fundAddress!, abi: fundAbi, functionName: 'campaigns', args: [id] });
+		const [pool, tester, deadline, status, , reportBlock] = await publicClient.readContract({ address: fundAddress!, abi: fundAbi, functionName: 'campaigns', args: [id] });
 		const me = wallet.address;
 		const [mine, balance] = me
 			? await Promise.all([
@@ -29,7 +30,7 @@ export function Fund({ requestId }: { requestId: string }) {
 					publicClient.readContract({ address: usdAddress!, abi: usdAbi, functionName: 'balanceOf', args: [me] })
 				])
 			: [0n, 0n];
-		setC({ pool, tester, deadline: new Date(Number(deadline) * 1000), status: STATUS[status], mine, balance });
+		setC({ pool, tester, deadline: new Date(Number(deadline) * 1000), status: STATUS[status], reportBlock, mine, balance });
 	}, [id, wallet.address]);
 
 	useEffect(() => {
@@ -68,6 +69,8 @@ export function Fund({ requestId }: { requestId: string }) {
 	const late = !!c && c.status === 'Pending' && c.deadline.getTime() < Date.now();
 	const pct = c ? Math.min(100, Number((c.pool * 100n) / FUND_GOAL)) : 0;
 
+	if (c?.status === 'Submitted') return <ProvenReport id={id} tester={c.tester} reportBlock={c.reportBlock} />;
+
 	return (
 		<section className="fund card" aria-labelledby="fund-h">
 			<h2 id="fund-h" className="fund-title">Fund this test</h2>
@@ -86,7 +89,6 @@ export function Fund({ requestId }: { requestId: string }) {
 						<span><strong>{usd(c.pool)}</strong> of {usd(FUND_GOAL)} raised</span>
 						{c.status === 'Open' && remaining === 0n && <span className="tag tested">Fully funded · needs a tester</span>}
 						{c.status === 'Pending' && <span className="tag funded">Tester assigned</span>}
-						{c.status === 'Submitted' && <span className="tag tested">Report posted</span>}
 					</p>
 					{c.status === 'Pending' && (
 						<p className="small muted">Report due {c.deadline.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}{late && <strong className="late"> · overdue</strong>}</p>
@@ -99,7 +101,7 @@ export function Fund({ requestId }: { requestId: string }) {
 								You've put in {usd(c.mine)} · Balance {usd(c.balance)} tUSD
 								<button type="button" className="fund-link" onClick={faucet} disabled={!!busy}>{busy === 'faucet' ? 'Minting…' : 'Get 200 test dollars'}</button>
 							</p>
-							{c.status !== 'Submitted' && remaining > 0n && (
+							{remaining > 0n && (
 								<div className="fund-row">
 									{[1, 2, 10, 20].map((d) => {
 										const amount = parseUnits(String(d), 6);
@@ -169,7 +171,7 @@ function PostReport({ id, pool, onPosted }: { id: Hex; pool: bigint; onPosted: (
 		setError('');
 		setJob(null);
 		try {
-			const done = await pollJob(await startProof(pdf), setJob);
+			const done = MOCK_PROVER ? await mockProof(setJob) : await pollJob(await startProof(pdf), setJob);
 			const raw = done.result?.artifact as Record<string, unknown> | undefined;
 			if (done.status === 'failed' || !raw) throw new Error(done.error ?? 'The prover returned no proof.');
 			const a = { publicValues: hex(raw.publicValues), proof: hex(raw.proof), notarySignature: hex(raw.notarySignature) };
