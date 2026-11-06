@@ -1,10 +1,10 @@
-# ProofPlate: Verifiable Food Testing, with Privacy
+# attested.food: Verifiable Food Testing, with Privacy
 
 ## Summary
 
-ProofPlate is a platform for sharing independently tested packaged-food reports without exposing the personal details of the person who commissioned the test. It also lets people pool funds to test products they want investigated.
+attested.food is a platform for sharing independently tested packaged-food reports without exposing the personal details of the person who commissioned the test. It also lets people pool funds to test products they want investigated.
 
-A contributor uploads a lab report. ProofPlate checks its provenance using a lab’s digital signature or, where appropriate, a zero-knowledge proof of an email received from the lab. The contributor can then share verified findings while keeping details such as their name and address private. Reports and their verification status are linked to Ethereum, creating a public record that can be checked later.
+A contributor uploads a lab report. attested.food checks its provenance using a lab’s digital signature or, where appropriate, a zero-knowledge proof of an email received from the lab. The contributor can then share verified findings while keeping details such as their name and address private. Reports and their verification status are linked to Ethereum, creating a public record that can be checked later.
 
 ## The problem
 
@@ -16,14 +16,14 @@ There is also a cost barrier. One person may not want to pay for a test that wou
 
 ## The solution
 
-ProofPlate gives contributors a way to submit lab reports, prove selected details about their source and contents, and share the results with others while keeping personal information private.
+attested.food gives contributors a way to submit lab reports, prove selected details about their source and contents, and share the results with others while keeping personal information private.
 
 The platform also supports community-funded testing. People can contribute toward testing a particular brand or product. Once the target is reached, the funds can be used to commission the test, and the resulting report can be published for everyone to review.
 
 ## How it works
 
 1. A contributor submits a lab report and chooses which findings to make public.
-2. ProofPlate checks the report’s source using a supported lab signature or a zero-knowledge proof tied to a lab email.
+2. attested.food checks the report’s source using a supported lab signature or a zero-knowledge proof tied to a lab email.
 3. Personal details are removed or kept private. The report file can be stored off-chain, while its cryptographic hash and verification status are recorded on Ethereum.
 4. Visitors can inspect the published findings and verify that the report matches the one committed on-chain.
 5. For a product without a report, visitors can contribute to a test fund. The campaign tracks its goal and contributions transparently.
@@ -32,7 +32,7 @@ The platform also supports community-funded testing. People can contribute towar
 
 Ethereum provides a shared, tamper-evident record of report commitments and crowdfunding activity. A report’s contents can remain off-chain, while its hash makes later changes detectable.
 
-Zero-knowledge proofs can help a contributor show that a report came through a supported lab communication channel or disclose specific report details without revealing the full document or their identity. Where labs provide digital signatures, ProofPlate can verify those signatures directly.
+Zero-knowledge proofs can help a contributor show that a report came through a supported lab communication channel or disclose specific report details without revealing the full document or their identity. Where labs provide digital signatures, attested.food can verify those signatures directly.
 
 These checks establish evidence about a report’s source and integrity. They do not independently prove that a lab used sound methods or that its conclusions are correct.
 
@@ -47,4 +47,4 @@ The prototype will focus on one product category and a small set of sample repor
 
 ## Impact
 
-ProofPlate aims to make food-testing information easier to share, check, and fund collectively. Consumers can learn from reports without needing access to the original contributor’s private information, and communities can coordinate testing when a product raises questions.
+attested.food aims to make food-testing information easier to share, check, and fund collectively. Consumers can learn from reports without needing access to the original contributor’s private information, and communities can coordinate testing when a product raises questions.

@@ -1,4 +1,4 @@
-# ProofPlate
+# attested.food
 
 Privacy-preserving, verifiable food-testing reports with community-funded testing on Ethereum.
 
