@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { api, label, nameOf, verdictText, httpUrl, type ProductCard } from '$lib/api';
+	import { api, label, nameOf, verdictText, httpUrl, type ProductCard, type TestRequest } from '$lib/api';
 
 	type Page = { items: ProductCard[]; page: number; page_size: number; total: number };
 
@@ -11,6 +11,8 @@
 
 	const categories = api<{ category: string; product_count: number }[]>('/api/categories');
 	const results = $derived(api<Page>(`/api/products?${params}`));
+	const firstPage = $derived((params.get('page') ?? '1') === '1');
+	const requests = $derived(firstPage ? api<TestRequest[]>(`/api/test-requests?${params}`) : Promise.resolve([]));
 
 	function pageHref(n: number) {
 		const p = new URLSearchParams(params);
@@ -38,6 +40,29 @@
 	</select>
 	<button type="submit">Search</button>
 </form>
+
+{#await requests then reqs}
+	{#if reqs.length}
+		<h2>Requested — waiting for lab testing ({reqs.length})</h2>
+		<ul class="grid">
+			{#each reqs as t (t.id)}
+				<li>
+					<a class="card" href="/requests/{t.id}">
+						{#if httpUrl(t.image_url ?? null)}<img src={httpUrl(t.image_url ?? null)} alt="" loading="lazy" />{/if}
+						<p class="muted">{t.brand}</p>
+						<p><strong>{t.name}</strong>{#if t.variant} — {t.variant}{/if}</p>
+						<p class="muted">{label(t.category)}</p>
+						<p><span class="badge fallback">Requested</span></p>
+						<p class="muted">Requested {t.requested_on}</p>
+					</a>
+				</li>
+			{/each}
+		</ul>
+		<h2>Tested products</h2>
+	{/if}
+{:catch err}
+	<p class="error">Could not load requested products: {err.message}</p>
+{/await}
 
 {#await results}
 	<p class="muted">Loading…</p>

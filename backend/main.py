@@ -141,6 +141,21 @@ ORDER BY score DESC, kind DESC, brand, name, variant NULLS FIRST
 LIMIT 10
 """
 
+REQUEST_SEARCH_TEXT = SEARCH_TEXT.replace("p.", "t.")
+
+LIST_REQUESTS_SQL = f"""
+SELECT t.id::text AS id, t.brand, t.name, t.variant, t.category, t.created_at::date::text AS requested_on,
+       CASE WHEN t.image IS NOT NULL THEN '/api/test-requests/' || t.id || '/image' ELSE t.image_url END AS image_url
+FROM test_requests t
+WHERE (%(q)s::text IS NULL
+       OR to_tsvector('simple', {REQUEST_SEARCH_TEXT}) @@ plainto_tsquery('simple', %(q)s::text)
+       OR {REQUEST_SEARCH_TEXT} ILIKE %(like)s::text)
+  AND (%(brand)s::text IS NULL OR lower(t.brand) = lower(%(brand)s::text))
+  AND (%(category)s::text IS NULL OR t.category = %(category)s::text)
+ORDER BY t.created_at DESC
+LIMIT 24
+"""
+
 GET_REQUEST_SQL = f"""
 SELECT {REQUEST_FIELDS}, net_quantity, manufacturer, fssai_license, barcode, buy_url, image_url,
        image IS NOT NULL AS has_image
@@ -253,6 +268,14 @@ def list_categories() -> list[dict]:
 def find_duplicates(q: str = Query(min_length=2, max_length=300)) -> list[dict]:
     """Products and test requests matching most of the words in q, best match first."""
     return fetch(DUPLICATES_SQL, {"q": q})
+
+
+@app.get("/api/test-requests")
+def list_test_requests(q: str | None = None, brand: str | None = None, category: str | None = None) -> list[dict]:
+    """Newest 24 requests matching the same filters as /api/products."""
+    q = q.strip() if q and q.strip() else None
+    return fetch(LIST_REQUESTS_SQL, {"q": q, "like": f"%{q}%" if q else None,
+                                     "brand": brand or None, "category": category or None})
 
 
 def request_id(value: str) -> uuid.UUID:

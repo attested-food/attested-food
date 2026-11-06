@@ -208,6 +208,11 @@ def test_test_request_already_requested():
             found = client.get("/api/duplicates", params={"q": q}).json()
             assert found[0] == {"kind": "request", "id": rid, "brand": GOOD_REQUEST["brand"], "name": GOOD_REQUEST["name"],
                                 "variant": None, "category": "peanut_butter", "requested_on": found[0]["requested_on"]}
+        for params in ({"q": "zzqq test"}, {"q": "ZZQQ"}, {"brand": "zzqq test brand"}, {"category": "peanut_butter", "q": "zzqq"}):
+            listed = client.get("/api/test-requests", params=params).json()
+            assert [r["id"] for r in listed] == [rid] and listed[0]["image_url"] == GOOD_REQUEST["image_url"]
+        for params in ({"q": "zzqq", "category": "ghee"}, {"brand": "zzqq"}):
+            assert client.get("/api/test-requests", params=params).json() == []
     finally:
         main.fetch("DELETE FROM test_requests WHERE id = %s RETURNING id", (rid,))
 

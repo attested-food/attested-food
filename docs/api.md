@@ -112,6 +112,11 @@ or `image_data` (PNG/JPEG/WebP data URL, max 5 MB). Optional: `variant`, `net_qu
 - `409` `{"detail": {"message": "already requested", "request": {...}}}` when the same Amazon ASIN (from `buy_url`) or brand + name + variant was already requested
 - `422` validation error
 
+## `GET /api/test-requests?q=&brand=&category=`
+
+Newest 24 test requests matching the same filters as `/api/products`:
+`[{"id", "brand", "name", "variant", "category", "requested_on", "image_url"}]`.
+
 ## `GET /api/duplicates?q=`
 
 Products and test requests whose brand/name/variant contain at least 60% of the words in `q` (any order; a
