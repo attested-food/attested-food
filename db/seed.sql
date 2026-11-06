@@ -9,8 +9,8 @@ INSERT INTO sources (type, name, url, accreditation, description) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 WITH p AS (
-    INSERT INTO products (brand, name, variant, category)
-    VALUES ('Kellogg''s', 'Millet Muesli', 'Choco', 'breakfast_cereal')
+    INSERT INTO products (brand, name, variant, category, net_quantity, image_url)
+    VALUES ('Kellogg''s', 'Millet Muesli', 'Choco', 'breakfast_cereal', '400 g', 'https://m.media-amazon.com/images/I/61p7toAa1gL._SL500_.jpg')
     RETURNING id
 ), r AS (
     INSERT INTO reports (product_id, kind, lab_id, report_number, ulr_number, batch_no, mfg_date, expiry_date, tested_on, issued_on, verification, verified)
