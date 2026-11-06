@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { api, dash, label, httpUrl, type TestRequest } from '$lib/api';
+	import Fund from '$lib/Fund.svelte';
 
 	const req = $derived(api<TestRequest>(`/api/test-requests/${encodeURIComponent(page.params.id ?? '')}`));
 </script>
@@ -22,6 +23,7 @@
 		<dt>Barcode</dt><dd>{dash(r.barcode)}</dd>
 		<dt>Where to buy</dt><dd>{#if httpUrl(r.buy_url ?? null)}<a href={httpUrl(r.buy_url ?? null)} rel="noopener">{r.buy_url}</a>{:else}—{/if}</dd>
 	</dl>
+	<Fund requestId={r.id} />
 	<h2>Tests we'll run</h2>
 	<ul class="tests">{#each r.tests ?? [] as t (t)}<li>○ {t} <span class="muted">not tested yet</span></li>{/each}</ul>
 {:catch err}
