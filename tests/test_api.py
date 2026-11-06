@@ -113,20 +113,25 @@ def test_categories():
     assert {"category", "product_count", "tests"} == set(body[0])
     assert all(c["tests"] for c in body)
     cereal = next(c for c in body if c["category"] == "breakfast_cereal")
-    assert cereal["product_count"] >= 1 and cereal["tests"] == ["Nutrition vs label claims"]
+    assert cereal["product_count"] >= 1 and cereal["tests"][0] == "Nutrition vs label claims" and len(cereal["tests"]) >= 3
 
 
 def test_product_tests_coverage(kelloggs):
     body = client.get(f"/api/products/{kelloggs['id']}").json()
-    assert body["tests"] == [{"name": "Nutrition vs label claims", "tested": True}]
+    first, *rest = body["tests"]
+    assert first["name"] == "Nutrition vs label claims" and first["tested"] and first["why"]
+    assert rest and not any(t["tested"] for t in rest)  # cereal's other standard tests aren't on file yet
 
 
 @pytest.mark.parametrize(("category", "results", "expected"), [
     ("protein_powder", [{"group": "heavy_metal", "parameter": "Lead"}], {"Heavy metals (lead, arsenic, cadmium, mercury)"}),
-    ("ghee", [{"group": "other", "parameter": "Beta-sitosterol"}], {"Foreign fat adulteration (vegetable / animal fat)"}),
-    ("honey", [{"group": "other", "parameter": "Hydroxymethylfurfural (HMF)"}], {"Freshness (HMF, diastase)"}),
-    ("bread", [{"group": "toxin", "parameter": "Listeria"}], {"Microbiology (E. coli, Salmonella, Listeria)"}),
+    ("ghee", [{"group": "other", "parameter": "Beta-sitosterol"}], {"Foreign fat (vegetable oil, animal body fat)"}),
+    ("honey", [{"group": "other", "parameter": "Hydroxymethylfurfural (HMF)"}], {"Purity: moisture, HMF, sucrose, fructose/glucose ratio, diastase"}),
+    ("bread", [{"group": "other", "parameter": "Listeria"}], {"Microbiology (E. coli, Salmonella, Listeria)"}),
+    ("breakfast_cereal", [{"group": "nutrition", "parameter": "Moisture"}], {"Purity: moisture, ash insoluble in HCl, alcoholic acidity"}),
     ("vitamin_d_supplement", [], set()),
+    ("instant_noodle", [{"group": "heavy_metal", "parameter": "Lead"}], {"Heavy metals (lead, arsenic, cadmium, mercury)"}),
+    ("zz_new_supplement", [{"group": "heavy_metal", "parameter": "Lead"}], {"Heavy metals (lead, arsenic, cadmium, mercury)"}),
     ("zz_unknown", [{"group": "toxin", "parameter": "Total Aflatoxins"}], {"Aflatoxins"}),
 ])
 def test_coverage(category, results, expected):
@@ -377,3 +382,13 @@ def test_only_complete_products_are_listed():
         assert any(x["value"] is not None or x["status"] for r in d["reports"] for x in r["results"])
     depts = client.get("/api/departments").json()
     assert sum(d["product_count"] for d in depts) == body["total"]
+
+
+def test_every_category_test_is_sourced():
+    from backend.category_tests import TESTS
+    for category, tests in TESTS.items():
+        assert 1 <= len(tests) <= 8, category
+        for t in tests:
+            assert t["name"] and t["why"] and t["source"], (category, t)
+            assert t["group"] in {None, "nutrition", "heavy_metal", "toxin", "pesticide", "spiking", "other"}
+            assert all(k == k.lower() for k in t["keywords"])

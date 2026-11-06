@@ -49,8 +49,13 @@
 .p-ing { margin: 18px 0 14px; font-family: var(--label); font-weight: 600; font-size: 22px; line-height: 1.7; text-transform: uppercase; letter-spacing: 0.005em; }
 .p-ing .seg-note { font-size: 13px; vertical-align: 3px; }
 .p-cov { margin: 0 0 12px; padding: 0; list-style: none; }
-.p-cov li { display: flex; align-items: center; gap: 12px; min-height: 48px; border-bottom: 1px solid var(--line); font-size: 15.5px; }
-.p-cov li > span:nth-child(2) { flex: 1; font-weight: 550; }
+.p-cov li { border-bottom: 1px solid var(--line); font-size: 15.5px; }
+.p-cov summary { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 0; list-style: none; cursor: pointer; }
+.p-cov summary::-webkit-details-marker { display: none; }
+.p-cov summary svg { flex: none; }
+.p-cov-n { flex: 1; min-width: 0; font-weight: 550; }
+.p-cov summary:hover .p-cov-n { text-decoration: underline; text-underline-offset: 3px; }
+.p-cov details p { margin: -2px 0 12px 32px; font-size: 14px; line-height: 1.5; color: var(--sub); }
 .p-cov .p-ico { width: 22px; height: 22px; font-size: 11px; }
 
 .p-report { margin-top: 22px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
@@ -174,3 +179,4 @@
 .p-part { display: inline-flex; align-items: baseline; gap: 6px; color: var(--sub); }
 .p-part b { color: var(--ink); font-weight: 700; }
 .p-breakdown p { flex-basis: 100%; margin: 0; }
+.p-cov-hint { margin: 10px 0 4px; }

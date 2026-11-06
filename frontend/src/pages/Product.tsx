@@ -346,12 +346,18 @@ export default function Product() {
 						</>
 					)}
 					<h2 className="section-title">What's been tested</h2>
+					<p className="small muted p-cov-hint">Standard tests for {label(p.category).toLowerCase()}. Tap one to see why it matters.</p>
 					<ul className="p-cov">
 						{p.tests.map((t) => (
 							<li key={t.name}>
-								<ResultIcon kind={t.tested ? 'good' : 'unk'} size={20} />
-								<span>{t.name}</span>
-								<span className="eyebrow">{t.tested ? 'Tested' : 'Not tested'}</span>
+								<details>
+									<summary>
+										<ResultIcon kind={t.tested ? 'good' : 'unk'} size={20} />
+										<span className="p-cov-n">{t.name}</span>
+										<span className="eyebrow">{t.tested ? 'Tested' : 'Not tested'}</span>
+									</summary>
+									{t.why && <p>{t.why}</p>}
+								</details>
 							</li>
 						))}
 					</ul>

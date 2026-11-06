@@ -57,7 +57,7 @@ export type Product = {
 	ingredients_source: string | null;
 	label_nutrition: LabelNutrition | null;
 	reports: Report[];
-	tests: { name: string; tested: boolean }[];
+	tests: { name: string; why?: string; tested: boolean }[];
 	annotations: Annotations;
 	openlabel_grade: OpenLabelGrade | null;
 };
