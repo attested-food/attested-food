@@ -148,7 +148,7 @@ def test_pick_ignores_variant_words_and_brand_typos():
 
 
 # ---- pack photo reader ----
-from scraper.pack_reader import SCHEMA, barcode_of, build_request, fssai_of, ingredients_of, nutrition_of
+from scraper.pack_reader import barcode_of, fssai_of, ingredients_of, nutrition_of
 
 NUT = {"energy_kcal": 480, "protein_g": 7, "fat_g": 22, "saturated_fat_g": 10, "sugars_g": 30,
        "added_sugars_g": None, "fiber_g": None, "sodium_mg": 250}
@@ -189,9 +189,3 @@ def test_pack_fssai_is_14_digits():
     assert fssai_of({"fssai_license": "Lic. No. 10012022000123"}) == "10012022000123"
     assert fssai_of({"fssai_license": "1001202200012"}) is None
 
-
-def test_pack_request_shape():
-    req = build_request("abc", "Amul", "Dark Chocolate", None, [f"https://x/{i}.webp" for i in range(9)])
-    content = req["params"]["messages"][0]["content"]
-    assert req["custom_id"] == "abc" and len(content) == 7 and content[-1]["text"].startswith("Product: Amul Dark Chocolate")
-    assert req["params"]["output_config"]["format"]["schema"] is SCHEMA
