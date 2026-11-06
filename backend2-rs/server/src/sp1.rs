@@ -13,6 +13,7 @@ use std::{
     sync::Mutex,
 };
 
+use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 use serde_json::{json, Value};
 
 use crate::{jobs::Progress, prover::ProveLock};
@@ -38,14 +39,17 @@ fn bin() -> String {
 }
 
 impl Proc {
-    /// Next reply, forwarding `{"stage"}` lines to `progress`; `None` when the
-    /// worker exited.
+    /// Next reply, forwarding `{"stage"}` and `{"partial"}` lines to
+    /// `progress`; `None` when the worker exited.
     fn reply(&mut self, progress: &Progress) -> Option<Value> {
         loop {
             let v = self.line()?;
-            match v["stage"].as_str() {
-                Some(s) => progress.stage(s),
-                None => return Some(v),
+            if let Some(s) = v["stage"].as_str() {
+                progress.stage(s);
+            } else if let Some(p) = v.get("partial") {
+                partial(p, progress);
+            } else {
+                return Some(v);
             }
         }
     }
@@ -62,6 +66,26 @@ impl Proc {
                 return serde_json::from_str(j).ok();
             }
         }
+    }
+}
+
+/// `{"partial": { name, path, vkey, proveMs }}`: the compressed STARK, saved by
+/// the worker in the job's run dir; published on the job with the proof inline
+/// (base64 bincode `SP1ProofWithPublicValues`).
+fn partial(p: &Value, progress: &Progress) {
+    let (Some(name), Some(path)) = (p["name"].as_str(), p["path"].as_str()) else { return };
+    match std::fs::read(path) {
+        Ok(bytes) => progress.partial(
+            name,
+            json!({
+                "proof": B64.encode(&bytes),
+                "proofBytes": bytes.len(),
+                "encoding": "base64 bincode SP1ProofWithPublicValues (sp1-sdk 6.10)",
+                "vkey": p["vkey"],
+                "proveMs": p["proveMs"],
+            }),
+        ),
+        Err(e) => tracing::warn!("sp1 partial {path}: {e}"),
     }
 }
 

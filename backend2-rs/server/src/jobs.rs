@@ -3,7 +3,9 @@
 //! done, the result. Jobs live in memory and are dropped [`JOB_TTL`] after
 //! they finish (a restart loses them).
 //!
-//! The provers report stages through a [`Progress`] handle. Progress is an
+//! The provers report stages, and results that exist before the final one
+//! (`partial`, e.g. SP1's compressed STARK ahead of its Groth16 proof),
+//! through a [`Progress`] handle. Progress is an
 //! estimate: neither SDK reports a fraction done, so it is the elapsed working
 //! time over the sum of the stage durations of the last finished job of the
 //! same mode (time spent waiting for the prove lock or the queue excluded).
@@ -25,7 +27,7 @@ const WAITING: [&str; 2] = ["queued", "waiting for prove lock"];
 /// Reports the current stage of one job. Cheap to clone; a no-op for
 /// synchronous callers that have no job.
 #[derive(Clone)]
-pub struct Progress(Option<Arc<dyn Fn(&str) + Send + Sync>>);
+pub struct Progress(Option<(Arc<Jobs>, String)>);
 
 impl Progress {
     pub fn none() -> Self {
@@ -33,8 +35,17 @@ impl Progress {
     }
 
     pub fn stage(&self, name: &str) {
-        if let Some(f) = &self.0 {
-            f(name);
+        if let Some((jobs, id)) = &self.0 {
+            jobs.stage(id, name);
+        }
+    }
+
+    /// A result available before the job finishes, under `partial.<name>`.
+    pub fn partial(&self, name: &str, value: Value) {
+        if let Some((jobs, id)) = &self.0 {
+            if let Some(j) = jobs.jobs.lock().unwrap().get_mut(id) {
+                j.partial.insert(name.into(), value);
+            }
         }
     }
 }
@@ -54,6 +65,7 @@ struct Job {
     finished: Option<Instant>,
     /// What is known before proving: the public values the proof will commit.
     preview: Value,
+    partial: serde_json::Map<String, Value>,
     result: Option<Result<Value, String>>,
 }
 
@@ -99,6 +111,7 @@ impl Jobs {
                 stages: vec![Stage { name: "queued".into(), started: now, ms: None }],
                 finished: None,
                 preview,
+                partial: Default::default(),
                 result: None,
             },
         );
@@ -106,17 +119,17 @@ impl Jobs {
     }
 
     pub fn progress(self: &Arc<Self>, id: &str) -> Progress {
-        let (jobs, id) = (self.clone(), id.to_string());
-        Progress(Some(Arc::new(move |name: &str| {
-            let mut all = jobs.jobs.lock().unwrap();
-            if let Some(j) = all.get_mut(&id) {
-                if j.stages.last().is_some_and(|s| s.name == name) {
-                    return;
-                }
-                j.close_stage();
-                j.stages.push(Stage { name: name.into(), started: Instant::now(), ms: None });
+        Progress(Some((self.clone(), id.to_string())))
+    }
+
+    fn stage(&self, id: &str, name: &str) {
+        if let Some(j) = self.jobs.lock().unwrap().get_mut(id) {
+            if j.stages.last().is_some_and(|s| s.name == name) {
+                return;
             }
-        })))
+            j.close_stage();
+            j.stages.push(Stage { name: name.into(), started: Instant::now(), ms: None });
+        }
     }
 
     pub fn finish(&self, id: &str, result: Result<Value, String>) {
@@ -171,6 +184,7 @@ impl Jobs {
             "elapsedMs": end.duration_since(j.created).as_millis() as u64,
             "progress": progress,
             "preview": j.preview,
+            "partial": j.partial,
             "result": j.result.as_ref().and_then(|r| r.as_ref().ok()),
             "error": j.result.as_ref().and_then(|r| r.as_ref().err()),
         }))

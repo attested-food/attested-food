@@ -32,12 +32,14 @@ curl -s localhost:8793/jobs/$(echo $J | jq -r .jobId)
 | `GET /health` | | `{ ok, guestElfBytes, sp1 }` (`sp1`: the warm worker's setup and warm-up status) |
 | `GET /program` | | `{ appExeCommit, appVmCommit }`, the pinned OpenVM program |
 | `POST /prove?mode=...` | multipart `pdf`, `format` (`equinox`, `eurekha`, `eurekha-attested`, `eurekha-attested-sig`), `labels` (Equinox), `blinder` (16 bytes hex; random if absent, required for attested formats), `onchain` + `request` (attested formats: `onchain.json`, `request.json` of a `zktls` run) | `202 { jobId, status, statusUrl }` |
-| `GET /jobs/{id}` | | `{ status: queued\|running\|done\|failed, stage, stages: [{ name, ms \| elapsedMs }], elapsedMs, progress: { fraction, etaMs }, preview: { publicValues, publicValuesHex }, result, error }` |
+| `GET /jobs/{id}` | | `{ status: queued\|running\|done\|failed, stage, stages: [{ name, ms \| elapsedMs }], elapsedMs, progress: { fraction, etaMs }, preview: { publicValues, publicValuesHex }, partial, result, error }` |
 | `POST /verify` | JSON `{ proof, publicValues }` | `{ valid, publicValues, program }`, or 400 (OpenVM STARKs) |
 
 Modes: `execute` (no proof), `stark` (OpenVM STARK, `proof` base64 bincode `VersionedVmStarkProof`), `sp1-groth16` (`format=eurekha-attested`: `artifact { vkey, publicValues, proof, notarySignature }`, the arguments of `EurekhaReportRegistry.submit`), `openvm-halo2` (reserved, 501). `result` is `{ mode, format, publicValues, publicValuesHex, notarySignature, redactedPdf, revealed, blinder, instructions, program, proof, proofBytes, artifact, timingsMs }`.
 
-Stages: `queued`, `starting sp1 worker`, `waiting for prove lock`, `execute`, `keygen`, `prove`, `verify`. `progress` is an estimate, since neither SDK reports a fraction done: working time so far over the working time of the last finished job of the same mode (queue and lock waits excluded); `null` until one has finished. Jobs live in memory for an hour after they finish.
+Stages: `queued`, `starting sp1 worker`, `waiting for prove lock`, `execute`, `keygen`, `prove`, `verify` (OpenVM); `prove stark`, `verify stark`, `prove groth16`, `verify groth16` (SP1).
+
+`sp1-groth16` returns two proofs. The compressed SP1 STARK appears under `partial["sp1-compressed"]` (`proof`: base64 bincode `SP1ProofWithPublicValues`, verifiable off-chain with sp1-sdk) as soon as it is verified, while the Groth16 proof for the contract is still being made; the job's `result.artifact` holds the Groth16 proof at the end. The SDK cannot wrap an existing compressed proof, so the Groth16 request proves core + compress again: seconds on the GPU, minutes on a CPU. `progress` is an estimate, since neither SDK reports a fraction done: working time so far over the working time of the last finished job of the same mode (queue and lock waits excluded); `null` until one has finished. Jobs live in memory for an hour after they finish.
 
 Both provers stay warm: OpenVM keygen runs at start and its keys stay in the prover thread; SP1 runs as one long-lived `eurekha-sp1 serve` child that sets up at start and, with `EUREKHA_SP1_WARM_RUN=<zktls run dir>`, proves once so gnark's Groth16 proving key is loaded before the first request. Proofs take the machine-wide lock: `/tmp/equinox-prove.lock.d`, or `PROVE_FLOCK=<file>` (an `flock`, as the GPU box's `heavy` uses).
 

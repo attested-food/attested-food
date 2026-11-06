@@ -9,7 +9,8 @@
 //! `serve` is the warm prover the server keeps running: setup once, then one
 //! job per stdin line `{"run": <dir>, "out": <path>}`, one stdout reply line
 //! per job prefixed `EUREKHA_SP1 ` (the prove reply, or `{"error"}`), after
-//! `{"stage": "prove" | "verify"}` lines as the job advances. gnark
+//! `{"stage"}` lines as the job advances and a `{"partial"}` line when the
+//! compressed STARK is ready, before the Groth16 proof. gnark
 //! keeps the Groth16 R1CS and proving key in process globals after the first
 //! proof, so only that one pays the load; `--warm` proves a saved run at start
 //! (result discarded) so the first real job is warm too. It replies
@@ -68,10 +69,17 @@ enum Cmd {
 /// Prefix of every protocol line `serve` writes to stdout.
 const REPLY: &str = "EUREKHA_SP1 ";
 
-/// One Groth16 proof of `run`, verified, written to `out`; returns the summary
-/// line. Reports its stages (`prove`, `verify`) to `stage`.
+/// The compressed STARK, then the Groth16 proof of `run`, each verified; the
+/// STARK is saved next to `out` (`stark.bin`, bincode `SP1ProofWithPublicValues`)
+/// and announced as soon as it exists, the Groth16 artifact is written to
+/// `out`; returns the summary line. Reports `{"stage"}` and `{"partial"}`
+/// events to `event`.
+///
+/// The SDK cannot wrap an existing compressed proof, so the Groth16 request
+/// proves core + compress again; on the GPU that repeat is seconds next to the
+/// fixed Groth16 wrap.
 fn prove(
-    stage: &dyn Fn(&str),
+    event: &dyn Fn(serde_json::Value),
     client: &EnvProver,
     pk: &EnvProvingKey,
     setup_ms: u64,
@@ -82,7 +90,21 @@ fn prove(
     let expected = input.preflight()?;
     let vkey = pk.verifying_key().bytes32();
 
-    stage("prove");
+    let stage = |s: &str| event(json!({ "stage": s }));
+    stage("prove stark");
+    let t = Instant::now();
+    let stark = client.prove(pk, input.stdin()).compressed().run()?;
+    let stark_ms = t.elapsed().as_millis() as u64;
+    if stark.public_values.as_slice() != expected.as_slice() {
+        bail!("STARK public values differ from the native run");
+    }
+    stage("verify stark");
+    client.verify(&stark, pk.verifying_key(), None).map_err(|e| anyhow::anyhow!("stark verify: {e}"))?;
+    let stark_path = out.with_file_name("stark.bin");
+    stark.save(&stark_path)?;
+    event(json!({ "partial": { "name": "sp1-compressed", "path": stark_path, "vkey": vkey, "proveMs": stark_ms } }));
+
+    stage("prove groth16");
     let t = Instant::now();
     let proof = client.prove(pk, input.stdin()).groth16().run()?;
     let prove_ms = t.elapsed().as_millis() as u64;
@@ -92,7 +114,7 @@ fn prove(
     }
     let bytes = proof.bytes();
 
-    stage("verify");
+    stage("verify groth16");
     let t = Instant::now();
     sp1_verifier::Groth16Verifier::verify(&bytes, &public_values, &vkey, &sp1_verifier::GROTH16_VK_BYTES)
         .map_err(|e| anyhow::anyhow!("groth16 verify: {e:?}"))?;
@@ -105,7 +127,7 @@ fn prove(
         "publicValues": hx(&public_values),
         "proof": hx(&bytes),
         "notarySignature": hx(&input.t.signature),
-        "timingsMs": { "setup": setup_ms, "prove": prove_ms, "verify": verify_ms },
+        "timingsMs": { "setup": setup_ms, "proveStark": stark_ms, "prove": prove_ms, "verify": verify_ms },
     });
     std::fs::write(out, serde_json::to_string_pretty(&artifact)?)?;
     Ok(json!({ "out": out, "proofBytes": bytes.len(), "timingsMs": artifact["timingsMs"] }))
@@ -212,8 +234,8 @@ fn main() -> Result<()> {
                 let job = (|| -> Result<serde_json::Value> {
                     let j: serde_json::Value = serde_json::from_str(&line?)?;
                     let path = |k: &str| j[k].as_str().map(PathBuf::from).with_context(|| format!("job has no {k}"));
-                    let stage = |s: &str| println!("{REPLY}{}", json!({ "stage": s }));
-                    prove(&stage, &client, &pk, 0, &path("run")?, &path("out")?)
+                    let event = |e: serde_json::Value| println!("{REPLY}{e}");
+                    prove(&event, &client, &pk, 0, &path("run")?, &path("out")?)
                 })();
                 let reply = job.unwrap_or_else(|e| json!({ "error": format!("{e:#}") }));
                 println!("{REPLY}{reply}");
