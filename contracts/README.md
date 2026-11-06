@@ -1,9 +1,9 @@
 # Contracts
 
 `TestFund` — one campaign per test request (id = request uuid, right-padded to bytes32).
-Contributors pool tUSD up to $100; once funded a tester stakes $50 (`commit`) and has
-30 days to `submitReport`. After the deadline anyone can `slash`: the stake joins the
-pool and the job reopens. `MockUSD` is a 6-decimal test dollar with an open `mint`.
+Contributors pool tUSD up to $100. Anyone can take the job at any time by staking $110
+(`commit`); `submitReport` within 30 days returns the stake. After the deadline anyone
+can `slash`: the stake joins the pool and the job reopens. `MockUSD` is a 6-decimal test dollar with an open `mint`.
 
 ```sh
 forge test

@@ -39,12 +39,16 @@ contract TestFundTest is Test {
         assertEq(fund.contributed(id, alice), 100e6);
     }
 
-    function test_commitNeedsFullFunding() public {
-        vm.prank(alice);
-        fund.contribute(id, 99e6);
+    function test_commitAnytimeAndFundingContinues() public {
         vm.prank(tester);
-        vm.expectRevert("not funded");
         fund.commit(id);
+        assertEq(usd.balanceOf(tester), 890e6);
+        vm.prank(alice);
+        vm.expectRevert("taken");
+        fund.commit(id);
+        fundFully();
+        (uint256 pool,,,) = fund.campaigns(id);
+        assertEq(pool, 100e6);
     }
 
     function test_submitBeforeDeadline() public {
@@ -58,6 +62,10 @@ contract TestFundTest is Test {
         vm.prank(tester);
         fund.submitReport(id);
         assertEq(uint256(status()), uint256(TestFund.Status.Submitted));
+        assertEq(usd.balanceOf(tester), 1000e6);
+        vm.prank(alice);
+        vm.expectRevert("closed");
+        fund.contribute(id, 1e6);
     }
 
     function test_lateTesterIsSlashed() public {
@@ -72,9 +80,9 @@ contract TestFundTest is Test {
         fund.submitReport(id);
         fund.slash(id);
         (uint256 pool, address t,,) = fund.campaigns(id);
-        assertEq(pool, 150e6);
+        assertEq(pool, 210e6);
         assertEq(t, address(0));
         assertEq(uint256(status()), uint256(TestFund.Status.Open));
-        assertEq(usd.balanceOf(tester), 950e6);
+        assertEq(usd.balanceOf(tester), 890e6);
     }
 }
