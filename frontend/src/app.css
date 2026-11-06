@@ -52,3 +52,12 @@ form.request input, form.request select { width: 100%; }
 .tag { font-size: .75rem; color: #6b4e00; border: 1px solid #6b4e00; border-radius: 3px; padding: 0 .3rem; margin-left: .3rem; }
 .preview { max-height: 10rem; border: 1px solid #ddd; }
 .modes { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin: 1rem 0; }
+.wallet { margin-left: auto; display: flex; gap: .5rem; align-items: center; position: relative; }
+.wallet summary { list-style: none; display: inline-block; background: #0645ad; color: #fff; border-radius: 4px; padding: .4rem 1rem; cursor: pointer; }
+.wallet summary::-webkit-details-marker { display: none; }
+.wallet .menu { position: absolute; right: 0; z-index: 2; margin-top: .4rem; width: 18rem; display: grid; gap: .5rem; background: #fff; border: 1px solid #999; padding: .75rem; }
+.wallet .menu form, .wallet .menu label { display: grid; gap: .3rem; }
+.fund { border: 1px solid #ddd; border-radius: 4px; padding: .75rem 1rem; margin: 1rem 0; }
+.fund progress { width: 100%; height: 1rem; }
+.fund .row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0; }
+.fund .row input { width: 7rem; }

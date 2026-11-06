@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css';
+	import WalletButton from '$lib/WalletButton.svelte';
 
 	let { children } = $props();
 </script>
@@ -14,6 +15,7 @@
 		<a href="/upload">Upload</a>
 		<a href="/about">About</a>
 	</nav>
+	<WalletButton />
 </header>
 
 <main>
