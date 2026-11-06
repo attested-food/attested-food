@@ -33,6 +33,8 @@ use equinox_core::{
 use serde_json::json;
 use sp1_sdk::blocking::{prelude::*, EnvProver, EnvProvingKey, ProverClient};
 
+mod wrap;
+
 /// The guest ELF, built by `build.rs`.
 const ELF: Elf = include_elf!("eurekha-sp1-guest");
 
@@ -55,6 +57,17 @@ enum Cmd {
     Prove {
         #[arg(long)]
         run: PathBuf,
+        #[arg(long)]
+        out: PathBuf,
+        /// Stop after the compressed STARK (saved as `stark.bin` next to `out`).
+        #[arg(long)]
+        stark_only: bool,
+    },
+    /// Compressed STARK (`stark.bin`) -> SP1's wrap proof (CPU) -> the gnark
+    /// witness input JSON SP1's Groth16 circuit takes, for an external prover.
+    WrapWitness {
+        #[arg(long)]
+        stark: PathBuf,
         #[arg(long)]
         out: PathBuf,
     },
@@ -210,10 +223,23 @@ fn main() -> Result<()> {
                 })
             );
         }
-        Cmd::Prove { run, out } => {
+        Cmd::Prove { run, out, stark_only } => {
             let t = Instant::now();
             let pk = client.setup(ELF)?;
-            println!("{}", prove(&|_| {}, &client, &pk, t.elapsed().as_millis() as u64, &run, &out)?);
+            let stop = std::sync::atomic::AtomicBool::new(false);
+            let event = |e: serde_json::Value| {
+                if stark_only && e.get("partial").is_some() {
+                    stop.store(true, std::sync::atomic::Ordering::SeqCst);
+                    println!("{e}");
+                    std::process::exit(0);
+                }
+            };
+            println!("{}", prove(&event, &client, &pk, t.elapsed().as_millis() as u64, &run, &out)?);
+        }
+        Cmd::WrapWitness { stark, out } => {
+            let rt = tokio::runtime::Runtime::new()?;
+            let dir = rt.block_on(wrap::witness(&stark, &out))?;
+            println!("{}", json!({ "out": out, "circuitDir": dir }));
         }
         Cmd::Serve { warm } => {
             let t = Instant::now();

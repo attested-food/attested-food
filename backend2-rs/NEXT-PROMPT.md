@@ -1,44 +1,27 @@
-# Next session prompt: one OpenVM proof from S3 fetch (TLSNotary) to redacted Eurekha key-value pairs
+# Next session prompt: backend2-rs (prover.openlabel.fyi), state and next steps
 
-Paste this as the task. Repo: `~/workspace/hackathons/ethglobal-mumbai-2026/attested-food-github-repo/backend2-rs` (branch `main`, commit per step, do not push unless asked).
+Repo: `~/workspace/hackathons/ethglobal-mumbai-2026/attested-food-github-repo` (branch `main`, pushed up to `9854a5b`; later commits local). Read `backend2-rs/README.md` first.
 
-## Goal
+## What runs today
 
-One OpenVM 2.1 STARK proving: notary-signed TLS session with the lab's S3 bucket → the served PDF → its redaction → every non-customer key-value pair. Public: bucket host, `sha256(object key)`, notary address, body commitment, `sha256(redacted PDF)` + spans, key-value pairs + result rows. Private: PDF, blinders, request path.
+- GPU box: AWS g6e.xlarge `i-078bdddab89a51802`, `13.232.15.45` (no Elastic IP; a restart changes the IP and `prover.openlabel.fyi` DNS must follow), ssh `-i ~/.claude/skills/aws/keys/agent-ap-south-1.pem ubuntu@13.232.15.45`. L40S 46 GB, 4 vCPU, 30 GB RAM. Scheduled power-off moved to **2026-11-07 12:30 UTC (6 PM IST)**; shutdown behavior is stop (disk kept). Caveat: the `bhai` agent's `~/PROMPT.md`/`~/GOAL*.md` tell it to `sudo shutdown -h now` after its 08:30 UTC report; the user has not decided whether to edit them.
+- backend2 server: tmux `backend2`, `127.0.0.1:4000` behind nginx `https://prover.openlabel.fyi`; `~/backend2-start.sh`, `~/backend2-env.sh` (Go, CUDA 12.8), `~/backend2-redeploy.sh` (rebuild under `heavy`, kill old, wait for :4000, restart). Sync source with `rsync -az --exclude target --exclude zktls/runs --exclude '*.pdf' --exclude contracts/out --exclude contracts/cache backend2-rs/ ubuntu@13.232.15.45:backend2-rs/`.
+- Box lock: `heavy <label> <cmd>` (flock `~/locks/cpugpu.lock`, `heavy status`). backend2 takes it only while proving (`server/src/lock.rs`, `PROVE_FLOCK`). Do not touch tmux `bhai`, `server`, `goal2-anvil`.
+- API: `POST /prove?mode=sp1-groth16` (default) with only a `pdf` (`format=eurekha-attested`): server reads the S3 link from the PDF's QR, fetches it under TLSNotary (server is also the notary, dev key), checks bytes equal, proves. Job API `GET /jobs/{id}`: stages, progress, `partial["sp1-compressed"]` (SP1 STARK) then `result.artifact` (Groth16 for `contracts/` `EurekhaReportRegistry.submit`). Frontend `/prove` page (React) sends only the PDF.
+- Measured on the box: SP1 STARK 16 to 43 s, gnark Groth16 (CPU, 4 vCPU) 142 s warm, 344 s when the box swaps (RAM tight: SP1 GPU server holds ~15-20 GB RAM, 11-18 GB VRAM). Live artifact passes all 9 Foundry tests; program vkey `0x00721e79...` (box build).
 
-## Decisions (made by the user)
+## In progress: `sp1-groth16-snarkrs` mode (snarkrs CUDA replaces gnark's Groth16 step)
 
-- Reveal bucket host + `sha256(key)`, NOT the full URL (key = password to the unredacted original).
-- Output: all non-customer key-value pairs + result rows + redacted-PDF hash/spans.
-- Verify the TLSNotary attestation inside the guest (one proof).
-- Server-side prover: OpenVM (fastest native: 36.7 s full Equinox statement on M2 Max CPU, one run).
+Split with the snarkrs Claude session (`rust-groth16-prover`, reachable via SendMessage `uds:/tmp/cc-socks/39878.sock` while it runs): they own snarkrs (gnark pk/vk import, gnark-basis H, CUDA at 2^24, library API `snarkrs_gnark::GnarkProvingKey::read_dump`, `snarkrs_cuda::GnarkProver::new/prove(&GnarkWitness) -> Proof{a,b,c}`, `snarkrs_gnark::verify`); we own the SP1 side. They use the same box under `heavy`; they may not finish before the power-off.
 
-## Done so far
+Done on our side:
+- `docs/snarkrs-sp1-groth16-feasibility.md`: SP1 circuit is plain R1CS, 15,972,262 constraints, domain 2^24, 0 commitments, sha256(vk) = contract VERIFIER_HASH.
+- `sp1/witness-export` (Go): solves SP1's circuit with gnark, writes W, A·w, B·w (gnark dump encoding). Mac: read 10.9 s, solve 2.75 s, 11.2 GB peak, 1.5 GB output; public inputs check out.
+- `eurekha-sp1 wrap-witness --stark stark.bin --out witness.json`: compressed proof -> SP1 `shrink_wrap` on CPU (`SP1LocalNodeBuilder` + `cpu_worker_builder`) -> SP1's gnark witness input, as SP1's `run_groth16`. `prove --stark-only` writes `stark.bin`. Builds; the Mac timing run was in progress at compaction (CPU node build 11.9 s; shrink+wrap time unknown).
 
-- `backend2-rs/`: `core/` (copy of backend equinox-core, rev in `core/UPSTREAM_REV`), `guest/` (OpenVM, format byte: 0 Equinox, 1 Eurekha), `server/` (axum, `POST /prove?mode=stark|execute`, multipart `pdf`, `format=equinox|eurekha`, `labels`, `blinder`; `/verify`, `/program`, `/health`; prove lock `/tmp/equinox-prove.lock.d`).
-- `core/src/eurekha.rs`: spans = PII-font (`XXXXXX+DejaVuSansMono`) hex strings shown by Tj/TJ in uncompressed content; redacted = spans zeroed to `0`; commits `sha256(redacted)`; extracts kv (`Key : Value` runs, `Key`,`:`,`Value` grid, ULR, dates table, lab, accreditation, signatory) and result rows; dedups repeated page headers, panics on conflicts; asserts no customer line (decoded PII string) appears in any output.
-- `core/tests/eurekha.rs`: spans + redacted hash match `mock-pdfs` manifests for all 3 reports; redacted bytes equal `out/redacted/*.pdf`.
-- Measured: Eurekha STARK 42.4 s end to end (prove 36.3 s, 2,305,288 instructions, proof 534,601 B), verified, tamper rejected; Equinox 1,672,873 instructions.
-- Commits: `2a93eba`, `7966de8`, `055034a`, `a4ad157`.
-
-## Steps
-
-1. [done] STARK-prove Eurekha now (no TLS yet): `curl -X POST 'localhost:8793/prove?mode=stark' -F format=eurekha -F pdf=@../../mock-pdfs/out/raw/choco-millet-muesli.pdf`. Record keygen/prove/verify/proof size in README. Optimize if needed: guest hashes original AND redacted (two 90 KB SHAs), and copies the PDF.
-2. [done, `22d3166` + next commit] TLS binding in core (copy, do not edit `../backend`):
-   - Port into `core/src/tlsn.rs`: host list instead of const `SERVER_NAME` (accept `eurekhalabs.s3.amazonaws.com` and its regional form), expose matched host.
-   - Add path opening: `OnchainTlsn` += `path_index: u32`, `path_preimage: Vec<u8>` (53 B, `0x00|0x00 Sent|0x01|4u64LE|path_end u64LE|0x01|0x20|hash32`, leaf = `SHA256(DOMAIN_TRANSCRIPT_COMMITMENT || preimage)`, domain `bd0ab9ac6ea93ebda2500e8769e63a9e`). Guest private: path bytes + path blinder; check `SHA256(path || blinder) == hash`, range length == path len; output `sha256(key)` (key = path without leading `/`). Verify the preimage layout against a real attestation before trusting it.
-   - Guest format 2 = Eurekha attested: `tlsn::check` (k256 `K256Recover`, keccak header sig, Merkle root, server-name leaf, body leaf) → `eurekha::run` → bind (`body_commitment` == attested hash, `pdf_len` == range len) → path opening. Pin the notary: commit its address in the public values.
-3. [done: zktls copy, proxy session on choco-millet-muesli; objects were already public on eurekhalabs, no upload needed] Produce a real attestation of an S3 object:
-   - Upload: `mock-pdfs/scripts/upload.sh` → `s3://eurekhalabs/<key>` (check if already uploaded; needs AWS creds, `aws` skill; ask before creating buckets).
-   - TLSNotary: backend `zktls` hard-codes the Equinox host (~20 places: `tlsn.rs:35`, `proxy.rs:14,20,36`, `notary.rs:108,154`, `policy.rs:161`, `presentation.rs`, `browser.rs`, server `api.rs`, web, contract). Options: copy `zktls` into backend2-rs with a host list (preferred, no conflict with backend lanes), or a backend branch. Also capture the path blinder: server prover keeps it in `secrets.bin` (`prover.rs:143`); export must add the path leaf (`onchain.rs:100-118` analogue, direction Sent, start 4).
-   - Run `equinox-tls-prove --url-file <f> --out-dir <d> --mode proxy|mpc` (MPC ~60 s, ~22 GB; take the prove lock), then `export-onchain`.
-4. [done: `eurekha-attested` = format 2, signature left to the verifier, 42.5 s; `eurekha-attested-sig` = format 3, in-guest k256, 95.8 s] Server: `format=eurekha-attested` taking `presentation.bin` (or `onchain.json` + `secrets.bin`) + PDF; returns proof, public values, redacted PDF.
-5. [done in core/tests/tlsn_eurekha.rs] Tests: tamper cases rejected (flipped result glyph, wrong host, wrong path blinder, swapped attestation, non-PII span); keep `core/tests/eurekha.rs` green.
-6. Later: EVM path (`openvm-sdk` feature `evm-prove`, KZG params in `~/.openvm/params`, Halo2 verifier). Known blocker from the GPU box: an earlier OpenVM verifier wrapper was ~100 KB, over EIP-170. GPU: `openvm-sdk` feature `cuda` on the g6e box (`i-078bdddab89a51802`, 13.232.15.45, powers off 2026-11-07 09:18 UTC); SP1 there: 5.8 s prove on L40S.
-
-## Constraints
-
-- Never commit or copy report PDFs into VMs/remote boxes casually: they hold customer PII (`*.pdf` gitignored).
-- Heavy proofs/TLS sessions: take `/tmp/equinox-prove.lock.d`; another session runs SP1 benches on this Mac.
-- Untrusted repos: build in tart VM `ubuntu-24.04-zkvm-webgpu-build` (default disk mode, never `sync=none`).
-- Known leaks to keep documented: QR on the redacted PDF points to the original; body length public; path length public via transcript offsets.
+Next steps:
+1. Finish measuring `wrap-witness` (Mac, then the box under `heavy`). If CPU shrink+wrap takes minutes on 4 vCPU, the snarkrs route cannot beat gnark there; look for a GPU wrap path (SP1 GPU server only takes whole-proof `ProveWithMode` requests) before investing more.
+2. Check the chain end to end on the Mac: stark.bin -> witness.json -> `sp1-witness` solve -> W[1..5] equal the wrap proof's public values.
+3. When snarkrs `GnarkProver` lands: link it in `eurekha-sp1` (key resident), add `serve` job type and server `mode=sp1-groth16-snarkrs`, encode SP1's 356-byte proof (4-byte vk hash prefix, exit code, vk root, nonce, A, B with imaginary first, C; SP1's Go `NewSP1Groth16Proof`), verify with `sp1-verifier` and the Foundry tests.
+4. Benchmark on the box: gnark vs snarkrs for the same job (STARK, wrap, solve, Groth16), warm, and record in README.
+5. Open: STARKs we publish (`partial`, OpenVM `stark`) may not be zero-knowledge (unverified); OpenVM Halo2 route (`mode=openvm-halo2`) needs ~14 GB downloads, not started; real notary instead of the dev key.
