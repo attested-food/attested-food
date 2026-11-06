@@ -67,9 +67,16 @@ fn default_mode() -> String {
 #[serde(rename_all = "camelCase")]
 struct ProveResponse {
     mode: String,
-    /// Decoded public values: report number, product, ULR, issue date, rows,
-    /// and the body commitment `SHA256(pdf || blinder)` (hex).
+    /// `equinox` or `eurekha`.
+    format: String,
+    /// Decoded public values (hashes in hex). Equinox: report number, product,
+    /// ULR, issue date, chosen rows, body commitment. Eurekha: body
+    /// commitment, redacted-PDF hash and spans, every non-customer key-value
+    /// pair and result row.
     public_values: serde_json::Value,
+    /// Eurekha: the redacted PDF (base64), the file whose sha256 is committed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    redacted_pdf: Option<String>,
     public_values_hex: String,
     /// What the guest revealed: `sha256(public_values)`.
     revealed: String,
@@ -95,19 +102,27 @@ struct TimingsOut {
 
 /// Fields of the `/prove` form.
 struct Form {
+    format: Format,
     pdf: Vec<u8>,
     labels: Vec<String>,
     blinder: [u8; BLINDER_LEN],
 }
 
 async fn read_form(mut mp: Multipart) -> Result<Form, ApiError> {
-    let (mut pdf, mut labels, mut blinder) = (None, Vec::new(), None);
+    let (mut pdf, mut labels, mut blinder, mut format) = (None, Vec::new(), None, Format::Equinox);
     while let Some(field) = mp.next_field().await.map_err(|e| bad(format!("multipart: {e}")))? {
         match field.name() {
             Some("pdf") => pdf = Some(field.bytes().await.map_err(|e| bad(format!("pdf: {e}")))?.to_vec()),
             Some("labels") => {
                 let s = field.text().await.map_err(|e| bad(format!("labels: {e}")))?;
                 labels = s.split(',').map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect();
+            }
+            Some("format") => {
+                format = match field.text().await.map_err(|e| bad(format!("format: {e}")))?.trim() {
+                    "equinox" => Format::Equinox,
+                    "eurekha" => Format::Eurekha,
+                    f => return Err(bad(format!("unknown format {f:?} (equinox | eurekha)"))),
+                }
             }
             Some("blinder") => {
                 let s = field.text().await.map_err(|e| bad(format!("blinder: {e}")))?;
@@ -129,28 +144,75 @@ async fn read_form(mut mp: Multipart) -> Result<Form, ApiError> {
             b
         }
     };
-    Ok(Form { pdf, labels, blinder })
+    Ok(Form { format, pdf, labels, blinder })
 }
 
-/// Native run of the same `equinox_core::run` the guest proves: rejects a PDF
-/// the guest would reject (before minutes of proving) and checks that no
-/// customer-block word reaches the public values.
-fn preflight(buffer: &[u8], labels: &[String]) -> Result<Vec<u8>, ApiError> {
-    let out = std::panic::catch_unwind(AssertUnwindSafe(|| equinox_core::run(buffer, labels))).map_err(|e| {
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Format {
+    Equinox,
+    Eurekha,
+}
+
+impl Format {
+    fn byte(self) -> u8 {
+        self as u8
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Format::Equinox => "equinox",
+            Format::Eurekha => "eurekha",
+        }
+    }
+}
+
+/// What the native preflight produces: the bytes the guest must commit, their
+/// JSON view, and (Eurekha) the redacted PDF.
+struct Preflight {
+    public_values: Vec<u8>,
+    json: serde_json::Value,
+    redacted_pdf: Option<Vec<u8>>,
+}
+
+fn catch<T>(f: impl FnOnce() -> T) -> Result<T, ApiError> {
+    std::panic::catch_unwind(AssertUnwindSafe(f)).map_err(|e| {
         let msg = e
             .downcast_ref::<&str>()
             .map(|s| s.to_string())
             .or_else(|| e.downcast_ref::<String>().cloned())
             .unwrap_or_else(|| "extraction panicked".into());
         bad(format!("PDF rejected: {msg}"))
-    })?;
-    let pii = out.pii.clone();
-    let pv = PublicValues::from(out).encode();
-    let lc = String::from_utf8_lossy(&pv).to_lowercase();
-    if pii.iter().any(|w| lc.contains(w.as_str())) {
-        return Err(bad("customer PII found in public values"));
+    })
+}
+
+/// Native run of the same code the guest proves: rejects a PDF the guest would
+/// reject (before seconds of proving) and checks no customer PII is published.
+fn preflight(format: Format, buffer: &[u8], labels: &[String]) -> Result<Preflight, ApiError> {
+    match format {
+        Format::Equinox => {
+            let out = catch(|| equinox_core::run(buffer, labels))?;
+            let pii = out.pii.clone();
+            let pv = PublicValues::from(out);
+            let bytes = pv.encode();
+            let lc = String::from_utf8_lossy(&bytes).to_lowercase();
+            if pii.iter().any(|w| lc.contains(w.as_str())) {
+                return Err(bad("customer PII found in public values"));
+            }
+            Ok(Preflight { public_values: bytes, json: pv_json(&pv), redacted_pdf: None })
+        }
+        Format::Eurekha => {
+            // eurekha::run asserts the PII-line leak check itself.
+            let out = catch(|| equinox_core::eurekha::run(buffer))?;
+            let mut redacted = buffer[..out.pdf_len as usize].to_vec();
+            for &(s, e) in &out.spans {
+                redacted[s as usize..e as usize].fill(b'0');
+            }
+            let mut json = serde_json::to_value(&out).unwrap_or_default();
+            json["body_commitment"] = json!(hex::encode(out.body_commitment));
+            json["redacted_sha256"] = json!(hex::encode(out.redacted_sha256));
+            Ok(Preflight { public_values: out.encode(), json, redacted_pdf: Some(redacted) })
+        }
     }
-    Ok(pv)
 }
 
 async fn prove(
@@ -168,24 +230,27 @@ async fn prove(
     let buffer = equinox_core::input_buffer(&form.pdf, &form.blinder);
 
     let t = Instant::now();
-    let (buffer, labels, public_values) = tokio::task::spawn_blocking(move || {
-        let pv = preflight(&buffer, &form.labels)?;
-        Ok::<_, ApiError>((buffer, form.labels, pv))
+    let format = form.format;
+    let (buffer, labels, pre) = tokio::task::spawn_blocking(move || {
+        let pre = preflight(format, &buffer, &form.labels)?;
+        Ok::<_, ApiError>((buffer, form.labels, pre))
     })
     .await
     .map_err(|e| internal(e.to_string()))??;
+    let public_values = pre.public_values;
     let preflight_ms = t.elapsed().as_millis() as u64;
-    tracing::info!(pdf_bytes = form.pdf.len(), ?labels, preflight_ms, "preflight ok");
+    tracing::info!(format = format.name(), pdf_bytes = form.pdf.len(), preflight_ms, "preflight ok");
 
-    let proved = prover.run(GuestInput { labels, buffer }, stark).await.map_err(internal)?;
+    let proved = prover.run(GuestInput { format: format.byte(), labels, buffer }, stark).await.map_err(internal)?;
     if proved.revealed != equinox_core::sha::sha256(&public_values) {
         return Err(internal("guest revealed digest is not sha256(public values)"));
     }
-    let decoded = PublicValues::decode(&public_values).map_err(|e| internal(e.to_string()))?;
     tracing::info!(instructions = proved.instructions, proof_bytes = proved.proof.len(), "done");
     Ok(Json(ProveResponse {
         mode: q.mode,
-        public_values: pv_json(&decoded),
+        format: format.name().into(),
+        public_values: pre.json,
+        redacted_pdf: pre.redacted_pdf.map(|b| B64.encode(b)),
         public_values_hex: hex::encode(&public_values),
         revealed: hex::encode(&proved.revealed),
         blinder: hex::encode(form.blinder),
@@ -215,14 +280,13 @@ async fn verify(
     let proof = B64.decode(req.proof.trim()).map_err(|e| bad(format!("proof: {e}")))?;
     let pv = hex::decode(req.public_values.trim().trim_start_matches("0x"))
         .map_err(|e| bad(format!("publicValues: {e}")))?;
-    let decoded = PublicValues::decode(&pv).map_err(|e| bad(format!("publicValues: {e}")))?;
     let revealed = prover.verify(proof).await.map_err(bad)?;
     if revealed != equinox_core::sha::sha256(&pv) {
         return Err(bad("proof does not commit to these public values"));
     }
-    Ok(Json(
-        json!({ "valid": true, "publicValues": pv_json(&decoded), "program": prover.program().await.map_err(internal)? }),
-    ))
+    // Equinox public values decode; Eurekha ones are returned as committed.
+    let decoded = PublicValues::decode(&pv).map(|d| pv_json(&d)).unwrap_or(serde_json::Value::Null);
+    Ok(Json(json!({ "valid": true, "publicValues": decoded, "program": prover.program().await.map_err(internal)? })))
 }
 
 async fn program(State(prover): State<Prover>) -> Result<Json<ProgramCommit>, ApiError> {

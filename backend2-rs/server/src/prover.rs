@@ -90,6 +90,9 @@ pub struct Proved {
 }
 
 pub struct GuestInput {
+    /// Report format byte the guest dispatches on: 0 Equinox, 1 Eurekha.
+    pub format: u8,
+    /// Analyte labels (Equinox only).
     pub labels: Vec<String>,
     /// `pdf || blinder`.
     pub buffer: Vec<u8>,
@@ -226,7 +229,10 @@ impl Engine {
 
     fn stdin(input: &GuestInput) -> StdIn {
         let mut s = StdIn::default();
-        s.write(&input.labels);
+        s.write(&input.format);
+        if input.format == 0 {
+            s.write(&input.labels);
+        }
         s.write_bytes(&input.buffer);
         s
     }
