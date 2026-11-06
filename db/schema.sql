@@ -89,3 +89,5 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS ingredients text;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS ingredients_source text;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS label_nutrition jsonb;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS off_code text;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS label_nutrition_source text;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS pack_images jsonb;

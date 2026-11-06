@@ -3,6 +3,7 @@ name = "attested-food"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    "anthropic>=2.6.0",
     "beautifulsoup4>=4.15.0",
     "fastapi>=0.162.0",
     "httpx>=0.28.1",

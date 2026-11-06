@@ -8,3 +8,4 @@ frontend/.svelte-kit
 !frontend/src/lib/
 .gstack/
 frontend/.vite
+scraper/pack_reads/

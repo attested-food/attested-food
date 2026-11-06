@@ -7,6 +7,7 @@ since scraper/off_images.py also sets it).
 """
 import logging
 import re
+from difflib import SequenceMatcher
 import sys
 import time
 
@@ -29,6 +30,8 @@ UPDATE = """
 UPDATE products SET
     ingredients = coalesce(ingredients, %(ingredients)s),
     ingredients_source = coalesce(ingredients_source, CASE WHEN %(ingredients)s::text IS NULL THEN NULL ELSE 'open_food_facts' END),
+    label_nutrition_source = CASE WHEN label_nutrition IS NULL AND %(nutrition)s::jsonb IS NOT NULL THEN 'open_food_facts'
+                                  ELSE label_nutrition_source END,
     label_nutrition = coalesce(label_nutrition, %(nutrition)s),
     image_url = coalesce(image_url, %(image)s),
     off_code = coalesce(off_code, %(code)s)
@@ -104,21 +107,32 @@ def clean_ingredients(text: str | None) -> str | None:
     return re.sub(r"\s+", " ", text).strip() or None
 
 
+def _close(a: str, b: str) -> bool:
+    return a == b or (len(a) > 3 and len(b) > 3 and SequenceMatcher(None, a, b).ratio() >= 0.8)
+
+
 def pick(hits: list[dict], brand: str, name: str, variant: str | None) -> dict | None:
-    """Best search hit: sold in India, brand overlaps, and most of our name words appear."""
-    want_brand, want_name = words(brand), words(f"{name} {variant or ''}")
+    """Best search hit: sold in India, brand matches (typos allowed), and most of the *name* words appear.
+
+    Variant words ("Choco", "Kerala") only break ties; counting them in the overlap rejected real matches.
+    """
+    want_brand, want_name, want_variant = words(brand), words(name), words(variant)
+    if not want_name:
+        return None
     best = None
     for hit in hits:
         if not sold_in_india(hit):
             continue
         brands = hit.get("brands") or []
         brand_text = " ".join(brands) if isinstance(brands, list) else str(brands)
-        if not want_brand & words(f"{brand_text} {hit.get('product_name')}"):
+        have = words(f"{brand_text} {hit.get('product_name')}")
+        if not any(_close(w, h) for w in want_brand for h in have):
             continue
-        overlap = len(want_name & words(hit.get("product_name")))
-        if not want_name or overlap / len(want_name) < 0.75:
+        title = words(hit.get("product_name"))
+        overlap = sum(any(_close(w, t) for t in title) for w in want_name) / len(want_name)
+        if overlap < 0.75:
             continue
-        score = (overlap / len(want_name), -len(words(hit.get("product_name"))))
+        score = (overlap, len(want_variant & title), -len(title))
         if best is None or score > best[0]:
             best = (score, hit)
     return best[1] if best else None
