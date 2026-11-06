@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { api, dash, label, verdictText, httpUrl, type Product, type Result } from '$lib/api';
+	import { api, dash, label, verdictText, httpUrl, imgSrc, imgFallback, type Product, type Result } from '$lib/api';
 
 	const GROUPS = ['nutrition', 'heavy_metal', 'toxin', 'pesticide', 'spiking', 'other'];
 
@@ -30,7 +30,7 @@
 {:then p}
 	<p class="muted">{p.brand}</p>
 	<h1>{p.name}{#if p.variant} — {p.variant}{/if}</h1>
-	{#if httpUrl(p.image_url)}<img src={httpUrl(p.image_url)} alt="{p.brand} {p.name}" style="max-height: 16rem" />{/if}
+	<img src={imgSrc(p.image_url)} alt="{p.brand} {p.name}" style="max-height: 16rem" onerror={imgFallback} />
 	<dl class="fields">
 		<dt>Brand</dt><dd>{dash(p.brand)}</dd>
 		<dt>Name</dt><dd>{dash(p.name)}</dd>

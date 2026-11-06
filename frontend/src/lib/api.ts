@@ -143,3 +143,9 @@ export function verdictText(r: { verdict: Report['verdict']; grade: string | nul
 }
 
 export const httpUrl = (u: string | null) => (u && /^(https?:\/\/|\/)/i.test(u) ? u : null);
+export const PLACEHOLDER = '/placeholder.svg';
+export const imgSrc = (u: string | null | undefined) => httpUrl(u ?? null) ?? PLACEHOLDER;
+export const imgFallback = (e: Event) => {
+	const img = e.currentTarget as HTMLImageElement;
+	if (!img.src.endsWith(PLACEHOLDER)) img.src = PLACEHOLDER;
+};

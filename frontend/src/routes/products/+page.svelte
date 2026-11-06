@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { api, label, nameOf, verdictText, httpUrl, type ProductCard, type TestRequest } from '$lib/api';
+	import { api, label, nameOf, verdictText, imgSrc, imgFallback, type ProductCard, type TestRequest } from '$lib/api';
 
 	type Page = { items: ProductCard[]; page: number; page_size: number; total: number };
 
@@ -48,7 +48,7 @@
 			{#each reqs as t (t.id)}
 				<li>
 					<a class="card" href="/requests/{t.id}">
-						{#if httpUrl(t.image_url ?? null)}<img src={httpUrl(t.image_url ?? null)} alt="" loading="lazy" />{/if}
+						<img src={imgSrc(t.image_url)} alt="" loading="lazy" onerror={imgFallback} />
 						<p class="muted">{t.brand}</p>
 						<p><strong>{t.name}</strong>{#if t.variant} — {t.variant}{/if}</p>
 						<p class="muted">{label(t.category)}</p>
@@ -75,7 +75,7 @@
 			{#each r.items as p (p.id)}
 				<li>
 					<a class="card" href="/products/{p.id}">
-						{#if httpUrl(p.image_url)}<img src={httpUrl(p.image_url)} alt="" loading="lazy" />{/if}
+						<img src={imgSrc(p.image_url)} alt="" loading="lazy" onerror={imgFallback} />
 						<p class="muted">{p.brand}</p>
 						<p><strong>{p.name}</strong>{#if p.variant} — {p.variant}{/if}</p>
 						<p class="muted">{label(p.category)}</p>
