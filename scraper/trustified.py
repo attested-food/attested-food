@@ -166,7 +166,8 @@ def parse(html: str) -> dict | None:
 
 
 def main(limit: int | None, resume: bool) -> None:
-    with client() as http, connect() as conn:
+    conn = connect()
+    with client() as http:
         publisher = source_id(conn, "Trustified", "website")
         urls = re.findall(r"<loc>([^<]+)</loc>", request(http, "GET", SITEMAP, DELAY).text)[:limit]
         if resume:
@@ -204,7 +205,11 @@ def main(limit: int | None, resume: bool) -> None:
                 raise
             except Exception:
                 logging.exception("Failed on %s", url)
+                if conn.broken:
+                    logging.warning("Database connection lost, reconnecting")
+                    conn = connect()
         logging.info("Trustified done: %s", stats)
+    conn.close()
 
 
 if __name__ == "__main__":

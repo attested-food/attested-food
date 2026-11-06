@@ -97,7 +97,8 @@ def parse(d: dict) -> dict:
 
 
 def main(limit: int | None) -> None:
-    with client() as http, connect() as conn:
+    conn = connect()
+    with client() as http:
         publisher = source_id(conn, "Unbox Health", "website")
         r = request(http, "POST", f"{API}/get_products_list", headers=HEADERS, content=orjson.dumps({"query": "", "page": 1, "size": 1000}))
         items = orjson.loads(r.content)["product"]["items"][:limit]
@@ -134,7 +135,11 @@ def main(limit: int | None) -> None:
                 raise
             except Exception:
                 logging.exception("Failed on %s", item.get("title"))
+                if conn.broken:
+                    logging.warning("Database connection lost, reconnecting")
+                    conn = connect()
         logging.info("Unbox Health done: %s", stats)
+    conn.close()
 
 
 if __name__ == "__main__":

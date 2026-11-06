@@ -73,7 +73,11 @@ def request(http: httpx.Client, method: str, url: str, delay: float = DELAY, **k
 
 def connect() -> psycopg.Connection:
     load_dotenv()
-    return psycopg.connect(os.environ["DATABASE_URL"], autocommit=True)
+    return psycopg.connect(
+        os.environ["DATABASE_URL"], autocommit=True, connect_timeout=30,
+        keepalives=1, keepalives_idle=30, keepalives_interval=10, keepalives_count=3,
+        options="-c idle_in_transaction_session_timeout=60000",
+    )
 
 
 def number(raw: str | None) -> float | None:
