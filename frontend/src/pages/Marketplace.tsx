@@ -22,7 +22,8 @@ function gradeLine(p: ProductCard) {
 	const l = p.latest;
 	if (!l) return 'Not tested yet';
 	if (l.kind === 'user') return 'Lab-tested · no grade yet';
-	return `by ${nameOf(l.publisher) ?? 'published test'}`;
+	const who = nameOf(l.publisher) ?? 'a testing website';
+	return sourceGrade(l) ? `Grade by ${who}` : `${who} · no grade`;
 }
 
 function Tile({ to, img, alt, state, brand, name, grade, line, buy }: { to: string; img: string | null; alt: string; state: 'tested' | 'requested'; brand: string; name: string; grade: string | null; line: string; buy: string }) {

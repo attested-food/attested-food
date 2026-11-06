@@ -81,6 +81,10 @@ def split_ingredients(text: str) -> list[str]:
     return [p for a, b in zip(bounds, bounds[1:]) if (p := text[a + 1:b].strip())]
 
 
+def _is_score(res: dict) -> bool:
+    return "score" in (res.get("unit") or "").lower() or "score" in res["parameter"].lower()
+
+
 def findings(results: list[dict], label_nutrition: dict | None) -> list[dict]:
     label_nutrition = label_nutrition or {}
     out = []
@@ -90,6 +94,10 @@ def findings(results: list[dict], label_nutrition: dict | None) -> list[dict]:
              "unit": unit or None, "deviation_pct": None, "text": f"{res.get('value_raw')} {unit}".strip()}
         mapped = _label_key(res["parameter"])
         label = res.get("label_claim")
+        if _is_score(res):
+            # Rating-style results (e.g. Consumer Voice "VOICE score, out of 7") aren't label claims.
+            label = None
+            mapped = None
         if label is None and mapped and mapped[0] in label_nutrition:
             label = label_nutrition[mapped[0]]
             if mapped[0].endswith("_mg") and unit.lower() == "g":

@@ -1,9 +1,9 @@
-import type { CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router';
 import { buyUrl, imgFallback, imgSrc, label, nutritionRows, productName, type Finding, type WallItem } from '@/lib/api';
-import { gradeColors } from '@/lib/grade';
 import { Segments } from './Segments';
-import { StateTag } from './bits';
+import { GradeChip, ResultCounts, ResultIcon, StateTag } from './bits';
+import { S_DONE, S_REST, ease, peelShape, toClipPath, toPoints } from './peel';
 import './LabelCard.css';
 
 export type Theme = 'light' | 'dark';
@@ -23,7 +23,9 @@ function themeVars(theme: Theme): CSSProperties {
 }
 
 const ORDER = { bad: 0, good: 1, info: 2 } as const;
-const ICON: Record<string, string> = { good: '✓', bad: '✕', info: '•', unk: '?' };
+const PEEL_MS = 1050;
+const CURL_PATH = 'M100 37.8 C97 42 94 44.5 88 45.5 C76 47 62 49 55 50.5 Q51.5 51.5 51.6 55 C52 66 51.5 80 47 89 C43 95 38 98.5 33.8 100 Z';
+type Phase = 'rest' | 'moving' | 'off';
 const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
 const month = (d: string | null) => (d ? new Date(d).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : null);
 
@@ -48,32 +50,67 @@ export function LabelCard({ item, theme, peeled, onPeel, onUnpeel }: { item: Wal
 	const source = isRequest
 		? 'From the label · requested for testing'
 		: [item.lab, item.report_kind === 'fallback' && item.grade_source && item.grade_source !== item.lab ? `via ${item.grade_source}` : null, month(item.tested_on)].filter(Boolean).join(' · ');
-	const gc = gradeColors(item.grade);
 	const gid = `curl-${item.kind}-${item.id}`;
+
+	// Peel: a fold line sweeps across the label; frame-by-frame updates go straight to the DOM.
+	const [phase, setPhase] = useState<Phase>(peeled ? 'off' : 'rest');
+	const front = useRef<HTMLDivElement>(null);
+	const flap = useRef<SVGPolygonElement>(null);
+	const shade = useRef<SVGLinearGradientElement>(null);
+	const at = useRef(peeled ? S_DONE : S_REST);
+	useEffect(() => {
+		const from = at.current;
+		const to = peeled ? S_DONE : S_REST;
+		if (from === to) return;
+		const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		let frame = 0;
+		const start = performance.now();
+		const draw = (s: number) => {
+			const g = peelShape(s);
+			if (front.current) front.current.style.clipPath = toClipPath(g.front);
+			flap.current?.setAttribute('points', toPoints(g.flap));
+			if (shade.current) {
+				shade.current.setAttribute('x1', String(g.foldPt[0]));
+				shade.current.setAttribute('y1', String(g.foldPt[1]));
+				shade.current.setAttribute('x2', String(g.tipPt[0]));
+				shade.current.setAttribute('y2', String(g.tipPt[1]));
+			}
+		};
+		const finish = () => {
+			at.current = to;
+			if (front.current) front.current.style.clipPath = '';
+			setPhase(peeled ? 'off' : 'rest');
+		};
+		if (still) {
+			finish();
+			return;
+		}
+		setPhase('moving');
+		draw(from);
+		const tick = (now: number) => {
+			const t = Math.min(1, (now - start) / PEEL_MS);
+			const s = from + (to - from) * ease(t);
+			at.current = s;
+			draw(s);
+			if (t < 1) frame = requestAnimationFrame(tick);
+			else finish();
+		};
+		frame = requestAnimationFrame(tick);
+		return () => cancelAnimationFrame(frame);
+	}, [peeled]);
 
 	return (
 		<div className="lc" style={themeVars(theme)}>
 			<section className="lc-back" style={themeVars(back)} aria-label={`What the tests found for ${name}`} inert={!peeled}>
-				<div className={`lc-back-in${peeled ? ' show' : ''}`}>
+				<div className={`lc-back-in${phase !== 'rest' ? ' show' : ''}`}>
 					<div className="lc-head">
-						{gc && item.grade ? (
-							<div className="lc-grade" style={{ background: gc[0], color: gc[1], fontSize: item.grade.length <= 2 ? 30 : 15 }}>{item.grade}</div>
-						) : null}
+						<GradeChip grade={item.grade} size={54} />
 						<div className="lc-head-text">
 							<div className="lc-eyebrow">{gradeLabel}</div>
 							<div className="lc-counts">
-								{isRequest || !a ? (
-									<span className="sub">? Not tested yet</span>
-								) : (
-									<>
-										<span className="pass">✓ {a.counts.pass} pass</span>
-										<span className="fail">✕ {a.counts.fail} fail</span>
-										<span className="sub">? {a.counts.untested} not tested</span>
-									</>
-								)}
+								{isRequest || !a ? <span className="sub">Not tested yet</span> : <ResultCounts counts={a.counts} size="sm" />}
 							</div>
 						</div>
-						<button type="button" className="lc-unpeel" onClick={onUnpeel} onMouseDown={stop} aria-label="Stick the label back">↺</button>
 					</div>
 					{item.ingredients && (
 						<p className="lc-ing">
@@ -84,7 +121,7 @@ export function LabelCard({ item, theme, peeled, onPeel, onUnpeel }: { item: Wal
 					<ul className="lc-rows">
 						{rows.map((x, i) => (
 							<li key={i}>
-								<span className={`lc-ico ${x.kind}`} aria-hidden="true">{ICON[x.kind]}</span>
+								<ResultIcon kind={x.kind as 'good' | 'bad' | 'info' | 'unk'} size={18} />
 								<span className="lc-rt">{x.t}</span>
 								<span className={`lc-rr ${x.kind}`}>{x.r}</span>
 							</li>
@@ -100,9 +137,23 @@ export function LabelCard({ item, theme, peeled, onPeel, onUnpeel }: { item: Wal
 						<a className="btn sm lc-buy" href={buyUrl(item)} target="_blank" rel="sponsored noopener" onMouseDown={stop}>Buy</a>
 					</div>
 				</div>
+				{phase === 'off' && (
+					<button type="button" className="lc-stick" onClick={onUnpeel} onMouseDown={stop} aria-label="Stick the label back" title="Stick the label back" style={themeVars(theme)}>
+						<svg aria-hidden="true" width="72" height="72" viewBox="0 0 100 100">
+							<defs>
+								<linearGradient id={`${gid}-s`} gradientUnits="userSpaceOnUse" x1="40" y1="40" x2="80" y2="80">
+									<stop offset="0" stopColor="var(--bg)" />
+									<stop offset="1" stopColor="var(--line)" />
+								</linearGradient>
+							</defs>
+							<path d={CURL_PATH} fill={`url(#${gid}-s)`} />
+						</svg>
+						<span>Stick back</span>
+					</button>
+				)}
 			</section>
 
-			<div className={`lc-front${peeled ? ' peeled' : ''}`} onClick={onPeel} inert={peeled}>
+			<div ref={front} className={`lc-front lc-${phase}`} onClick={() => phase === 'rest' && onPeel()} inert={phase !== 'rest'}>
 				<div className="lc-sheet">
 					<div className="lc-photo">
 						<img src={imgSrc(item.image_url)} alt={`${name} pack`} draggable={false} loading="lazy" referrerPolicy="no-referrer" onError={imgFallback} />
@@ -143,10 +194,21 @@ export function LabelCard({ item, theme, peeled, onPeel, onUnpeel }: { item: Wal
 								<stop offset="1" stopColor="#BDBDBD" />
 							</linearGradient>
 						</defs>
-						<path d="M100 37.8 C97 42 94 44.5 88 45.5 C76 47 62 49 55 50.5 Q51.5 51.5 51.6 55 C52 66 51.5 80 47 89 C43 95 38 98.5 33.8 100 Z" fill={`url(#${gid})`} />
+						<path d={CURL_PATH} fill={`url(#${gid})`} />
 					</svg>
 				</button>
 			</div>
+
+			<svg className={`lc-flap${phase === 'moving' ? ' on' : ''}`} aria-hidden="true" width="600" height="380" viewBox="0 0 600 380">
+				<defs>
+					<linearGradient ref={shade} id={`${gid}-f`} gradientUnits="userSpaceOnUse">
+						<stop offset="0" stopColor="#FFFFFF" />
+						<stop offset="0.35" stopColor="#F1F1EF" />
+						<stop offset="1" stopColor="#CFCFCB" />
+					</linearGradient>
+				</defs>
+				<polygon ref={flap} points="" fill={`url(#${gid}-f)`} />
+			</svg>
 		</div>
 	);
 }

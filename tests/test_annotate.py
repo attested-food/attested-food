@@ -112,3 +112,8 @@ def test_split_ignores_bracket_that_never_closes():
 def test_off_label_with_unknown_direction_is_bad():
     f = findings([r("MUFA+PUFA", 6.63, label_claim=12.4)], None)[0]
     assert f["kind"] == "bad" and f["text"] == "6.6 g, -47% vs label"
+
+
+def test_scores_are_not_compared_with_the_label():
+    f = findings([r("Fatty acid composition (VOICE score)", 7, "score out of 7", label_claim=100)], None)[0]
+    assert f["kind"] == "info" and f["label"] is None and f["deviation_pct"] is None

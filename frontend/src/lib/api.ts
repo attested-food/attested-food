@@ -231,8 +231,16 @@ export function buyUrl(p: { brand: string; name: string; variant: string | null;
 }
 
 export const PLACEHOLDER = '/placeholder.svg';
-export const imgSrc = (u: string | null | undefined) => httpUrl(u ?? null) ?? PLACEHOLDER;
+/** Trimmed, resized thumbnail from /api/thumb (flat borders removed), or the placeholder. */
+export const imgSrc = (u: string | null | undefined, w = 600) => {
+	const src = httpUrl(u ?? null);
+	return src ? `/api/thumb?w=${w}&src=${encodeURIComponent(src)}` : PLACEHOLDER;
+};
+/** onError: thumbnail failed → try the original photo; original failed → placeholder. */
 export const imgFallback = (e: { currentTarget: HTMLImageElement }) => {
 	const img = e.currentTarget;
-	if (!img.src.endsWith(PLACEHOLDER)) img.src = PLACEHOLDER;
+	const url = new URL(img.src, location.href);
+	const original = url.pathname === '/api/thumb' ? url.searchParams.get('src') : null;
+	if (original) img.src = original;
+	else if (!img.src.endsWith(PLACEHOLDER)) img.src = PLACEHOLDER;
 };

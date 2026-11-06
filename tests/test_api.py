@@ -302,3 +302,12 @@ def test_label_filters(param, key, check):
 
 def test_unknown_evidence_rejected():
     assert client.get("/api/products", params={"evidence": "rumour"}).status_code == 422
+
+
+def test_thumb_refuses_unknown_images():
+    assert client.get("/api/thumb", params={"src": "https://example.com/not-ours.jpg"}).status_code == 404
+    assert client.get("/api/thumb", params={"src": "/api/test-requests/00000000-0000-0000-0000-000000000000/image"}).status_code == 404
+
+
+def test_thumb_width_bounds():
+    assert client.get("/api/thumb", params={"src": "x", "w": 10}).status_code == 422

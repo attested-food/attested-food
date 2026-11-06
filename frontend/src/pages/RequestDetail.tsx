@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router';
 import { buyUrl, dash, httpUrl, label, productName, type TestRequest } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
-import { Photo, StateTag } from '@/components/bits';
+import { Photo, ResultIcon, StateTag } from '@/components/bits';
 import { Fund } from '@/components/Fund';
 import './Product.css';
 
@@ -40,7 +40,7 @@ export default function RequestDetail() {
 					<h2 className="section-title" style={{ marginTop: 40 }}>Tests we'll run</h2>
 					<ul className="p-cov">
 						{(r.tests ?? []).map((t) => (
-							<li key={t}><span className="p-ico unk" aria-hidden="true">?</span><span>{t}</span><span className="eyebrow">Not tested</span></li>
+							<li key={t}><ResultIcon kind="unk" size={20} /><span>{t}</span><span className="eyebrow">Not tested</span></li>
 						))}
 					</ul>
 

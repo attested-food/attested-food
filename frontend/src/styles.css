@@ -114,9 +114,9 @@ h1, h2, h3 { margin: 0; }
 .card { background: var(--white); border: 1px solid var(--card-line); border-radius: 6px; }
 a.card:hover, .card.hoverable:hover { border-color: var(--field-line); }
 
-/* Product photo: every photo fills the same frame */
-.photo { position: relative; display: block; overflow: hidden; border-radius: var(--r); background: var(--tile); aspect-ratio: 4 / 5; }
-.photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+/* Product photo: trimmed thumbnail, whole pack shown on white in a square frame */
+.photo { position: relative; display: block; overflow: hidden; border-radius: var(--r); background: var(--white); aspect-ratio: 1 / 1; }
+.photo img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; padding: 7%; }
 
 /* State tags */
 .tag { display: inline-flex; align-items: center; padding: 3px 7px; border-radius: var(--r); font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
@@ -186,3 +186,22 @@ a.card:hover, .card.hoverable:hover { border-color: var(--field-line); }
 .ab-sec { margin-top: 40px; }
 .ab-sec ul { padding-left: 20px; }
 .ab-sec li { margin: 6px 0; }
+
+/* Grade chip: big score, small "/100" */
+.grade small { margin-left: 1px; font-weight: 600; opacity: 0.85; align-self: flex-end; padding-bottom: 0.32em; }
+
+/* Result icons and counts. Colours follow --good / --red / --sub, so they work on light and dark labels. */
+.ri { flex: 0 0 auto; display: block; }
+.ri-good circle { fill: var(--good); }
+.ri-good path { stroke: #fff; }
+.ri-bad circle { fill: var(--red); }
+.ri-bad path { stroke: #fff; }
+.ri-info circle, .ri-info path { stroke: var(--sub); }
+.ri-unk circle, .ri-unk path { stroke: var(--sub); }
+.ri-unk .dot { fill: var(--sub); }
+.rc { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font-size: 14px; font-weight: 500; color: var(--ink); }
+.rc-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.rc-item b { font-weight: 700; }
+.rc-muted { color: var(--sub); }
+.rc-sm { font-size: 13px; gap: 4px 12px; }
+.rc-lg { font-size: 16px; gap: 6px 20px; }

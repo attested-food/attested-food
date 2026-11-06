@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import uuid
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
@@ -19,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend import amazon
 from backend.annotate import summarize
+from backend.thumbs import thumbnail
 from backend.category_tests import coverage, names_for
 
 load_dotenv()
@@ -388,6 +390,46 @@ def get_test_request_image(rid: str) -> Response:
         raise HTTPException(404, "image not found")
     return Response(rows[0]["image"], media_type=rows[0]["image_type"],
                     headers={"Cache-Control": "public, max-age=86400", "X-Content-Type-Options": "nosniff"})
+
+
+THUMB_KNOWN_SQL = """
+SELECT EXISTS (SELECT 1 FROM products WHERE image_url = %(u)s)
+    OR EXISTS (SELECT 1 FROM test_requests WHERE image_url = %(u)s) AS ok
+"""
+REQUEST_IMAGE_PATH = re.compile(r"^/api/test-requests/([0-9a-fA-F-]{36})/image$")
+MAX_REMOTE_IMAGE = 8 * 1024 * 1024
+
+
+@lru_cache(maxsize=512)
+def _thumb(src: str, width: int) -> bytes:
+    """Only images we already hold a link to are fetched, so this can't be used to reach other hosts."""
+    if m := REQUEST_IMAGE_PATH.match(src):
+        rows = fetch("SELECT image FROM test_requests WHERE id = %s AND image IS NOT NULL", (uuid.UUID(m[1]),))
+        if not rows:
+            raise HTTPException(404, "image not found")
+        return thumbnail(bytes(rows[0]["image"]), width)
+    if not fetch(THUMB_KNOWN_SQL, {"u": src})[0]["ok"]:
+        raise HTTPException(404, "image not found")
+    resp = httpx.get(src, timeout=10, follow_redirects=True, headers={"User-Agent": "OpenLabel/1.0 (thumbnails)"})
+    resp.raise_for_status()
+    if len(resp.content) > MAX_REMOTE_IMAGE:
+        raise HTTPException(404, "image too large")
+    return thumbnail(resp.content, width)
+
+
+@app.get("/api/thumb")
+def thumb(src: str = Query(max_length=2000), w: int = Query(600, ge=64, le=1200)) -> Response:
+    """Product photo with its flat border trimmed, as WebP. `src` must be an image_url we serve."""
+    width = min(1200, -(-w // 100) * 100)  # round up to 100 px steps so the cache stays small
+    try:
+        data = _thumb(src, width)
+    except HTTPException:
+        raise
+    except (httpx.HTTPError, OSError, ValueError):
+        logging.warning("thumbnail failed for %s", src)
+        raise HTTPException(404, "image unavailable") from None
+    return Response(data, media_type="image/webp",
+                    headers={"Cache-Control": "public, max-age=604800", "X-Content-Type-Options": "nosniff"})
 
 
 @app.get("/api/prefill")
