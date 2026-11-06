@@ -1,8 +1,10 @@
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
 from backend import main
-from backend.category_tests import coverage
+from backend.category_tests import coverage, names_for
 
 client = TestClient(main.app)
 
@@ -140,17 +142,34 @@ def test_coverage(category, results, expected):
 
 GOOD_REQUEST = {"brand": "Zzqq Test Brand", "name": "Zzqq Test Product", "category": "peanut_butter",
                 "image_url": "https://example.com/p.jpg"}
+# These tests create test requests in whatever database DATABASE_URL points at, which is production today.
+# They only run when asked: ALLOW_DB_WRITES=1 uv run pytest
+writes_db = pytest.mark.skipif(os.environ.get("ALLOW_DB_WRITES") != "1",
+                               reason="writes to the configured database; set ALLOW_DB_WRITES=1 to run")
+
+
+@pytest.fixture
+def clean_requests():
+    """Clear test rows before and after, so a failed run can't leave a fake request on the site."""
+    def clear():
+        main.fetch("DELETE FROM test_requests WHERE brand = %s RETURNING id", (GOOD_REQUEST["brand"],))
+    clear()
+    yield
+    clear()
+
+
 PNG_1PX = ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk"
            "YPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")
 
 
+@writes_db
 @pytest.mark.parametrize("extra", [{}, {"image_url": None, "image_data": PNG_1PX, "fssai_license": "10012345678901",
                                         "barcode": "8901234567890", "buy_url": "https://amazon.in/x"}])
-def test_test_request_created(extra):
+def test_test_request_created(extra, clean_requests):
     resp = client.post("/api/test-requests", json={**GOOD_REQUEST, **extra})
     assert resp.status_code == 201, resp.text
     body = resp.json()
-    assert body["tests"][0] == "Nutrition vs label claims"
+    assert body["tests"] == names_for(GOOD_REQUEST["category"])
     req = client.get(f"/api/test-requests/{body['id']}").json()
     assert req["brand"] == GOOD_REQUEST["brand"] and req["tests"] == body["tests"]
     if "image_data" in extra:
@@ -174,7 +193,8 @@ def test_test_request_invalid(change):
     assert client.post("/api/test-requests", json={**GOOD_REQUEST, **change}).status_code == 422
 
 
-def test_test_request_bad_image():
+@writes_db
+def test_test_request_bad_image(clean_requests):
     body = {**GOOD_REQUEST, "image_url": None, "image_data": "data:image/gif;base64,R0lGOD"}
     assert client.post("/api/test-requests", json=body).status_code == 422
 
@@ -201,7 +221,8 @@ def test_frontend_serving(path, status, content, tmp_path, monkeypatch):
     assert resp.status_code == status and resp.text == content
 
 
-def test_test_request_already_requested():
+@writes_db
+def test_test_request_already_requested(clean_requests):
     created = client.post("/api/test-requests", json={**GOOD_REQUEST, "buy_url": "https://www.amazon.in/x/dp/B0ZZQQ0001"})
     assert created.status_code == 201
     rid = created.json()["id"]
