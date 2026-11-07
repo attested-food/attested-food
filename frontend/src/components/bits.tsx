@@ -28,11 +28,13 @@ export function GradeChip({ grade, size = 28 }: { grade: string | null; size?: n
 	);
 }
 
-/** Whose grade it is: OpenLabel's own (filled) or a third party's (outlined). */
+/** Marks OpenLabel's own grade. Third-party grades carry no tag: the "3rd-party tested" state tag and the
+ * source name next to the grade already say whose it is. */
 export function GradeTag({ ours }: { ours: boolean; provisional?: boolean }) {
+	if (!ours) return null;
 	return (
-		<span className={`gtag ${ours ? 'ours' : 'third'}`} title={ours ? 'Graded by OpenLabel from our own lab test' : 'Grade from a third-party testing website'}>
-			{ours ? 'OpenLabel' : '3rd-party'}
+		<span className="gtag ours" title="Graded by OpenLabel from our own lab test">
+			OpenLabel
 		</span>
 	);
 }

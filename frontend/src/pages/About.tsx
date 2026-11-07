@@ -33,7 +33,7 @@ export default function About() {
 					<li><strong>Nutrition (20%).</strong> A Nutri-Score style score from the lab’s values: sugar, saturated fat, sodium and energy count against; fibre and protein count for.</li>
 				</ul>
 				<p>If a part wasn’t tested, the grade is worked out from the parts that were. Until all of a category’s standard tests are done, the grade is marked <strong>provisional</strong>.</p>
-				<p>Products tested by Trustified, Unbox Health or Consumer Voice show <strong>their</strong> grade with a <span className="gtag third">3rd-party</span> tag and a link back to them. We don’t change or re-grade their results.</p>
+				<p>Products tested by Trustified, Unbox Health or Consumer Voice are tagged <span className="tag tested">3rd-party tested</span> and show <strong>their</strong> grade, named and linked back to them. We don’t change or re-grade their results.</p>
 			</section>
 			<section className="ab-sec">
 				<h2 className="section-title">Published tests, with credit</h2>
