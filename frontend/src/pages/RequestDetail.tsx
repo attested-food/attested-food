@@ -75,7 +75,7 @@ export default function RequestDetail() {
 				</div>
 
 				<aside className="p-side" aria-label="Fund or buy">
-					<div id="fund"><Fund requestId={r.id} onReport={onReport} /></div>
+					<div id="fund"><Fund requestId={r.id} title={`${r.brand} ${name}`} onReport={onReport} /></div>
 					<div className="p-buy card">
 						<p className="p-buy-price">See today’s price on Amazon</p>
 						<a className="btn lg p-buy-btn" href={buyUrl(r)} target="_blank" rel="sponsored noopener">Buy on Amazon</a>

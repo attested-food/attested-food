@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { Logo } from './bits';
 import { SignIn } from './SignIn';
+import { ReportTaskWindow } from './ReportTaskWindow';
 import { useIsAdmin } from '@/lib/wallet';
 
 export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
@@ -42,12 +43,13 @@ export function SiteFooter() {
 /** Inner pages get the dark header band and footer; Home draws its own overlay header. */
 export function Layout() {
 	const { pathname } = useLocation();
-	if (pathname === '/') return <Outlet />;
+	if (pathname === '/') return <><Outlet /><ReportTaskWindow /></>;
 	return (
 		<>
 			<SiteHeader />
 			<main><Outlet /></main>
 			<SiteFooter />
+			<ReportTaskWindow />
 		</>
 	);
 }
