@@ -10,11 +10,17 @@ Copy `export.rs` to `preprocessing/browser_fixture.rs` and register a binary
 named `browser-fixture` at that path in the fork's Cargo.toml with required
 feature `native`. Do not alter its existing dependency graph or lockfile.
 
-`instrument.py /home/admin/jwp` adds passive native logging. It reads all three
-source files before writing, requires unique source anchors and refuses a
-second application. The nested Akita capture works; the outer legacy hook is
-not the live outer transcript implementation for this target. That diagnostic
-limit is intentional in this bounded fixture landing, not full witness coverage.
+`instrument.py /home/admin/jwp` adds passive nested Akita logging. Then run
+`instrument_outer.py /home/admin/jwp` before building: it instruments the exact
+compiled `digest.rs` behind `LegacyBlake2bTranscript`, plus semantic label
+encoders. Both patchers read all affected files before writing, require unique
+source anchors and refuse a second application. No transcript return values
+or acceptance logic are replaced.
+
+After each native export, run `replay_outer.py DIR/jolt-transcript.jsonl >
+DIR/jolt-transcript-replay.json` before `package.py`. Replay independently checks
+all Blake2b-256 transitions, counter words, label packing, field challenge
+decoding and the terminal bridge into the retained nested Akita capture.
 
 Inside the VM, with the source and build dependencies already prepared:
 

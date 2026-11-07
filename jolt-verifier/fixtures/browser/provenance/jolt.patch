@@ -342,11 +342,206 @@ index 3dd7837..c3bb152 100644
      }
  
      /// Apply `even + r·(odd − even)` to every value pair.
+diff --git a/crates/jolt-transcript/src/digest.rs b/crates/jolt-transcript/src/digest.rs
+index 544c4f4..8c5cbcd 100644
+--- a/crates/jolt-transcript/src/digest.rs
++++ b/crates/jolt-transcript/src/digest.rs
+@@ -83,6 +83,16 @@ where
+     #[doc(hidden)]
+     pub fn raw_challenge_bytes(&mut self, out: &mut [u8]) {
+         self.challenge_bytes(out);
++        fixture_digest_record(
++            "raw_bytes",
++            self.n_rounds,
++            self.n_rounds,
++            &self.state,
++            &self.state,
++            &[],
++            out,
++            &[],
++        );
+     }
+ 
+     #[inline]
+@@ -111,9 +121,21 @@ where
+ 
+     #[inline]
+     fn challenge_bytes32(&mut self, out: &mut [u8; 32]) {
++        let before = self.state;
++        let round = self.n_rounds;
+         let hash: [u8; 32] = self.hasher().finalize().into();
+         out.copy_from_slice(&hash);
+         self.update_state(hash);
++        fixture_digest_record(
++            "squeeze",
++            round,
++            self.n_rounds,
++            &before,
++            &self.state,
++            &[],
++            &hash,
++            &[],
++        );
+     }
+ 
+     fn update_state(&mut self, new_state: [u8; 32]) {
+@@ -154,6 +176,8 @@ where
+         head.copy_from_slice(label);
+ 
+         let hash: [u8; 32] = D::new().chain_update(padded).finalize().into();
++        fixture_digest_label("session", label, None);
++        fixture_digest_record("init", 0, 0, &[0u8; 32], &hash, &padded, &[], &[]);
+ 
+         Self {
+             state: hash,
+@@ -168,24 +192,68 @@ where
+     }
+ 
+     fn append_bytes(&mut self, bytes: &[u8]) {
++        let before = self.state;
++        let round = self.n_rounds;
+         let hash: [u8; 32] = self.hasher().chain_update(bytes).finalize().into();
+         self.update_state(hash);
++        fixture_digest_record(
++            "absorb",
++            round,
++            self.n_rounds,
++            &before,
++            &self.state,
++            bytes,
++            &[],
++            &[],
++        );
+     }
+ 
+     fn challenge(&mut self) -> F {
+         let mut buf = [0u8; 16];
+         self.challenge_bytes(&mut buf);
+-        F::from_challenge_bytes(&buf)
++        let field = F::from_challenge_bytes(&buf);
++        fixture_digest_record(
++            "decode_challenge",
++            self.n_rounds,
++            self.n_rounds,
++            &self.state,
++            &self.state,
++            &[],
++            &buf,
++            &field.to_bytes_le_vec(),
++        );
++        field
+     }
+ 
+     fn challenge_scalar(&mut self) -> F {
+         let mut buf = [0u8; 16];
+         self.challenge_bytes(&mut buf);
+-        F::from_scalar_challenge_bytes(&buf)
++        let field = F::from_scalar_challenge_bytes(&buf);
++        fixture_digest_record(
++            "decode_scalar",
++            self.n_rounds,
++            self.n_rounds,
++            &self.state,
++            &self.state,
++            &[],
++            &buf,
++            &field.to_bytes_le_vec(),
++        );
++        field
+     }
+ 
+     #[inline]
+     fn state(&self) -> [u8; 32] {
++        fixture_digest_record(
++            "state",
++            self.n_rounds,
++            self.n_rounds,
++            &self.state,
++            &self.state,
++            &[],
++            &[],
++            &[],
++        );
+         self.state
+     }
+ 
+@@ -194,3 +262,47 @@ where
+         self.test_state.expected_state_history = Some(other.test_state.state_history.clone());
+     }
+ }
++
++// Native fixture diagnostics only; all transcript values are observed unchanged.
++fn fixture_digest_record(
++    op: &str,
++    before_round: u32,
++    after_round: u32,
++    before: &[u8; 32],
++    after: &[u8; 32],
++    payload: &[u8],
++    raw: &[u8],
++    field: &[u8],
++) {
++    if let Some(directory) = std::env::var_os("JOLT_BROWSER_FIXTURE_CAPTURE") {
++        use std::io::Write;
++        let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
++        let path = std::path::PathBuf::from(directory).join("jolt-transcript.jsonl");
++        let mut file = std::fs::OpenOptions::new()
++            .create(true)
++            .append(true)
++            .open(path)
++            .unwrap();
++        writeln!(file, "{{\"op\":\"{op}\",\"round_before\":{before_round},\"round_after\":{after_round},\"state_before_hex\":\"{}\",\"state_after_hex\":\"{}\",\"payload_hex\":\"{}\",\"raw_hex\":\"{}\",\"field_le_hex\":\"{}\"}}", hex(before), hex(after), hex(payload), hex(raw), hex(field)).unwrap();
++    }
++}
++
++/// Records semantic label words alongside their unchanged absorb events.
++pub(crate) fn fixture_digest_label(op: &str, label: &[u8], count: Option<u64>) {
++    if let Some(directory) = std::env::var_os("JOLT_BROWSER_FIXTURE_CAPTURE") {
++        use std::io::Write;
++        let label: String = label.iter().map(|b| format!("{b:02x}")).collect();
++        let count = count.map_or_else(|| "null".to_owned(), |n| n.to_string());
++        let path = std::path::PathBuf::from(directory).join("jolt-transcript.jsonl");
++        let mut file = std::fs::OpenOptions::new()
++            .create(true)
++            .append(true)
++            .open(path)
++            .unwrap();
++        writeln!(
++            file,
++            "{{\"op\":\"{op}\",\"label_hex\":\"{label}\",\"count\":{count}}}"
++        )
++        .unwrap();
++    }
++}
 diff --git a/crates/jolt-transcript/src/legacy.rs b/crates/jolt-transcript/src/legacy.rs
-index cb19565..6ac0d8c 100644
+index cb19565..b753e05 100644
 --- a/crates/jolt-transcript/src/legacy.rs
 +++ b/crates/jolt-transcript/src/legacy.rs
-@@ -256,6 +256,7 @@ where
+@@ -157,6 +157,7 @@ pub struct Label(pub &'static [u8]);
+ 
+ impl AppendToTranscript for Label {
+     fn append_to_transcript<T: Transcript>(&self, transcript: &mut T) {
++        crate::digest::fixture_digest_label("label", self.0, None);
+         assert!(
+             self.0.len() <= 32,
+             "label {:?} exceeds 32 bytes",
+@@ -175,6 +176,7 @@ pub struct LabelWithCount(pub &'static [u8], pub u64);
+ 
+ impl AppendToTranscript for LabelWithCount {
+     fn append_to_transcript<T: Transcript>(&self, transcript: &mut T) {
++        crate::digest::fixture_digest_label("label_count", self.0, Some(self.1));
+         assert!(
+             self.0.len() <= 24,
+             "label {:?} exceeds 24 bytes",
+@@ -193,6 +195,7 @@ pub struct U64Word(pub u64);
+ 
+ impl AppendToTranscript for U64Word {
+     fn append_to_transcript<T: Transcript>(&self, transcript: &mut T) {
++        crate::digest::fixture_digest_label("u64", &[], Some(self.0));
+         let mut packed = [0u8; 32];
+         packed[24..].copy_from_slice(&self.0.to_be_bytes());
+         transcript.append_bytes(&packed);
+@@ -256,6 +259,7 @@ where
      type Challenge = F;
  
      fn new(label: &'static [u8]) -> Self {
@@ -354,7 +549,7 @@ index cb19565..6ac0d8c 100644
          assert!(
              label.len() <= MAX_LABEL_LEN,
              "label must be at most {MAX_LABEL_LEN} bytes",
-@@ -271,6 +272,7 @@ where
+@@ -271,6 +275,7 @@ where
      }
  
      fn append_bytes(&mut self, bytes: &[u8]) {
@@ -362,7 +557,7 @@ index cb19565..6ac0d8c 100644
          // 1-byte non-zero domain marker + 8-byte LE length + body.
          //
          // The marker sub-domain-separates legacy-facade `append_bytes` calls
-@@ -299,6 +301,7 @@ where
+@@ -299,6 +304,7 @@ where
          // surface this facade goes away and the inconsistency with it.
          let mut buf = [0u8; 16];
          let _ = self.sponge.squeeze(&mut buf);
@@ -370,7 +565,7 @@ index cb19565..6ac0d8c 100644
          F::from_challenge_bytes(&buf)
      }
  
-@@ -307,6 +310,7 @@ where
+@@ -307,6 +313,7 @@ where
          // squeeze width as `challenge`, but the non-optimized decoding path.
          let mut buf = [0u8; 16];
          let _ = self.sponge.squeeze(&mut buf);
@@ -378,7 +573,7 @@ index cb19565..6ac0d8c 100644
          F::from_scalar_challenge_bytes(&buf)
      }
  
-@@ -314,3 +318,14 @@ where
+@@ -314,3 +321,18 @@ where
          peek_state(&self.sponge)
      }
  }
@@ -388,7 +583,11 @@ index cb19565..6ac0d8c 100644
 +    if let Some(directory) = std::env::var_os("JOLT_BROWSER_FIXTURE_CAPTURE") {
 +        use std::io::Write;
 +        let path = std::path::PathBuf::from(directory).join("jolt-transcript.tsv");
-+        let mut file = std::fs::OpenOptions::new().create(true).append(true).open(path).unwrap();
++        let mut file = std::fs::OpenOptions::new()
++            .create(true)
++            .append(true)
++            .open(path)
++            .unwrap();
 +        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
 +        writeln!(file, "{kind}\t{hex}").unwrap();
 +    }

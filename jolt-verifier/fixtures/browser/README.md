@@ -74,11 +74,15 @@ not inside a browser or on WebGPU. No Circom verification has run. The native
 verifier preprocesses against the same shipped program and schedules; this
 is not a substitute for pinning them in a deployed verifier.
 
-Diagnostic capture is incomplete: no outer Jolt transcript log was produced.
-The hook in `legacy.rs` was not on this target's live outer transcript path.
-The nested Akita transcript, PCS bytes and decoded PCS proof were captured.
-Scalar/PCS circuit lanes must derive and constrain their own transcript and
-arithmetic. Native acceptance flags must never replace PCS verification.
+Outer Jolt capture is now available as `jolt-transcript.jsonl`, with independent
+state/challenge replay in `jolt-transcript-replay.json`. The compiled
+`DigestTranscript` behind `LegacyBlake2bTranscript` is instrumented directly.
+Both regenerated proofs remain byte-identical to the original pair, including
+program IO and verifier preprocessing. Nested Akita capture is retained.
+See [OUTER-TRANSCRIPT.md](OUTER-TRANSCRIPT.md) for typed event schemas and exact
+40-byte VM output framing. Scalar/PCS circuit lanes must derive and constrain
+their own transcript and arithmetic. Native acceptance flags must never
+replace PCS verification.
 
 Historical Dory artifacts under the neighbouring fixture/tool directories
 are a separate, out-of-target experiment. No tier20, tier31 or tier33 fixture

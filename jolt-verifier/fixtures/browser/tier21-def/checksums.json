@@ -7,9 +7,17 @@
     "bytes": 46,
     "sha256": "350d108be57731f4626cb255ad9e78d2020e2f0dc5603bb779ebfbd87a994027"
   },
+  "jolt-transcript-replay.json": {
+    "bytes": 703340,
+    "sha256": "4570ff66f4050d25e8c4c12079501cd0654a29b9c35f5f094a26412448491bf8"
+  },
+  "jolt-transcript.jsonl": {
+    "bytes": 864259,
+    "sha256": "35a375dd97effec25323d36dd513e04a38ba28c57516a721c753c9364bab512c"
+  },
   "manifest.json": {
-    "bytes": 1563,
-    "sha256": "a00e59d5d20b18d1898ad40b7f328c0f0c4b86a3fd26df79e8e0f694b83119f0"
+    "bytes": 1560,
+    "sha256": "eff8df7ac38e68fcc5fc2d3464bf6e31e7fa647822547ffc05a7b67e8fe2d398"
   },
   "outputs-postcard.bin": {
     "bytes": 40,

@@ -3,29 +3,19 @@ help: Check that the patched package version and available features are compatib
       with the dependency requirements. If the patch has a different version from
       what is locked in the Cargo.lock file, run `cargo update` to use the new
       version. This may also occur with an optional dependency that is not enabled.
+   Compiling jolt-transcript v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-transcript)
    Compiling jolt-poly v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-poly)
-   Compiling akita-transcript v0.1.0 (/home/admin/jwp/.wasm-deps/akita/crates/akita-transcript)
-   Compiling akita-sumcheck v0.1.0 (/home/admin/jwp/.wasm-deps/akita/crates/akita-sumcheck)
-   Compiling akita-challenges v0.1.0 (/home/admin/jwp/.wasm-deps/akita/crates/akita-challenges)
-   Compiling akita-types v0.1.0 (/home/admin/jwp/.wasm-deps/akita/crates/akita-types)
    Compiling jolt-crypto v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-crypto)
    Compiling jolt-openings v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-openings)
    Compiling jolt-claims v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-claims)
+   Compiling jolt-akita v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-akita)
    Compiling jolt-dory v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-dory)
    Compiling jolt-r1cs v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-r1cs)
    Compiling jolt-witness v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-witness)
    Compiling jolt-sumcheck v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-sumcheck)
    Compiling jolt-blindfold v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-blindfold)
    Compiling jolt-verifier v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-verifier)
-   Compiling akita-schedules v0.1.0 (/home/admin/jwp/.wasm-deps/akita/crates/akita-schedules)
-   Compiling akita-config v0.1.0 (/home/admin/jwp/.wasm-deps/akita/crates/akita-config)
-   Compiling akita-prover v0.1.0 (/home/admin/jwp/.wasm-deps/akita/crates/akita-prover)
-   Compiling akita-verifier v0.1.0 (/home/admin/jwp/.wasm-deps/akita/crates/akita-verifier)
-   Compiling akita-planner v0.1.0 (/home/admin/jwp/.wasm-deps/akita/crates/akita-planner)
    Compiling jolt-kernels v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-kernels)
-   Compiling akita-setup v0.1.0 (/home/admin/jwp/.wasm-deps/akita/crates/akita-setup)
-   Compiling akita-pcs v0.1.0 (/home/admin/jwp/.wasm-deps/akita/crates/akita-pcs)
-   Compiling jolt-akita v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-akita)
    Compiling jolt-prover v0.1.0 (/home/admin/jwp/.wasm-deps/jolt/crates/jolt-prover)
    Compiling jolt-wasm-prover v0.1.0 (/home/admin/jwp)
 warning: function `trace_only` is never used
@@ -43,4 +33,4 @@ warning: function `program_outputs` is never used
     |        ^^^^^^^^^^^^^^^
 
 warning: `jolt-wasm-prover` (bin "browser-fixture") generated 2 warnings
-    Finished `release` profile [optimized] target(s) in 7m 28s
+    Finished `release` profile [optimized] target(s) in 6m 03s

@@ -14,8 +14,8 @@
     }
   },
   "binary": {
-    "bytes": 24003800,
-    "sha256": "b67c95bb09ebbdccd6d9e1cdd53b87edb5e9b78155ed76d80c929b54670f2e42"
+    "bytes": 24005280,
+    "sha256": "ce5278288c4dcb48332b34e79ece40913ee66d8aa87a13cf0e9679bdc1ccd7c9"
   },
   "browser_wasm_rebuilt": false,
   "build_command": "RUSTUP_TOOLCHAIN=1.95 cargo build --locked --release --features native --bin browser-fixture -j 4",
@@ -7553,12 +7553,12 @@
           "sha256": "350927311cafc44b9906d5c06eae31df70012f138a1594596116484853b22722"
         },
         "crates/jolt-transcript/src/digest.rs": {
-          "bytes": 5925,
-          "sha256": "3614aaab25c4de55e4e48a49f9b48596867390dd3412106d0338c15001941799"
+          "bytes": 9439,
+          "sha256": "f8b294382a454ef815a697428d2cd03148358d17382c58e2de6bf2b4f3ab9363"
         },
         "crates/jolt-transcript/src/legacy.rs": {
-          "bytes": 11945,
-          "sha256": "452bddd0f88cd286def3f85455119605ad582c2d15991fca8a4c30856fb72364"
+          "bytes": 12218,
+          "sha256": "573c86ae0cc2e820f3f2d565884327d937b0caed0214edf7e90f8d194cd4a08d"
         },
         "crates/jolt-transcript/src/lib.rs": {
           "bytes": 4559,
