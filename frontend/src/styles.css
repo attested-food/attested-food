@@ -239,3 +239,4 @@ a.card:hover, .card.hoverable:hover { border-color: var(--field-line); }
 .task-window p { margin: 0; }
 .task-progress { display: grid; gap: 6px; }
 .task-progress p { margin: 0; }
+.task-submit { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }

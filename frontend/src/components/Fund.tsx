@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { parseUnits, type Hex } from 'viem';
-import { isRunning, proveAndPost, savedProof, useReportTask, dismissReportTask } from '@/lib/reportTask';
-import { TaskProgress } from './ReportTaskWindow';
+import { dismissReportTask, isActive, prove, savedProof, submit, useReportTask } from '@/lib/reportTask';
+import { SubmitProof, TaskProgress } from './ReportTaskWindow';
 import { ProvenReport } from './ProvenReport';
 import {
 	FUND_GOAL, FUND_STAKE, campaignId, ensureAllowance, fundAbi, fundAddress, publicClient, send, usd, usdAbi, usdAddress, useWallet
@@ -164,20 +164,23 @@ export function Fund({ requestId, title, onReport }: { requestId: string; title:
 	);
 }
 
-/** Tester only: upload the lab report PDF; proving and posting run in the background (lib/reportTask). */
+/** Tester only: upload the lab report PDF, prove it in the background (lib/reportTask), then Submit. */
 function PostReport({ requestId, id, title, pool }: { requestId: string; id: Hex; title: string; pool: bigint }) {
 	const task = useReportTask();
 	const [pdf, setPdf] = useState<File | null>(null);
 	const [error, setError] = useState('');
 	const mine = task?.id === id ? task : null;
-	const running = isRunning(mine);
-	const ready = !running && !!savedProof(id);
 	const payout = usd(pool + FUND_STAKE);
 
-	function start(e?: FormEvent) {
-		e?.preventDefault();
+	function start(e: FormEvent) {
+		e.preventDefault();
 		setError('');
-		proveAndPost(requestId, id, title, pdf).catch((err: Error) => setError(err.message));
+		prove(requestId, id, title, pdf).catch((err: Error) => setError(err.message));
+	}
+	/** A proof saved before a reload: load it into the task and submit. */
+	function submitSaved() {
+		setError('');
+		prove(requestId, id, title, null).then(submit, (err: Error) => setError(err.message));
 	}
 
 	return (
@@ -185,22 +188,24 @@ function PostReport({ requestId, id, title, pool }: { requestId: string; id: Hex
 			<h3 className="fund-title">Post the lab report</h3>
 			<p className="small muted">
 				Upload the lab's PDF. We prove it came from the lab and publish only the test results, never your name or address.
-				A valid proof pays you <strong>{payout}</strong> (your stake plus the pool){pool < FUND_GOAL && <>, and the {usd(FUND_GOAL - pool)} the pool was short counts as your contribution</>}.
+				Submitting a valid proof pays you <strong>{payout}</strong> (your stake plus the pool){pool < FUND_GOAL && <>, and the {usd(FUND_GOAL - pool)} the pool was short counts as your contribution</>}.
 			</p>
-			{running ? (
-				<TaskProgress task={mine!} />
-			) : ready ? (
-				<div className="fund-row">
-					<button type="button" className="btn" onClick={() => start()}>Post the proof</button>
-					<span className="small muted">Proof ready.</span>
+			{mine && (mine.phase === 'proving' || mine.phase === 'posting') && <TaskProgress task={mine} />}
+			{mine && (mine.phase === 'ready' || mine.phase === 'posting') ? (
+				<SubmitProof task={mine} />
+			) : mine?.phase === 'proving' ? (
+				<p className="small muted">You can leave this page; proving keeps going in the background.</p>
+			) : savedProof(id) ? (
+				<div className="task-submit">
+					<button type="button" className="btn" disabled={isActive(task)} onClick={submitSaved}>Submit</button>
+					<span className="small muted">Proof ready. Submit it to post the report and get paid.</span>
 				</div>
 			) : (
 				<form className="fund-row" onSubmit={start}>
 					<input type="file" accept="application/pdf" aria-label="Lab report PDF" onChange={(e) => setPdf(e.target.files?.[0] ?? null)} />
-					<button className="btn" disabled={!pdf || isRunning(task)}>Prove and post</button>
+					<button className="btn" disabled={!pdf || isActive(task)}>Generate proof</button>
 				</form>
 			)}
-			{running && <p className="small muted">You can leave this page; it keeps going in the background.</p>}
 			{(error || mine?.error) && <p className="error">{error || mine?.error}</p>}
 		</div>
 	);
