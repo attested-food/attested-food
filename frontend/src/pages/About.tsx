@@ -19,20 +19,21 @@ export default function About() {
 			<section className="ab-sec">
 				<h2 className="section-title">Reading the results</h2>
 				<ul>
-					<li><strong>Off label</strong> means a lab value is more than 10% away from what the pack states, in the direction that’s worse for you (more sugar, sodium or fat; less protein or fibre).</li>
-					<li><strong>Better than label</strong> means it’s more than 10% away in your favour.</li>
+					<li><strong>Off label</strong> means a lab value is further from the pack’s number than the official label tolerance allows, in the direction that’s worse for you (more energy, sugar, fat, saturated fat or sodium; less protein or fibre).</li>
+					<li><strong>Within tolerance</strong> means it’s inside that allowance. <strong>Better than label</strong> means it’s past it in your favour.</li>
 					<li>Notes on the ingredients are numbers from the lab report, never opinions.</li>
 				</ul>
 			</section>
 			<section className="ab-sec" id="grading">
 				<h2 className="section-title">How we grade</h2>
-				<p>Products tested through OpenLabel get an <strong>OpenLabel grade</strong> from A to E, built from three parts:</p>
+				<p>Products tested through OpenLabel get an <strong>OpenLabel grade</strong> from A to E. It’s our own score, but each part follows a published standard:</p>
 				<ul>
-					<li><strong>Label honesty (40%).</strong> How close the lab’s numbers are to what the pack says. Every nutrient more than 10% off, in the direction that’s worse for you, costs points; the further off, the more it costs.</li>
-					<li><strong>Safety (40%).</strong> Heavy metals, aflatoxins, pesticides, microbes and adulterants against their limits. Any failure scores zero and caps the grade at D.</li>
-					<li><strong>Nutrition (20%).</strong> A Nutri-Score style score from the lab’s values: sugar, saturated fat, sodium and energy count against; fibre and protein count for.</li>
+					<li><strong>Label honesty (40%).</strong> Each nutrient is checked against the official label tolerances in the European Commission’s 2012 guidance (for example ±2 g of protein or sugar under 10 g, ±20% from 10 to 40 g; ±150 mg of sodium under 500 mg). Energy uses the US FDA rule of no more than 120% of the label, and supplements use FSSAI’s rule of no more than 10% below the declared amount. Inside the tolerance costs nothing; past it costs more the further off it is.</li>
+					<li><strong>Safety (40%).</strong> Failed results are sorted by how serious they are, following US FDA recall classes, the EU food alert system and India’s FSS Act (“unsafe” versus “sub-standard”). A critical hazard (such as Salmonella, melamine, a banned dye, or a heavy metal or aflatoxin five times over its limit) makes the grade E. A result over a safety limit (a heavy metal, aflatoxin, pesticide or hygiene bacteria) means the grade can’t be better than D. A quality miss (moisture, ash, acid value, yeast and mould) costs points.</li>
+					<li><strong>Nutrition (20%).</strong> The updated Nutri-Score (2022 for foods, 2023 for drinks), with its separate rules for drinks, for oils, fats and nuts, and for cheese and paneer. We don’t know the fruit and vegetable share, so that part counts zero. Supplements, protein powders, infant formula, salt, spices and plain tea or coffee aren’t given a nutrition score.</li>
 				</ul>
-				<p>If a part wasn’t tested, the grade is worked out from the parts that were. Until all of a category’s standard tests are done, the grade is marked <strong>provisional</strong>.</p>
+				<p>The weights and the letter cut-offs (A from 85, B from 70, C from 55, D from 40) are OpenLabel’s choices. If a part wasn’t tested, the grade is worked out from the parts that were. Until all of a category’s standard tests are done, the grade is <strong>provisional</strong>.</p>
+				<p>India hasn’t adopted a front-of-pack rating yet: FSSAI’s 2022 draft star rating was never finalised. We’ll follow it when it is.</p>
 				<p>Products tested by Trustified, Unbox Health or Consumer Voice are tagged <span className="tag tested">3rd-party tested</span> and show <strong>their</strong> grade, named and linked back to them. We don’t change or re-grade their results.</p>
 			</section>
 			<section className="ab-sec">

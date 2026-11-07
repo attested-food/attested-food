@@ -5,8 +5,9 @@ Everything here states numbers only. No judgement sentences are generated.
 import re
 
 from backend.category_tests import matches, tests_for
+from backend.departments import SUPPLEMENTS, department_of
+from backend.standards import label_check
 
-THRESHOLD = 10.0  # % difference from the label before a value counts as off its label
 
 # parameter keywords -> (label_nutrition key, higher_is_worse)
 LABEL_KEYS: list[tuple[tuple[str, ...], tuple[str, ...], str, bool]] = [
@@ -87,8 +88,9 @@ def _is_score(res: dict) -> bool:
     return "score" in (res.get("unit") or "").lower() or "score" in res["parameter"].lower()
 
 
-def findings(results: list[dict], label_nutrition: dict | None) -> list[dict]:
+def findings(results: list[dict], label_nutrition: dict | None, category: str | None = None) -> list[dict]:
     label_nutrition = label_nutrition or {}
+    supplement = department_of(category) == SUPPLEMENTS[0] if category else False
     out = []
     for res in results:
         value, unit = res.get("value"), _unit(res.get("unit"))
@@ -113,9 +115,17 @@ def findings(results: list[dict], label_nutrition: dict | None) -> list[dict]:
             raw = (value - label) / label * 100
             dev = round(raw, 1)
             f.update(label=label, deviation_pct=dev, text=f"{_fmt(value)} {unit}, {_pct(raw)} vs label")
-            if f["kind"] == "info" and abs(dev) > THRESHOLD:
-                # Unknown direction: the label is simply wrong, which counts against it.
-                f["kind"] = "bad" if not mapped or (dev > 0) == mapped[1] else "good"
+            key = mapped[0] if mapped else None
+            scale = 1000 if key == "sodium_mg" and unit.lower() == "g" else 1  # tolerances are in mg
+            check = label_check(key, label * scale, value * scale, supplement=supplement and key is None)
+            if check:
+                f["tolerance_pct"] = round(check["tolerance"] / abs(label * scale) * 100, 1)
+                if f["kind"] == "info":
+                    # Off the label only past the official tolerance, and only in the direction that hurts the buyer.
+                    if check["r"] > 1:
+                        f["kind"] = "bad"
+                    elif check["r"] < -1:
+                        f["kind"] = "good"
         out.append(f)
     return out
 
@@ -214,7 +224,9 @@ def test_statuses(category: str | None, results: list[dict], fnds: list[dict], t
     out = []
     for t in tests:
         d = defs.get(t["name"])
-        kinds = [f["kind"] for r, f in zip(results, fnds) if d and matches(d, r)]
+        # A nutrient within the official label tolerance is a pass for the label test.
+        kinds = [("good" if f["kind"] == "info" and f.get("tolerance_pct") else f["kind"])
+                 for r, f in zip(results, fnds) if d and matches(d, r)]
         if not t.get("tested") or not kinds:
             status = "untested"
         elif "bad" in kinds:
@@ -229,7 +241,7 @@ def test_statuses(category: str | None, results: list[dict], fnds: list[dict], t
 
 def summarize(product: dict) -> dict:
     results = product.get("results") or []
-    fnds = findings(results, product.get("label_nutrition"))
+    fnds = findings(results, product.get("label_nutrition"), product.get("category"))
     tests = product.get("tests") or []
     if tests and "status" not in tests[0]:
         tests = test_statuses(product.get("category"), results, fnds, tests)

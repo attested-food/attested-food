@@ -79,6 +79,9 @@ export type OpenLabelGrade = {
 	score: number;
 	provisional: boolean;
 	safety_failed: boolean;
+	safety_tier?: 'critical' | 'serious' | 'minor' | null;
+	safety_flags?: { parameter: string; tier: string; ratio: number | null }[];
+	nutri_score?: string | null;
 	parts: { honesty: number | null; safety: number | null; nutrition: number | null };
 };
 
@@ -89,6 +92,7 @@ export type Finding = {
 	tested: number | null;
 	unit: string | null;
 	deviation_pct: number | null;
+	tolerance_pct?: number;
 	text: string;
 };
 

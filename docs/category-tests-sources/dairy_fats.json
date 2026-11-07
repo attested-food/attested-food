@@ -1,0 +1,717 @@
+{
+ "milk": [
+  {
+   "name": "Milk fat and SNF (vs milk type and label)",
+   "why": "Watered-down or skimmed milk sold as toned/full-cream shows up as low fat or solids-not-fat, so you pay for nutrition you don't get.",
+   "group": "nutrition",
+   "keywords": [
+    "milk fat",
+    "snf",
+    "solids not fat",
+    "solid not fat"
+   ],
+   "source": "FSSAI FPS Reg 2.1.2 (milk composition table, fat/SNF by class); Consumer Voice tests. https://www.fssai.gov.in/upload/uploadfiles/files/Draft_WTO_SPS_Notification_Standards_Diary_26_04_2018.pdf"
+  },
+  {
+   "name": "Adulterants (detergent, urea, starch, neutralisers, formalin, melamine)",
+   "why": "Detergent, urea, caustic soda, formalin or melamine are added to fake thickness, freshness or protein and can be directly harmful.",
+   "group": "spiking",
+   "keywords": [],
+   "source": "FSSAI DART / Check Adulteration at Home: https://fssai.gov.in/cms/checkadulteration.php; FSSAI National Milk Quality Survey 2018 (https://mail.fssai.gov.in/upload/uploadfiles/files/Report_Milk_Survey_NMQS_Final_18_10_2019.pdf); Consumer Voice adulteration tests"
+  },
+  {
+   "name": "Aflatoxin M1 (from mouldy cattle feed)",
+   "why": "Cows eating mouldy feed pass this liver-damaging toxin into milk; it was the top safety failure in FSSAI's national milk survey (5.7% of samples).",
+   "group": "toxin",
+   "keywords": [
+    "m1",
+    "aflatoxin"
+   ],
+   "source": "FSSAI CTR Reg 2.2.1 (Aflatoxin M1 in milk: 0.5 µg/kg); https://mail.fssai.gov.in/upload/uploadfiles/files/Report_Milk_Survey_NMQS_Final_18_10_2019.pdf"
+  },
+  {
+   "name": "Antibiotic residues",
+   "why": "Milk from cattle treated with antibiotics can carry residues that drive antibiotic resistance; it was the second-biggest failure in FSSAI's milk survey.",
+   "group": null,
+   "keywords": [
+    "antibiotic",
+    "tetracycline",
+    "veterinary drug",
+    "penicillin",
+    "sulpha"
+   ],
+   "source": "FSSAI CTR Reg 2.3.2 (tolerance limits for antibiotics/veterinary drugs in milk, amended 2018 & 2024); https://mail.fssai.gov.in/upload/uploadfiles/files/Report_Milk_Survey_NMQS_Final_18_10_2019.pdf"
+  },
+  {
+   "name": "Microbiology (E. coli, Salmonella, Listeria)",
+   "why": "Poor handling or failed pasteurisation lets disease-causing bacteria grow in milk.",
+   "group": null,
+   "keywords": [
+    "microbiolog",
+    "salmonella",
+    "listeria",
+    "coliform",
+    "e. coli",
+    "plate count",
+    "tpc",
+    "yeast",
+    "staphylococcus"
+   ],
+   "source": "FSSAI FPS Appendix B (microbiological standards for milk and milk products); Consumer Voice tests"
+  },
+  {
+   "name": "Pasteurisation check (phosphatase test)",
+   "why": "A positive phosphatase test means milk sold as pasteurised wasn't heated properly, so germs may survive.",
+   "group": null,
+   "keywords": [
+    "phosphatase",
+    "phophatase"
+   ],
+   "source": "FSSAI FPS Reg 2.1.2 (pasteurised milk, phosphatase test negative); Consumer Voice tests"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Metals from contaminated water, feed or equipment build up in the body; FSSAI caps lead in milk at 0.02 ppm.",
+   "group": null,
+   "keywords": [
+    "heavy metal",
+    "lead",
+    "arsenic",
+    "cadmium",
+    "mercury",
+    "(pb"
+   ],
+   "source": "FSSAI CTR Regs 2011 (compendium): https://jaivikbharat.fssai.gov.in/pdf/Compendium_Contaminants_Regulations.pdf (Reg 2.1: lead 0.02, arsenic 0.1 mg/kg in milk); Consumer Voice tests"
+  }
+ ],
+ "curd": [
+  {
+   "name": "Nutrition vs label claims",
+   "why": "Curd made from cheaper, thinner milk carries less fat, protein and calcium than the pack says.",
+   "group": "nutrition",
+   "keywords": [],
+   "source": "FSSAI FPS Reg 2.1 (dahi: fat/SNF as for the milk used); Consumer Voice tests"
+  },
+  {
+   "name": "Microbiology (E. coli, Salmonella, Listeria)",
+   "why": "Fermented foods made in unhygienic conditions can carry coliforms, moulds or pathogens like Listeria and Salmonella.",
+   "group": null,
+   "keywords": [
+    "microbiolog",
+    "salmonella",
+    "listeria",
+    "coliform",
+    "e. coli",
+    "plate count",
+    "tpc",
+    "yeast",
+    "staphylococcus"
+   ],
+   "source": "FSSAI FPS Appendix B (fermented milk products)"
+  },
+  {
+   "name": "Acidity (lactic acid)",
+   "why": "Too much acid means the curd is old or over-fermented; too little means it wasn't properly cultured.",
+   "group": null,
+   "keywords": [
+    "acidity"
+   ],
+   "source": "Consumer Voice tests; FSSAI FPS Reg 2.1 (fermented milk products, titratable acidity)"
+  },
+  {
+   "name": "Vegetable fat or starch (non-milk thickeners)",
+   "why": "Curd must be made only from milk; palm oil or starch added for body cheats buyers and can't be seen by eye.",
+   "group": null,
+   "keywords": [
+    "sitosterol",
+    "phytosterol",
+    "vegetable fat",
+    "vegetable oil",
+    "starch"
+   ],
+   "source": "FSSAI FPS Reg 2.1.1 (general standard: milk products only from milk); FSSAI DART / Check Adulteration at Home: https://fssai.gov.in/cms/checkadulteration.php (starch iodine test); Trustified beta-sitosterol test"
+  },
+  {
+   "name": "Aflatoxin M1 (from mouldy cattle feed)",
+   "why": "The liver-damaging toxin from mouldy feed passes from milk into curd.",
+   "group": "toxin",
+   "keywords": [
+    "m1"
+   ],
+   "source": "FSSAI CTR Reg 2.2.1 (Aflatoxin M1 in milk 0.5 µg/kg); Trustified tests"
+  }
+ ],
+ "paneer": [
+  {
+   "name": "Moisture and milk fat (dry-matter basis)",
+   "why": "Extra water adds weight you pay for, and low fat means skimmed milk was used; FSSAI caps moisture at 60% and needs 50% fat on dry matter for full-fat paneer.",
+   "group": "nutrition",
+   "keywords": [
+    "moisture",
+    "fat"
+   ],
+   "source": "FSSAI FPS Reg 2.1.16 (chhana/paneer composition) https://www.fssai.gov.in/upload/uploadfiles/files/Draft_WTO_SPS_Notification_Standards_Diary_26_04_2018.pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Analogue check (vegetable oil, starch)",
+   "why": "'Analogue' paneer made with palm oil and starch is widely sold as real paneer; Maharashtra banned it in 2026 after 35% of samples failed and FSSAI has proposed a national ban.",
+   "group": null,
+   "keywords": [
+    "sitosterol",
+    "phytosterol",
+    "vegetable fat",
+    "vegetable oil",
+    "starch"
+   ],
+   "source": "FSSAI DART / Check Adulteration at Home: https://fssai.gov.in/cms/checkadulteration.php (starch in paneer: iodine test); FSSAI 2026 draft to bar 'paneer' name on analogues: https://www.moneylife.in/article/analogue-paneer-after-statelevel-bans-fssai-proposes-nationwide-curbs-on-nonmilk-products/81757.html"
+  },
+  {
+   "name": "Microbiology (E. coli, Salmonella, Listeria)",
+   "why": "Paneer is moist and often handled by hand, so coliforms, yeast/mould and pathogens grow fast if hygiene or cold chain fails.",
+   "group": null,
+   "keywords": [
+    "microbiolog",
+    "salmonella",
+    "listeria",
+    "coliform",
+    "e. coli",
+    "plate count",
+    "tpc",
+    "yeast",
+    "staphylococcus"
+   ],
+   "source": "FSSAI FPS Appendix B; Consumer Voice paneer microbiology tests: https://consumer-voice.org/paneer/packaged-paneer/"
+  },
+  {
+   "name": "Nutrition vs label claims",
+   "why": "High-protein paneer claims are common; tests check protein, calcium and energy really match the pack.",
+   "group": "nutrition",
+   "keywords": [
+    "protein",
+    "calcium",
+    "energy",
+    "carb",
+    "sodium",
+    "sugar"
+   ],
+   "source": "Unbox Health label-accuracy tests; Consumer Voice tests"
+  },
+  {
+   "name": "Aflatoxin M1 (from mouldy cattle feed)",
+   "why": "Aflatoxin M1 binds to milk protein, so it concentrates in paneer made from contaminated milk.",
+   "group": "toxin",
+   "keywords": [
+    "m1"
+   ],
+   "source": "FSSAI CTR Reg 2.2.1 (Aflatoxin M1 in milk 0.5 µg/kg); Trustified tests"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Metals from contaminated milk, water or equipment accumulate in the body over time.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Regs 2011 (compendium): https://jaivikbharat.fssai.gov.in/pdf/Compendium_Contaminants_Regulations.pdf (Reg 2.1: lead 0.02 mg/kg in secondary milk products); Unbox Health tests"
+  }
+ ],
+ "cheese": [
+  {
+   "name": "Moisture and milk fat (dry-matter basis)",
+   "why": "Extra water or low milk fat means you're getting less cheese than the variety name promises.",
+   "group": "nutrition",
+   "keywords": [
+    "moisture",
+    "fat"
+   ],
+   "source": "FSSAI FPS Reg 2.1.17 (cheese and cheese products composition table) https://www.fssai.gov.in/upload/uploadfiles/files/Draft_WTO_SPS_Notification_Standards_Diary_26_04_2018.pdf"
+  },
+  {
+   "name": "Analogue check (vegetable fat, starch)",
+   "why": "'Cheese analogue' made with vegetable oil and starch is sold in place of real cheese, especially on pizzas; Maharashtra banned analogue cheese in 2026.",
+   "group": null,
+   "keywords": [
+    "sitosterol",
+    "phytosterol",
+    "vegetable fat",
+    "vegetable oil",
+    "starch"
+   ],
+   "source": "FSSAI FPS Reg 2.1.1/2.1.17 (cheese only from milk); Trustified beta-sitosterol test; Maharashtra FDA 2026 ban: https://ianslive.in/maharashtra-fda-bans-analog-cheese-and-artificial-paneer-for-one-year-after-legislative-push--20260805103420"
+  },
+  {
+   "name": "Microbiology (E. coli, Salmonella, Listeria)",
+   "why": "Soft and fresh cheeses are a classic source of Listeria, which is dangerous in pregnancy.",
+   "group": null,
+   "keywords": [
+    "microbiolog",
+    "salmonella",
+    "listeria",
+    "coliform",
+    "e. coli",
+    "plate count",
+    "tpc",
+    "yeast",
+    "staphylococcus"
+   ],
+   "source": "FSSAI FPS Appendix B (cheese)"
+  },
+  {
+   "name": "Aflatoxin M1 (from mouldy cattle feed)",
+   "why": "Aflatoxin M1 binds to casein, so cheese can carry several times the level of the milk it was made from.",
+   "group": "toxin",
+   "keywords": [
+    "m1"
+   ],
+   "source": "FSSAI CTR Reg 2.2.1 (Aflatoxin M1 in milk 0.5 µg/kg); Trustified tests"
+  },
+  {
+   "name": "Nutrition vs label claims",
+   "why": "Cheese is high in salt and saturated fat, so the label's sodium and fat figures matter.",
+   "group": "nutrition",
+   "keywords": [
+    "sodium",
+    "salt",
+    "protein",
+    "fat",
+    "calcium"
+   ],
+   "source": "FSSAI Labelling & Display Regs 2020 (nutrition declaration); Unbox/Trustified-style label checks"
+  }
+ ],
+ "butter": [
+  {
+   "name": "Milk fat, moisture and salt (vs FSSAI standard)",
+   "why": "Too much water or salt means less butter for your money; FSSAI requires at least 80% milk fat, at most 16% moisture and 3% salt.",
+   "group": "nutrition",
+   "keywords": [
+    "milk fat",
+    "moisture",
+    "salt",
+    "solid not fat",
+    "solids not fat"
+   ],
+   "source": "FSSAI FPS Reg 2.1.9 (table butter); Consumer Voice tests"
+  },
+  {
+   "name": "Purity: BR reading, RM value (foreign fat check)",
+   "why": "These tests on the extracted fat catch butter cut with vegetable oil or vanaspati.",
+   "group": null,
+   "keywords": [
+    "butyro",
+    "meissl",
+    "reichert",
+    "br reading",
+    "rm value",
+    "sitosterol",
+    "baudouin"
+   ],
+   "source": "FSSAI FPS Reg 2.1.9 (extracted fat to meet ghee RM/BR values); Consumer Voice tests"
+  },
+  {
+   "name": "Microbiology (E. coli, Salmonella, Listeria)",
+   "why": "Butter made from unpasteurised or badly handled cream can carry coliforms, moulds and Listeria.",
+   "group": null,
+   "keywords": [
+    "microbiolog",
+    "salmonella",
+    "listeria",
+    "coliform",
+    "e. coli",
+    "plate count",
+    "tpc",
+    "yeast",
+    "staphylococcus"
+   ],
+   "source": "FSSAI FPS Appendix B; Consumer Voice tests"
+  },
+  {
+   "name": "Acidity (lactic acid)",
+   "why": "High acidity points to sour, old cream and gives off-flavours.",
+   "group": null,
+   "keywords": [
+    "acidity"
+   ],
+   "source": "Consumer Voice tests"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Metals from contaminated milk or equipment accumulate in the body over time.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Regs 2011 (compendium): https://jaivikbharat.fssai.gov.in/pdf/Compendium_Contaminants_Regulations.pdf (Reg 2.1 metal limits); Consumer Voice lead test"
+  },
+  {
+   "name": "Pesticide residues",
+   "why": "Fat-loving pesticides from cattle feed concentrate in milk fat, so butter carries more than milk.",
+   "group": "pesticide",
+   "keywords": [],
+   "source": "FSSAI CTR Regs 2011 (compendium): https://jaivikbharat.fssai.gov.in/pdf/Compendium_Contaminants_Regulations.pdf (Reg 2.3: pesticide limits for milk products on a fat basis); Trustified tests"
+  }
+ ],
+ "dairy_whitener": [
+  {
+   "name": "Milk protein, fat and added sugar (vs standard and label)",
+   "why": "Whitener can be padded with sugar or low-protein solids; FSSAI caps added sucrose at 18% and requires milk protein of at least 34% of non-fat solids.",
+   "group": "nutrition",
+   "keywords": [
+    "protein",
+    "fat",
+    "sugar",
+    "sucrose",
+    "dextrose"
+   ],
+   "source": "FSSAI FPS Reg 2.1.11 (dairy whitener); Consumer Voice tests"
+  },
+  {
+   "name": "Moisture and acid-insoluble ash",
+   "why": "Too much moisture lets the powder cake and spoil; acid-insoluble ash flags sand or dirt.",
+   "group": "nutrition",
+   "keywords": [
+    "moisture",
+    "ash"
+   ],
+   "source": "FSSAI FPS Reg 2.1.11 (moisture max 4%); Consumer Voice tests"
+  },
+  {
+   "name": "Solubility and acidity (insolubility index)",
+   "why": "Powder that won't dissolve or is too acidic is old, heat-damaged or badly stored.",
+   "group": null,
+   "keywords": [
+    "insolubility",
+    "acidity"
+   ],
+   "source": "FSSAI FPS Reg 2.1.10 (milk powders: insolubility index, titratable acidity); Consumer Voice tests"
+  },
+  {
+   "name": "Melamine",
+   "why": "Melamine has been used to fake protein in milk powder (China 2008, which killed infants); FSSAI caps it at 2.5 mg/kg.",
+   "group": null,
+   "keywords": [
+    "melamine"
+   ],
+   "source": "FSSAI CTR Regs 2011 (compendium): https://jaivikbharat.fssai.gov.in/pdf/Compendium_Contaminants_Regulations.pdf (Reg 2.5.1: melamine 2.5 mg/kg in other foods)"
+  },
+  {
+   "name": "Microbiology (E. coli, Salmonella, Listeria)",
+   "why": "Powders made or packed in poor hygiene can carry Salmonella and other bacteria that survive drying.",
+   "group": null,
+   "keywords": [
+    "microbiolog",
+    "salmonella",
+    "listeria",
+    "coliform",
+    "e. coli",
+    "plate count",
+    "tpc",
+    "yeast",
+    "staphylococcus"
+   ],
+   "source": "FSSAI FPS Appendix B (dried milk products); Consumer Voice tests"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Drying concentrates any metals in the milk, and FSSAI applies the milk lead limit with a concentration factor.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Regs 2011 (compendium): https://jaivikbharat.fssai.gov.in/pdf/Compendium_Contaminants_Regulations.pdf (Reg 2.1: lead in milks, concentration factor for dried milks)"
+  }
+ ],
+ "ice_cream": [
+  {
+   "name": "Ice cream vs frozen dessert (milk fat vs vegetable fat)",
+   "why": "Only milk-fat products may be called ice cream; cheaper 'frozen desserts' use vegetable oil and are sometimes passed off as ice cream.",
+   "group": null,
+   "keywords": [
+    "sitosterol",
+    "phytosterol",
+    "vegetable fat",
+    "vegetable oil",
+    "butyric"
+   ],
+   "source": "FSSAI FPS Reg 2.1 (ice cream) and 2.1.15 (frozen dessert); FSSAI myth-buster: https://www.fssai.gov.in/upload/uploadfiles/files/Myth%20buster%20on%20Ice%20cream%20and%20frozen%20dessert%20.pdf"
+  },
+  {
+   "name": "Total solids, fat and protein (vs ice cream standard)",
+   "why": "Ice cream pumped with air and water has fewer solids; FSSAI requires at least 36% total solids for full ice cream.",
+   "group": "nutrition",
+   "keywords": [
+    "total solids",
+    "fat",
+    "protein"
+   ],
+   "source": "FSSAI FPS Reg 2.1 (ice cream composition); Unbox Health tests"
+  },
+  {
+   "name": "Nutrition vs label claims",
+   "why": "Sugar and calorie figures on ice cream packs are what most buyers check, so they should be accurate.",
+   "group": "nutrition",
+   "keywords": [
+    "sugar",
+    "carb",
+    "sodium",
+    "energy"
+   ],
+   "source": "Unbox Health label-accuracy tests"
+  },
+  {
+   "name": "Microbiology (E. coli, Salmonella, Listeria)",
+   "why": "Ice cream is a known source of Listeria and Salmonella when mix is under-pasteurised or the cold chain breaks.",
+   "group": null,
+   "keywords": [
+    "microbiolog",
+    "salmonella",
+    "listeria",
+    "coliform",
+    "e. coli",
+    "plate count",
+    "tpc",
+    "yeast",
+    "staphylococcus"
+   ],
+   "source": "FSSAI FPS Appendix B (ice cream / frozen confections)"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Metals can come from milk, colours or equipment; FSSAI also caps tin in ice cream at 1 ppm.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Regs 2011 (compendium): https://jaivikbharat.fssai.gov.in/pdf/Compendium_Contaminants_Regulations.pdf (Reg 2.1: tin in ice-cream 1.0 mg/kg); Unbox Health tests"
+  },
+  {
+   "name": "Melamine",
+   "why": "Melamine can enter through adulterated milk powder used in the mix; FSSAI caps it at 2.5 mg/kg.",
+   "group": null,
+   "keywords": [
+    "melamine"
+   ],
+   "source": "FSSAI CTR Regs 2011 (compendium): https://jaivikbharat.fssai.gov.in/pdf/Compendium_Contaminants_Regulations.pdf (Reg 2.5.1); Unbox Health tests"
+  }
+ ],
+ "ghee": [
+  {
+   "name": "Purity: BR reading, RM value, Baudouin test",
+   "why": "These are FSSAI's core checks that ghee is pure milk fat and not cut with vanaspati or vegetable oil (the Baudouin test catches the sesame oil marker in vanaspati).",
+   "group": null,
+   "keywords": [
+    "butyro",
+    "br reading",
+    "reichert",
+    "rm value",
+    "baudouin",
+    "bauduoin",
+    "polenske"
+   ],
+   "source": "FSSAI FPS Reg 2.1.8 (milk fat products: ghee); Consumer Voice tests"
+  },
+  {
+   "name": "Foreign fat (vegetable oil, animal body fat)",
+   "why": "Ghee is faked with palm oil or other fats; the 2024 Tirupati laddu ghee was later found to be mostly palm oil and palm kernel oil. Sterol and fatty-acid tests catch this.",
+   "group": null,
+   "keywords": [
+    "animal fat",
+    "animal body fat",
+    "presence of ani",
+    "sitosterol",
+    "phytosterol",
+    "phenolphthalein",
+    "vegetable fat",
+    "butyric",
+    "butryic"
+   ],
+   "source": "FSSAI FPS Reg 2.1.8 (beta-sitosterol absent; fatty acid composition added by 6th Amendment 2021, in force 27.12.2023); Tirupati case: https://www.deccanherald.com/amp/story/india%2Fandhra-pradesh%2Ftirumala-laddu-row-cbi-finds-ghee-was-vegetable-oil-not-animal-fat-rs-234-crore-scam-unearthed-3879229"
+  },
+  {
+   "name": "Rancidity (acid value, peroxide value)",
+   "why": "Old or badly stored ghee goes rancid; high free fatty acids and peroxides mean stale fat and off-flavour.",
+   "group": null,
+   "keywords": [
+    "free fatty acid",
+    "peroxide",
+    "acid value",
+    "rancidity"
+   ],
+   "source": "FSSAI FPS Reg 2.1.8 (FFA limit); Consumer Voice tests"
+  },
+  {
+   "name": "Moisture",
+   "why": "Ghee should be almost water-free (max 0.5%); extra water adds weight and makes it spoil faster.",
+   "group": "nutrition",
+   "keywords": [
+    "moisture"
+   ],
+   "source": "FSSAI FPS Reg 2.1.8; Consumer Voice tests"
+  },
+  {
+   "name": "Nutrition vs label claims",
+   "why": "Ghee labels state saturated fat, trans fat, cholesterol and vitamin A, which should match the product.",
+   "group": "nutrition",
+   "keywords": [
+    "saturated",
+    "trans",
+    "cholesterol",
+    "vitamin",
+    "mufa",
+    "pufa",
+    "energy"
+   ],
+   "source": "Consumer Voice and Unbox Health tests"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Lead from contaminated milk or processing equipment builds up in the body over time.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Regs 2011 (compendium): https://jaivikbharat.fssai.gov.in/pdf/Compendium_Contaminants_Regulations.pdf (Reg 2.1 metal limits); Unbox Health tests"
+  }
+ ],
+ "cooking_oil": [
+  {
+   "name": "Purity: refractive index, iodine value, saponification value (blending check)",
+   "why": "Each oil has a fixed chemical fingerprint; values outside FSSAI's range mean it was cut with a cheaper oil. Oil-specific extras: Bellier test (groundnut), Polenske value (coconut), oryzanol (rice bran, min 1%), HCN test (mustard).",
+   "group": null,
+   "keywords": [
+    "refractive index",
+    "iodine value",
+    "saponi",
+    "butyro",
+    "bellier",
+    "polenske",
+    "oryzanol",
+    "hydrocyanic",
+    "hexabromide",
+    "admixture",
+    "baudouin"
+   ],
+   "source": "FSSAI FPS Reg 2.2.1 (per-oil standards) https://mail.fssai.gov.in/upload/uploadfiles/files/Chapter%202_2_Fats_oil_fat%20emulsions.pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Rancidity (acid value, peroxide value)",
+   "why": "Oxidised, stale oil has high acid and peroxide values, tastes off and forms harmful compounds; FSSAI caps peroxide at 10 meq/kg for refined oils.",
+   "group": null,
+   "keywords": [
+    "acid value",
+    "peroxide",
+    "per oxide",
+    "rancidity"
+   ],
+   "source": "FSSAI FPS Reg 2.2.1 (acid value per oil) and 2.2.8 (peroxide value) https://mail.fssai.gov.in/upload/uploadfiles/files/Chapter%202_2_Fats_oil_fat%20emulsions.pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Argemone and mineral oil (toxic adulterant oils)",
+   "why": "Argemone seed oil causes epidemic dropsy and is mostly found mixed into mustard oil; mineral oil is a cheap non-food filler. FSSAI requires both to be absent in all oils.",
+   "group": null,
+   "keywords": [
+    "argemone",
+    "mineral oil",
+    "non-edible"
+   ],
+   "source": "FSSAI FPS Reg 2.2.1 (test for argemone oil negative; free from mineral oil) https://mail.fssai.gov.in/upload/uploadfiles/files/Chapter%202_2_Fats_oil_fat%20emulsions.pdf; FSSAI DART / Check Adulteration at Home: https://fssai.gov.in/cms/checkadulteration.php"
+  },
+  {
+   "name": "Trans fat and fatty acid profile (vs label)",
+   "why": "FSSAI limits trans fat to 2% since 2022, and labels claim MUFA/PUFA/saturated levels (multi-source oils must stay under 33% saturated).",
+   "group": "nutrition",
+   "keywords": [
+    "trans",
+    "mufa",
+    "pufa",
+    "saturated",
+    "fatty acid composition",
+    "oleic",
+    "linoleic",
+    "omega"
+   ],
+   "source": "FSSAI FPS Reg 2.2.1(16) (refined oil trans fat ≤2%) and 2.2.1(24) (multi-source oil) https://mail.fssai.gov.in/upload/uploadfiles/files/Chapter%202_2_Fats_oil_fat%20emulsions.pdf; Consumer Voice and Unbox tests"
+  },
+  {
+   "name": "Hexane residue (solvent-extracted oils)",
+   "why": "Refined and solvent-extracted oils (sunflower, rice bran, soybean, refined groundnut/mustard) can retain hexane solvent; FSSAI allows at most 5 ppm and none in pressed oils.",
+   "group": null,
+   "keywords": [
+    "hexane",
+    "haxane"
+   ],
+   "source": "FSSAI FPS Reg 2.2.1 (hexane ≤5.0 ppm in refined oils) https://mail.fssai.gov.in/upload/uploadfiles/files/Chapter%202_2_Fats_oil_fat%20emulsions.pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Aflatoxins",
+   "why": "Mould toxins from damaged seeds, mainly a risk in groundnut and unrefined oils, can damage the liver.",
+   "group": null,
+   "keywords": [
+    "aflatoxin",
+    "alfatoxin"
+   ],
+   "source": "FSSAI CTR Regs 2011 (compendium): https://jaivikbharat.fssai.gov.in/pdf/Compendium_Contaminants_Regulations.pdf (Reg 2.2.1: aflatoxin in oilseeds/oil 10-15 µg/kg); Consumer Voice and Unbox tests"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Metals from soil or processing equipment can carry into oil; FSSAI caps lead in edible oils at 0.1 ppm.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Regs 2011 (compendium): https://jaivikbharat.fssai.gov.in/pdf/Compendium_Contaminants_Regulations.pdf (Reg 2.1: lead 0.1 mg/kg in edible oils); Consumer Voice and Unbox tests"
+  }
+ ],
+ "vanaspati": [
+  {
+   "name": "Trans fat",
+   "why": "Partially hydrogenated fat is the biggest source of trans fat, which raises heart-disease risk; FSSAI has capped it at 2% since 2022.",
+   "group": "nutrition",
+   "keywords": [
+    "trans"
+   ],
+   "source": "FSSAI FPS Reg 2.2.6 (vanaspati: trans fat ≤2% from 1.1.2022) https://mail.fssai.gov.in/upload/uploadfiles/files/Chapter%202_2_Fats_oil_fat%20emulsions.pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Nickel (hydrogenation catalyst)",
+   "why": "Nickel used to harden the oil can stay in the product; FSSAI allows at most 1.5 ppm.",
+   "group": "heavy_metal",
+   "keywords": [
+    "nickel"
+   ],
+   "source": "FSSAI CTR Regs 2011 (compendium): https://jaivikbharat.fssai.gov.in/pdf/Compendium_Contaminants_Regulations.pdf (Reg 2.1: nickel 1.5 mg/kg in hydrogenated oils); FSSAI FPS Reg 2.2.6"
+  },
+  {
+   "name": "Sesame oil marker (Baudouin test) and vitamin A",
+   "why": "By law vanaspati must contain sesame oil so it can be detected if mixed into ghee, plus at least 25 IU/g vitamin A.",
+   "group": null,
+   "keywords": [
+    "baudouin",
+    "vitamin a"
+   ],
+   "source": "FSSAI FPS Reg 2.2.6(v) and (vii) https://mail.fssai.gov.in/upload/uploadfiles/files/Chapter%202_2_Fats_oil_fat%20emulsions.pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Argemone oil and animal fat adulteration",
+   "why": "Toxic argemone oil or cheap animal fat can be mixed into the base oils; FSSAI requires argemone to be absent.",
+   "group": null,
+   "keywords": [
+    "argemone",
+    "animal fat"
+   ],
+   "source": "FSSAI FPS Reg 2.2.6 (argemone negative) https://mail.fssai.gov.in/upload/uploadfiles/files/Chapter%202_2_Fats_oil_fat%20emulsions.pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Rancidity (acid value, peroxide value)",
+   "why": "Stale or badly refined fat has high acid and peroxide values; FSSAI caps the acid value at 0.6.",
+   "group": null,
+   "keywords": [
+    "acid value",
+    "peroxide",
+    "rancidity"
+   ],
+   "source": "FSSAI FPS Reg 2.2.6 (acid value ≤0.6) and 2.2.8 (peroxide value) https://mail.fssai.gov.in/upload/uploadfiles/files/Chapter%202_2_Fats_oil_fat%20emulsions.pdf"
+  },
+  {
+   "name": "Purity: unsaponifiable matter, refractive index, moisture",
+   "why": "These check the fat was made from approved refined oils and isn't padded with water or non-fat matter.",
+   "group": null,
+   "keywords": [
+    "unsaponi",
+    "refractive",
+    "moisture",
+    "melting point"
+   ],
+   "source": "FSSAI FPS Reg 2.2.6 (moisture ≤0.25%, unsaponifiable ≤2%) https://mail.fssai.gov.in/upload/uploadfiles/files/Chapter%202_2_Fats_oil_fat%20emulsions.pdf; Consumer Voice tests"
+  }
+ ],
+ "_notes": "Dairy microbiology (Appendix B) and most FSSAI quality parameters land in group 'other' in observed.json, so those tests use group null with keywords. Ghee (FPS 2.1.8) is the one dairy standard exempt from Appendix B microbiology, so none is listed even though Consumer Voice reports coliforms. Aflatoxin M1 has a CTR limit only for milk (0.5 µg/kg); it is listed for curd/paneer/cheese because labs (Trustified) test it and M1 binds to casein, while Unbox's 'Total Aflatoxins B,G' is excluded by the 'm1' keyword since B/G aflatoxins are not a dairy issue. Paneer/cheese analogue checks rely on sterol (beta-sitosterol) and starch keywords; there is no single named FSSAI test, and FSSAI's 2026 draft to stop analogues using the word 'paneer' is still a proposal. FSSAI regulation numbers for oils and vanaspati come from the FPS ch. 2.2 compendium (v2, 05.10.2023); dairy numbers (2.1.2, 2.1.8, 2.1.9, 2.1.10, 2.1.11, 2.1.16, 2.1.17) come from FSSAI notifications and secondary summaries, so ghee RM/BR/FFA limits (which vary by state) are left out of the 'why' text. Pesticide residues (CTR, milk products on a fat basis) were left off milk/ghee to stay within 7; heavy metals/pesticides are low-yield for refined oils but CTR limits exist."
+}

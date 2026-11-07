@@ -302,13 +302,14 @@ def get_product(product_id: str) -> dict:
         raise HTTPException(404, "product not found")
     product = rows[0]
     every = [x for r in product["reports"] for x in r["results"]]
-    product["tests"] = test_statuses(product["category"], every, findings(every, product["label_nutrition"]),
+    product["tests"] = test_statuses(product["category"], every, findings(every, product["label_nutrition"], product["category"]),
                                      coverage(product["category"], every))
     primary = product["reports"][0]["results"] if product["reports"] else []
     product["annotations"] = summarize({**product, "results": primary})
     ours = bool(product["reports"]) and product["reports"][0]["kind"] == "user"
     product["openlabel_grade"] = (
-        openlabel_grade(primary, product["label_nutrition"], product["annotations"]["findings"], product["tests"]) if ours else None
+        openlabel_grade(primary, product["label_nutrition"], product["annotations"]["findings"], product["tests"],
+                        product["category"], product.get("ingredients"), product["name"]) if ours else None
     )
     return product
 
@@ -357,7 +358,8 @@ def wall(limit: int = Query(16, ge=1, le=48)) -> dict:
     for row in fetch(WALL_SQL, {"limit": limit}):
         tests = coverage(row["category"], row["results"])
         notes = summarize({**row, "tests": tests})
-        ours = openlabel_grade(row["results"], row["label_nutrition"], notes["findings"], tests) if row["kind"] == "user" else None
+        ours = openlabel_grade(row["results"], row["label_nutrition"], notes["findings"], tests,
+                               row["category"], row.get("ingredients"), row["name"]) if row["kind"] == "user" else None
         items.append({
             "kind": "product", "id": row["id"], "brand": row["brand"], "name": row["name"], "variant": row["variant"],
             "category": row["category"], "image_url": row["image_url"], "ingredients": row["ingredients"],

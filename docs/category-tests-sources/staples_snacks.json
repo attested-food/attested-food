@@ -1,0 +1,1589 @@
+{
+  "flour": [
+    {
+      "name": "Purity: ash insoluble in HCl, alcoholic acidity, uric acid, gluten",
+      "why": "Sand or soil, stale or insect-damaged grain show up as high acid-insoluble ash, alcoholic acidity and uric acid (insect excreta), and low gluten in atta and maida means a poor or diluted flour.",
+      "group": null,
+      "keywords": [
+        "acid insoluble ash",
+        "acid-insoluble ash",
+        "ash insoluble",
+        "alcoholic acidity",
+        "uric acid",
+        "gluten",
+        "moisture"
+      ],
+      "source": "FSSAI FPS Reg 2.4.1 (atta), 2.4.2 (maida), 2.4.4 (besan) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf; FSSAI DART test 19"
+    },
+    {
+      "name": "Aflatoxins",
+      "why": "Mould on badly stored wheat or gram makes aflatoxins, which damage the liver and can cause cancer; flour is eaten every day so small amounts add up.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (total aflatoxins 15 µg/kg, B1 10 µg/kg in cereals; 20 µg/kg in products containing them)"
+    },
+    {
+      "name": "Pesticide residues",
+      "why": "Wheat and chana are sprayed in the field and in storage, and residues can carry into the flour.",
+      "group": "pesticide",
+      "keywords": [],
+      "source": "FSSAI FPS Reg 2.4.6(1) (food grains must meet CTR Reg 2.3.1 MRLs); Consumer Voice and Trustified tests"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Grain picks up lead and cadmium from soil, water and mills, and these build up in the body over years.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits) (lead 0.2 mg/kg cereal grains, cadmium 0.2 mg/kg wheat); Consumer Voice atta tests (lead)"
+    },
+    {
+      "name": "Added colour or khesari dal (besan)",
+      "why": "Besan is sometimes coloured yellow or bulked with cheap khesari dal, which can cause paralysis (lathyrism); FSSAI bans both.",
+      "group": null,
+      "keywords": [
+        "synthetic dye",
+        "synthetic colour",
+        "food colour",
+        "artificial colour",
+        "added colour",
+        "colouring matter",
+        "sudan",
+        "metanil",
+        "rhodamine",
+        "tartrazine",
+        "sunset yellow",
+        "khesari",
+        "kesari"
+      ],
+      "source": "FSSAI FPS Reg 2.4.4 (besan: no added colouring) and 2.4.6(1) (grains free from kesari) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf; FSSAI DART test 14"
+    },
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Checks that protein and fibre (e.g. on multigrain or high-fibre atta) match what the pack says.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Consumer Voice atta tests (observed.json)"
+    }
+  ],
+  "rice": [
+    {
+      "name": "Basmati authenticity (non-basmati mix, grain length, elongation)",
+      "why": "Cheaper non-basmati rice is mixed into basmati; FSSAI allows at most 15% and sets minimum grain length and cooked elongation.",
+      "group": null,
+      "keywords": [
+        "non-basmati",
+        "grain length",
+        "elongation",
+        "length/breadth",
+        "l/b"
+      ],
+      "source": "FSSAI FPS Reg 2.4.6(26) Basmati rice https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf; Consumer Voice basmati tests"
+    },
+    {
+      "name": "Grain quality: broken, damaged, chalky grains, foreign matter, uric acid",
+      "why": "Too many broken, damaged or chalky grains, stones or insect contamination (uric acid) means you are paying for poor-grade rice.",
+      "group": null,
+      "keywords": [
+        "broken",
+        "damaged",
+        "chalky",
+        "foreign matter",
+        "extraneous",
+        "uric acid",
+        "under-milled",
+        "green grains",
+        "other grains"
+      ],
+      "source": "FSSAI FPS Reg 2.4.6(24) rice and 2.4.6(26) basmati https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf"
+    },
+    {
+      "name": "Aflatoxins",
+      "why": "Rice stored damp grows moulds that make aflatoxins, which harm the liver.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (total aflatoxins 15 µg/kg, B1 10 µg/kg in cereals; 20 µg/kg in products containing them); Consumer Voice and Trustified rice tests"
+    },
+    {
+      "name": "Pesticide residues",
+      "why": "Paddy is heavily sprayed (e.g. tricyclazole), and FSSAI sets many rice-specific residue limits.",
+      "group": "pesticide",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.3.1 (rice MRLs); FSSAI FPS Reg 2.4.6(1)"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Rice absorbs cadmium, lead and arsenic from paddy soil and water more than most grains.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits) (cadmium 0.4 mg/kg polished rice, lead 0.2 mg/kg cereal grains)"
+    },
+    {
+      "name": "Added colour or polishing agents",
+      "why": "Sella and basmati rice are sometimes coloured (e.g. with turmeric) or polished to look better, which FSSAI does not allow.",
+      "group": null,
+      "keywords": [
+        "synthetic dye",
+        "synthetic colour",
+        "food colour",
+        "artificial colour",
+        "added colour",
+        "colouring matter",
+        "sudan",
+        "metanil",
+        "rhodamine",
+        "tartrazine",
+        "sunset yellow",
+        "polish"
+      ],
+      "source": "FSSAI FPS Reg 2.4.6(26) (basmati free from artificial colouring and polishing agents) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf; FSSAI DART tests 15-16"
+    }
+  ],
+  "salt": [
+    {
+      "name": "Purity: sodium chloride, water-insoluble matter, moisture",
+      "why": "Salt bulked with chalk, grit or excess water has less sodium chloride and more insoluble matter than FSSAI allows.",
+      "group": null,
+      "keywords": [
+        "sodium chloride",
+        "insoluble",
+        "matter soluble",
+        "moisture",
+        "sulphate",
+        "magnesium"
+      ],
+      "source": "FSSAI FPS Reg 2.9.30 (NaCl ≥96% dry, insoluble ≤1%, moisture ≤6%) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_9_Salt_Spices_Condiments%20and%20related%20products.pdf; FSSAI DART test 28"
+    },
+    {
+      "name": "Iodine content (iodised salt)",
+      "why": "Iodised salt is India's main source of iodine; too little means the salt doesn't prevent goitre and thyroid problems.",
+      "group": null,
+      "keywords": [
+        "iodine",
+        "iodate"
+      ],
+      "source": "FSS (Fortification of Foods) Regulations, 2018; FSSAI DART test 36; Consumer Voice salt tests"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Sea and lake salt can carry lead, arsenic, cadmium and mercury from contaminated water.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits) (salt: lead 2.0, cadmium 0.5, mercury 0.1 mg/kg); Consumer Voice salt tests (lead, arsenic)"
+    }
+  ],
+  "spices": [
+    {
+      "name": "Aflatoxins",
+      "why": "Chillies, turmeric and coriander dried in the open grow moulds that make aflatoxins, which damage the liver.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (spices: total aflatoxins 30 µg/kg, B1 15 µg/kg); Trustified and Consumer Voice spice tests"
+    },
+    {
+      "name": "Pesticide residues",
+      "why": "Spices carry pesticide and fumigant residues; in 2024 ethylene oxide, a cancer-causing fumigant, got Indian masalas recalled abroad and FSSAI testing them (ask the lab to include ethylene oxide).",
+      "group": "pesticide",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.3.1; Trustified spice tests; FSSAI ethylene oxide testing 2024 https://www.theweek.in/news/india/2024/05/21/fssai-clears-mdh-everest-spices-samples-finds-no-trace-of-ethylene-oxide.amp.html"
+    },
+    {
+      "name": "Synthetic colours (Sudan dyes, metanil yellow)",
+      "why": "Chilli and turmeric powders are dyed brighter with banned industrial dyes such as Sudan red and metanil yellow, which are linked to cancer.",
+      "group": null,
+      "keywords": [
+        "synthetic dye",
+        "synthetic colour",
+        "food colour",
+        "artificial colour",
+        "added colour",
+        "colouring matter",
+        "sudan",
+        "metanil",
+        "rhodamine",
+        "tartrazine",
+        "sunset yellow"
+      ],
+      "source": "FSSAI FPS Reg 2.9.3 (chilli powder free of extraneous colour) and 2.9.18 (turmeric) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_9_Salt_Spices_Condiments%20and%20related%20products.pdf; FSSAI DART tests 24, 34; Trustified spice tests"
+    },
+    {
+      "name": "Lead chromate (turmeric colouring)",
+      "why": "Turmeric is sometimes coloured with lead chromate, a toxic lead pigment; FSSAI requires the test to be negative.",
+      "group": null,
+      "keywords": [
+        "lead chromate",
+        "chromate",
+        "chromium"
+      ],
+      "source": "FSSAI FPS Reg 2.9.18 (test for lead chromate: negative) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_9_Salt_Spices_Condiments%20and%20related%20products.pdf; FSSAI DART test 33; FSSAI CTR Reg 2.1 (lead in turmeric 10 mg/kg)"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Lead from colouring, soil and grinding builds up in the body; FSSAI caps lead at 10 mg/kg in turmeric and curry powder.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits); FSSAI FPS Reg 2.9.19 curry powder (lead ≤10 ppm); Consumer Voice spice tests (lead)"
+    },
+    {
+      "name": "Purity: ash insoluble in HCl, volatile oil, curcumin, starch",
+      "why": "Brick powder, sand or sawdust in ground spices shows as high acid-insoluble ash, while low volatile oil or curcumin means exhausted or diluted spice.",
+      "group": null,
+      "keywords": [
+        "acid insoluble ash",
+        "acid-insoluble ash",
+        "ash insoluble",
+        "volatile oil",
+        "curcumin",
+        "starch",
+        "total ash"
+      ],
+      "source": "FSSAI FPS Reg 2.9 (per-spice limits, e.g. 2.9.3, 2.9.7, 2.9.18, 2.9.20 mixed masala) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_9_Salt_Spices_Condiments%20and%20related%20products.pdf; FSSAI DART tests 26, 35"
+    },
+    {
+      "name": "Microbiology (E. coli, Salmonella, Listeria)",
+      "why": "Spices are dried outdoors and eaten without cooking in chutneys and raitas, so Salmonella must be absent.",
+      "group": null,
+      "keywords": [
+        "microbiolog",
+        "micro organism",
+        "salmonella",
+        "listeria",
+        "e. coli",
+        "e.coli",
+        "coliform",
+        "plate count",
+        "yeast",
+        "staphylococcus",
+        "enterobacteriaceae",
+        "bacillus"
+      ],
+      "source": "FSSAI FPS Appendix B Table 3 (spices: Salmonella absent/25 g, B. cereus, Enterobacteriaceae) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf; Trustified and Consumer Voice tests"
+    }
+  ],
+  "jaggery_powder": [
+    {
+      "name": "Purity: sucrose, reducing sugars, ash insoluble in HCl",
+      "why": "Jaggery mixed with refined sugar, chalk or grit fails FSSAI's limits for sucrose (≥70%), reducing sugars and acid-insoluble ash.",
+      "group": null,
+      "keywords": [
+        "sucrose",
+        "reducing sugar",
+        "insoluble",
+        "sulphate ash",
+        "total ash",
+        "moisture"
+      ],
+      "source": "FSSAI FPS Reg 2.8.4(2) cane jaggery https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_8%20(Sweetening%20agents%20including%20Honey).pdf; Unbox Health tests"
+    },
+    {
+      "name": "Chalk and added colour",
+      "why": "Jaggery is bulked with chalk powder or coloured to look golden, and FSSAI does not allow any added colour.",
+      "group": null,
+      "keywords": [
+        "synthetic dye",
+        "synthetic colour",
+        "food colour",
+        "artificial colour",
+        "added colour",
+        "colouring matter",
+        "sudan",
+        "metanil",
+        "rhodamine",
+        "tartrazine",
+        "sunset yellow",
+        "chalk",
+        "calcium carbonate"
+      ],
+      "source": "FSSAI FPS Reg 2.8.4(2)(2) (added colour not permitted) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_8%20(Sweetening%20agents%20including%20Honey).pdf; FSSAI DART test 9"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Jaggery boiled in metal pans and made from cane grown on contaminated soil can carry lead and other metals.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1; FSSAI FPS Reg 2.8.4(2)(4); Unbox Health tests"
+    }
+  ],
+  "soya_chunks": [
+    {
+      "name": "Protein & composition (FSSAI soy chunk standard)",
+      "why": "Soya chunks are bought for protein; FSSAI requires at least 50% protein with limits on fat, ash and fibre.",
+      "group": null,
+      "keywords": [
+        "protein",
+        "acid insoluble ash",
+        "acid-insoluble ash",
+        "ash insoluble",
+        "crude fib",
+        "total ash",
+        "moisture"
+      ],
+      "source": "FSSAI FPS Reg 2.4.27 Textured Soy Protein https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf"
+    },
+    {
+      "name": "Aflatoxins",
+      "why": "Soybeans stored damp grow moulds that make aflatoxins, which harm the liver.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (oilseeds 15 µg/kg, products containing them 20 µg/kg); Trustified tests"
+    },
+    {
+      "name": "Hexane residue (solvent)",
+      "why": "Soya chunks are made from solvent-extracted soy flour, and leftover hexane solvent must stay under 10 ppm.",
+      "group": null,
+      "keywords": [
+        "hexane"
+      ],
+      "source": "FSSAI FPS Reg 2.4.27 (hexane max 10 ppm) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf"
+    },
+    {
+      "name": "Pesticide residues",
+      "why": "Soybean crops are sprayed and residues can carry through to the chunks.",
+      "group": "pesticide",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.3.1; Trustified tests"
+    },
+    {
+      "name": "Urease activity (under-processed soy)",
+      "why": "High urease means the soy wasn't heated enough to destroy anti-nutrients that block protein digestion.",
+      "group": null,
+      "keywords": [
+        "urease"
+      ],
+      "source": "FSSAI FPS Reg 2.4.27 (urease index 0.05-0.2) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf"
+    }
+  ],
+  "bread": [
+    {
+      "name": "Potassium bromate / iodate",
+      "why": "A 2016 CSE study found these possibly cancer-causing flour improvers in most Indian breads; FSSAI then banned bromate.",
+      "group": null,
+      "keywords": [
+        "bromate",
+        "iodate"
+      ],
+      "source": "CSE bread study 2016 and FSSAI ban https://www.cseindia.org/bread-study-outcome-cse-welcomes-fssais-ban-on-potassium-bromate-6472; Consumer Voice bread tests"
+    },
+    {
+      "name": "Microbiology (E. coli, Salmonella, Listeria)",
+      "why": "Bread is eaten without further cooking and goes mouldy quickly; Salmonella and Listeria must be absent and mould counts low.",
+      "group": null,
+      "keywords": [
+        "microbiolog",
+        "micro organism",
+        "salmonella",
+        "listeria",
+        "e. coli",
+        "e.coli",
+        "coliform",
+        "plate count",
+        "yeast",
+        "staphylococcus",
+        "enterobacteriaceae",
+        "bacillus"
+      ],
+      "source": "FSSAI FPS Appendix B Table 9A/9B (bread: Salmonella and Listeria absent/25 g) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf; Consumer Voice and Unbox Health tests"
+    },
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Checks fibre, protein and sugar against the label, especially on 'brown', 'whole wheat' or 'multigrain' breads.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Unbox Health / Consumer Voice tests (observed.json)"
+    },
+    {
+      "name": "Purity: alcoholic acidity, ash insoluble in HCl",
+      "why": "High alcoholic acidity means stale or poorly made bread, and high acid-insoluble ash means grit in the flour.",
+      "group": null,
+      "keywords": [
+        "alcoholic acidity",
+        "acid insoluble ash",
+        "acid-insoluble ash",
+        "ash insoluble"
+      ],
+      "source": "FSSAI FPS Reg 2.4.15(2) bread https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf; Consumer Voice bread tests"
+    },
+    {
+      "name": "Aflatoxins",
+      "why": "Aflatoxins from mouldy wheat survive baking.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (total aflatoxins 15 µg/kg, B1 10 µg/kg in cereals; 20 µg/kg in products containing them); Unbox Health bread tests"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Metals from flour and water carry into bread, which many people eat daily.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits); Unbox Health bread tests"
+    }
+  ],
+  "biscuits": [
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Biscuits are often marketed as 'digestive', 'high fibre' or 'sugar free'; tests check sugar, fat and fibre against the label.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Unbox Health / Consumer Voice tests (observed.json)"
+    },
+    {
+      "name": "Trans fat (FSSAI 2% of fat limit)",
+      "why": "Biscuits are made with vanaspati and bakery shortenings, the main source of trans fat that raises heart-disease risk.",
+      "group": "nutrition",
+      "keywords": [
+        "trans fat"
+      ],
+      "source": "FSSAI trans fat limit (industrial TFA ≤2% of fat, products made from 1 Jan 2022) https://mail.fssai.gov.in/upload/advisories/2021/12/61c0659e591e2Letter_Compliance_Trans_Fat_20_12_2021.pdf"
+    },
+    {
+      "name": "Rancidity (acid value, peroxide value)",
+      "why": "Old or poor-quality fat in biscuits goes rancid; FSSAI caps acidity of extracted fat at 2%.",
+      "group": null,
+      "keywords": [
+        "acid value",
+        "peroxide value",
+        "rancidity",
+        "acidity of extracted fat",
+        "free fatty acid",
+        "kreis"
+      ],
+      "source": "FSSAI FPS Reg 2.4.15(1) biscuits https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf; Consumer Voice biscuit tests"
+    },
+    {
+      "name": "Purity: ash insoluble in HCl",
+      "why": "Acid-insoluble ash above 0.1% means sand or grit in the flour.",
+      "group": null,
+      "keywords": [
+        "acid insoluble ash",
+        "acid-insoluble ash",
+        "ash insoluble"
+      ],
+      "source": "FSSAI FPS Reg 2.4.15(1) biscuits https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf; Consumer Voice biscuit tests"
+    },
+    {
+      "name": "Aflatoxins",
+      "why": "Aflatoxins from mouldy flour, nuts or groundnut survive baking.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (total aflatoxins 15 µg/kg, B1 10 µg/kg in cereals; 20 µg/kg in products containing them); Unbox Health biscuit tests"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Metals from flour, cocoa and water carry into biscuits that children eat a lot of.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits); Unbox Health biscuit tests"
+    },
+    {
+      "name": "Microbiology (E. coli, Salmonella, Listeria)",
+      "why": "Cream-filled biscuits handled after baking can pick up E. coli and other bacteria.",
+      "group": null,
+      "keywords": [
+        "microbiolog",
+        "micro organism",
+        "salmonella",
+        "listeria",
+        "e. coli",
+        "e.coli",
+        "coliform",
+        "plate count",
+        "yeast",
+        "staphylococcus",
+        "enterobacteriaceae",
+        "bacillus"
+      ],
+      "source": "Consumer Voice biscuit tests (total plate count, E. coli)"
+    }
+  ],
+  "breakfast_cereal": [
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Breakfast cereals sold to children are often high in sugar and claim added iron and vitamins; tests check both against the label.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre",
+        "iron",
+        "vitamin"
+      ],
+      "source": "Unbox Health / Consumer Voice tests (observed.json)"
+    },
+    {
+      "name": "Purity: moisture, ash insoluble in HCl, alcoholic acidity",
+      "why": "Too much moisture makes cereal soggy and mouldy, and high acid-insoluble ash or alcoholic acidity means grit or stale grain.",
+      "group": null,
+      "keywords": [
+        "acid insoluble ash",
+        "acid-insoluble ash",
+        "ash insoluble",
+        "moisture",
+        "alcoholic acidity"
+      ],
+      "source": "FSSAI FPS Reg 2.4.35 breakfast cereal (moisture ≤7.5%/10%, AIA ≤0.1%) and 2.4.8 corn flakes https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf"
+    },
+    {
+      "name": "Aflatoxins",
+      "why": "Maize and other grains in cereals are prone to aflatoxin-producing moulds.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (total aflatoxins 15 µg/kg, B1 10 µg/kg in cereals; 20 µg/kg in products containing them); Unbox Health and Trustified tests"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Grains, cocoa and rice in cereals can carry lead, arsenic and cadmium.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits); Unbox Health and Consumer Voice tests"
+    },
+    {
+      "name": "Pesticide residues",
+      "why": "Oats, maize and wheat are sprayed crops and residues can carry into the cereal.",
+      "group": "pesticide",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.3.1; Trustified tests"
+    },
+    {
+      "name": "Microbiology (E. coli, Salmonella, Listeria)",
+      "why": "Cereal is eaten without cooking, so Salmonella and Listeria must be absent.",
+      "group": null,
+      "keywords": [
+        "microbiolog",
+        "micro organism",
+        "salmonella",
+        "listeria",
+        "e. coli",
+        "e.coli",
+        "coliform",
+        "plate count",
+        "yeast",
+        "staphylococcus",
+        "enterobacteriaceae",
+        "bacillus"
+      ],
+      "source": "FSSAI FPS Appendix B Table 9B (other ready-to-eat grain products: Salmonella, Listeria absent/25 g) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf; Consumer Voice tests"
+    }
+  ],
+  "muesli": [
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Muesli is sold as a health food; tests check sugar, fibre and protein claims against the label.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Unbox Health / Consumer Voice tests (observed.json)"
+    },
+    {
+      "name": "Aflatoxins",
+      "why": "Oats, nuts and dried fruit in muesli are all prone to aflatoxin-producing moulds.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (total aflatoxins 15 µg/kg, B1 10 µg/kg in cereals; 20 µg/kg in products containing them) and nuts 15 µg/kg; Unbox Health tests"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Oats, seeds and cocoa can carry lead, cadmium and arsenic.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits); Unbox Health tests"
+    },
+    {
+      "name": "Purity: moisture, ash insoluble in HCl",
+      "why": "Too much moisture lets mould grow, and high acid-insoluble ash means grit; FSSAI's breakfast cereal standard explicitly covers muesli.",
+      "group": null,
+      "keywords": [
+        "acid insoluble ash",
+        "acid-insoluble ash",
+        "ash insoluble",
+        "moisture"
+      ],
+      "source": "FSSAI FPS Reg 2.4.35 breakfast cereal (moisture ≤10% with fruit/nuts, AIA ≤0.1%) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf"
+    },
+    {
+      "name": "Pesticide residues",
+      "why": "Oats and other grains are sprayed crops and residues can carry into the mix.",
+      "group": "pesticide",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.3.1; Trustified breakfast cereal tests"
+    },
+    {
+      "name": "Microbiology (E. coli, Salmonella, Listeria)",
+      "why": "Muesli is eaten uncooked, often with cold milk, so Salmonella and Listeria must be absent.",
+      "group": null,
+      "keywords": [
+        "microbiolog",
+        "micro organism",
+        "salmonella",
+        "listeria",
+        "e. coli",
+        "e.coli",
+        "coliform",
+        "plate count",
+        "yeast",
+        "staphylococcus",
+        "enterobacteriaceae",
+        "bacillus"
+      ],
+      "source": "FSSAI FPS Appendix B Table 9B (other ready-to-eat grain products) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf"
+    }
+  ],
+  "granola": [
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Granola is sold as a health food; tests check sugar, fibre and protein claims against the label.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Unbox Health / Consumer Voice tests (observed.json)"
+    },
+    {
+      "name": "Aflatoxins",
+      "why": "Oats, nuts and dried fruit in granola are all prone to aflatoxin-producing moulds.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (total aflatoxins 15 µg/kg, B1 10 µg/kg in cereals; 20 µg/kg in products containing them) and nuts 15 µg/kg; Unbox Health tests"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Oats, seeds and cocoa can carry lead, cadmium and arsenic.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits); Unbox Health tests"
+    },
+    {
+      "name": "Rancidity (acid value, peroxide value)",
+      "why": "Granola is baked with oil and nuts, which go rancid over its shelf life; FSSAI requires breakfast cereals to be free from rancid taste.",
+      "group": null,
+      "keywords": [
+        "acid value",
+        "peroxide value",
+        "rancidity",
+        "acidity of extracted fat",
+        "free fatty acid",
+        "kreis"
+      ],
+      "source": "FSSAI FPS Reg 2.4.35(5) breakfast cereals (covers granola) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf"
+    },
+    {
+      "name": "Purity: moisture, ash insoluble in HCl",
+      "why": "Too much moisture lets mould grow, and high acid-insoluble ash means grit; FSSAI's breakfast cereal standard explicitly covers granola.",
+      "group": null,
+      "keywords": [
+        "acid insoluble ash",
+        "acid-insoluble ash",
+        "ash insoluble",
+        "moisture"
+      ],
+      "source": "FSSAI FPS Reg 2.4.35 breakfast cereal (moisture ≤10% with fruit/nuts, AIA ≤0.1%) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf"
+    },
+    {
+      "name": "Pesticide residues",
+      "why": "Oats and other grains are sprayed crops and residues can carry into the mix.",
+      "group": "pesticide",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.3.1; Trustified breakfast cereal tests"
+    },
+    {
+      "name": "Microbiology (E. coli, Salmonella, Listeria)",
+      "why": "Granola is eaten uncooked, often with cold milk, so Salmonella and Listeria must be absent.",
+      "group": null,
+      "keywords": [
+        "microbiolog",
+        "micro organism",
+        "salmonella",
+        "listeria",
+        "e. coli",
+        "e.coli",
+        "coliform",
+        "plate count",
+        "yeast",
+        "staphylococcus",
+        "enterobacteriaceae",
+        "bacillus"
+      ],
+      "source": "FSSAI FPS Appendix B Table 9B (other ready-to-eat grain products) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf"
+    }
+  ],
+  "idli_dosa_batter": [
+    {
+      "name": "Microbiology (E. coli, Salmonella, Listeria)",
+      "why": "Fresh batter is a wet, fermenting food handled in small units; FSSAI sets Staphylococcus aureus and Enterobacteriaceae limits because dirty handling or water shows up here.",
+      "group": null,
+      "keywords": [
+        "microbiolog",
+        "micro organism",
+        "salmonella",
+        "listeria",
+        "e. coli",
+        "e.coli",
+        "coliform",
+        "plate count",
+        "yeast",
+        "staphylococcus",
+        "enterobacteriaceae",
+        "bacillus"
+      ],
+      "source": "FSSAI FPS Appendix B Table 9A (batters and doughs, ready to cook: S. aureus and Enterobacteriaceae) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf"
+    },
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Checks that protein, carbs and sodium match the pack label.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Unbox Health batter tests"
+    },
+    {
+      "name": "Aflatoxins",
+      "why": "Rice and urad dal stored badly can carry aflatoxins into the batter.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (total aflatoxins 15 µg/kg, B1 10 µg/kg in cereals; 20 µg/kg in products containing them) and pulses 15 µg/kg; Unbox Health tests"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Rice and dal pick up lead, cadmium and arsenic from soil and water.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits); Unbox Health tests"
+    }
+  ],
+  "snacks": [
+    {
+      "name": "Rancidity (acid value, peroxide value)",
+      "why": "Namkeen fried in reused or old oil goes rancid, which tastes off and makes harmful oxidised fats.",
+      "group": null,
+      "keywords": [
+        "acid value",
+        "peroxide value",
+        "rancidity",
+        "acidity of extracted fat",
+        "free fatty acid",
+        "kreis"
+      ],
+      "source": "Consumer Voice namkeen/snack tests (acid value and peroxide value of extracted fat); FSSAI FPS Reg 2.12.1 proprietary food https://stg-old.fssai.gov.in/upload/uploadfiles/files/13_%20Chapter%202_12%20(Proprietary%20Food).pdf"
+    },
+    {
+      "name": "Mineral oil",
+      "why": "Cheap non-edible mineral oil is sometimes used in frying or added for shine; it is not a food oil.",
+      "group": "spiking",
+      "keywords": [
+        "mineral oil"
+      ],
+      "source": "Consumer Voice snack tests"
+    },
+    {
+      "name": "Trans fat (FSSAI 2% of fat limit)",
+      "why": "Snacks fried in vanaspati or partially hydrogenated oil can carry trans fat, which raises heart-disease risk.",
+      "group": "nutrition",
+      "keywords": [
+        "trans fat"
+      ],
+      "source": "FSSAI trans fat limit (industrial TFA ≤2% of fat, products made from 1 Jan 2022) https://mail.fssai.gov.in/upload/advisories/2021/12/61c0659e591e2Letter_Compliance_Trans_Fat_20_12_2021.pdf"
+    },
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Namkeen is high in salt and fat; tests check sodium, fat and energy against the label.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Consumer Voice snack tests"
+    },
+    {
+      "name": "Purity: ash insoluble in HCl",
+      "why": "High acid-insoluble ash means sand or grit in the besan, dal or other flours.",
+      "group": null,
+      "keywords": [
+        "acid insoluble ash",
+        "acid-insoluble ash",
+        "ash insoluble"
+      ],
+      "source": "Consumer Voice snack tests"
+    },
+    {
+      "name": "Aflatoxins",
+      "why": "Namkeen is full of groundnuts, besan and dal, all prone to aflatoxin-producing moulds.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (food products containing nuts, oilseeds, cereals or pulses: 20 µg/kg)"
+    },
+    {
+      "name": "Microbiology (E. coli, Salmonella, Listeria)",
+      "why": "Snacks packed by hand after frying can pick up bacteria; proprietary foods must be free of pathogens.",
+      "group": null,
+      "keywords": [
+        "microbiolog",
+        "micro organism",
+        "salmonella",
+        "listeria",
+        "e. coli",
+        "e.coli",
+        "coliform",
+        "plate count",
+        "yeast",
+        "staphylococcus",
+        "enterobacteriaceae",
+        "bacillus"
+      ],
+      "source": "FSSAI FPS Reg 2.12.1(4) proprietary food https://stg-old.fssai.gov.in/upload/uploadfiles/files/13_%20Chapter%202_12%20(Proprietary%20Food).pdf; Consumer Voice snack tests"
+    }
+  ],
+  "chips": [
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Chips are high in fat and salt, and 'baked' or 'healthy' variants make fat and sodium claims that need checking.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Unbox Health chips tests"
+    },
+    {
+      "name": "Trans fat (FSSAI 2% of fat limit)",
+      "why": "Chips fried in partially hydrogenated oil can carry trans fat, which raises heart-disease risk.",
+      "group": "nutrition",
+      "keywords": [
+        "trans fat"
+      ],
+      "source": "FSSAI trans fat limit (industrial TFA ≤2% of fat) https://mail.fssai.gov.in/upload/advisories/2021/12/61c0659e591e2Letter_Compliance_Trans_Fat_20_12_2021.pdf; Unbox Health chips tests"
+    },
+    {
+      "name": "Rancidity (acid value, peroxide value)",
+      "why": "Oil in chips oxidises and goes rancid over shelf life, especially in packs that let in light or air.",
+      "group": null,
+      "keywords": [
+        "acid value",
+        "peroxide value",
+        "rancidity",
+        "acidity of extracted fat",
+        "free fatty acid",
+        "kreis"
+      ],
+      "source": "Consumer Voice fried snack tests; FSSAI FPS Reg 2.12.1 proprietary food https://stg-old.fssai.gov.in/upload/uploadfiles/files/13_%20Chapter%202_12%20(Proprietary%20Food).pdf"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Potatoes and other root crops pick up cadmium and lead from soil.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits); Unbox Health chips tests"
+    }
+  ],
+  "instant_noodles": [
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "In 2015 FSSAI ordered Maggi off shelves after state labs reported lead above limits; lead harms children's brain development.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits); Maggi 2015 https://en.wikipedia.org/wiki/Maggi_noodles_safety_concerns_in_India; Consumer Voice and Unbox Health tests"
+    },
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Noodles and their tastemaker are very high in sodium and refined carbs; tests check these against the label.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Consumer Voice and Unbox Health noodle tests"
+    },
+    {
+      "name": "Rancidity (acid value, peroxide value)",
+      "why": "Fried noodles hold a lot of oil that goes rancid; FSSAI caps acid value at 2.0 for fried noodles.",
+      "group": null,
+      "keywords": [
+        "acid value",
+        "peroxide value",
+        "rancidity",
+        "acidity of extracted fat",
+        "free fatty acid",
+        "kreis"
+      ],
+      "source": "FSSAI FPS Reg 2.4.10(2) instant noodles https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf; Consumer Voice noodle tests"
+    },
+    {
+      "name": "Trans fat (FSSAI 2% of fat limit)",
+      "why": "Fried noodles use palm or hydrogenated oils that can carry trans fat.",
+      "group": "nutrition",
+      "keywords": [
+        "trans fat"
+      ],
+      "source": "FSSAI trans fat limit (industrial TFA ≤2% of fat, products made from 1 Jan 2022) https://mail.fssai.gov.in/upload/advisories/2021/12/61c0659e591e2Letter_Compliance_Trans_Fat_20_12_2021.pdf"
+    },
+    {
+      "name": "Purity: moisture, ash insoluble in HCl",
+      "why": "FSSAI caps moisture (10% fried, 13% non-fried) and acid-insoluble ash (0.3%), which flags grit and poor drying.",
+      "group": null,
+      "keywords": [
+        "acid insoluble ash",
+        "acid-insoluble ash",
+        "ash insoluble",
+        "moisture"
+      ],
+      "source": "FSSAI FPS Reg 2.4.10(2) instant noodles https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf; Consumer Voice noodle tests"
+    },
+    {
+      "name": "Aflatoxins",
+      "why": "Aflatoxins from mouldy wheat flour carry into the noodles.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (total aflatoxins 15 µg/kg, B1 10 µg/kg in cereals; 20 µg/kg in products containing them); Consumer Voice noodle tests"
+    },
+    {
+      "name": "Microbiology (E. coli, Salmonella, Listeria)",
+      "why": "Noodle cakes and seasoning must be free of Salmonella.",
+      "group": null,
+      "keywords": [
+        "microbiolog",
+        "micro organism",
+        "salmonella",
+        "listeria",
+        "e. coli",
+        "e.coli",
+        "coliform",
+        "plate count",
+        "yeast",
+        "staphylococcus",
+        "enterobacteriaceae",
+        "bacillus"
+      ],
+      "source": "FSSAI FPS Appendix B Table 9B (instant noodles: Salmonella absent/25 g) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf"
+    }
+  ],
+  "ready_to_eat": [
+    {
+      "name": "Microbiology (E. coli, Salmonella, Listeria)",
+      "why": "Retort-pouch and canned meals must be commercially sterile; a poor seal or under-processing lets dangerous bacteria grow at room temperature.",
+      "group": null,
+      "keywords": [
+        "microbiolog",
+        "micro organism",
+        "salmonella",
+        "listeria",
+        "e. coli",
+        "e.coli",
+        "coliform",
+        "plate count",
+        "yeast",
+        "staphylococcus",
+        "enterobacteriaceae",
+        "bacillus"
+      ],
+      "source": "FSSAI FPS Reg 2.3.4 thermally processed curried vegetables / ready to eat https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_3_Fruit_Vegetable_products.pdf and Appendix B (thermally processed: commercial sterility) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf"
+    },
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Ready meals are often high in fat and salt; tests check fat, sodium and energy against the label.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Consumer Voice ready-to-eat tests"
+    },
+    {
+      "name": "Trans fat (FSSAI 2% of fat limit)",
+      "why": "Ready meals cooked with vanaspati or hydrogenated fats can carry trans fat.",
+      "group": "nutrition",
+      "keywords": [
+        "trans fat"
+      ],
+      "source": "FSSAI trans fat limit (industrial TFA ≤2% of fat) https://mail.fssai.gov.in/upload/advisories/2021/12/61c0659e591e2Letter_Compliance_Trans_Fat_20_12_2021.pdf; Consumer Voice ready-to-eat tests"
+    }
+  ],
+  "meat": [
+    {
+      "name": "Microbiology (E. coli, Salmonella, Listeria)",
+      "why": "Raw and frozen meat can carry Salmonella, Listeria and E. coli; FSSAI requires Salmonella to be absent.",
+      "group": null,
+      "keywords": [
+        "microbiolog",
+        "micro organism",
+        "salmonella",
+        "listeria",
+        "e. coli",
+        "e.coli",
+        "coliform",
+        "plate count",
+        "yeast",
+        "staphylococcus",
+        "enterobacteriaceae",
+        "bacillus"
+      ],
+      "source": "FSSAI FPS Appendix B Table 5A/5B (meat and meat products) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf; FSSAI FPS Reg 2.5.2"
+    },
+    {
+      "name": "Antibiotic residues",
+      "why": "A CSE study found antibiotic residues in 40% of chicken samples; residues fuel drug-resistant infections, and FSSAI bans drugs like nitrofurans and chloramphenicol in meat.",
+      "group": null,
+      "keywords": [
+        "antibiotic",
+        "tetracycline",
+        "nitrofuran",
+        "chloramphenicol",
+        "fluoroquinolone",
+        "enrofloxacin",
+        "ciprofloxacin",
+        "sulpha",
+        "veterinary"
+      ],
+      "source": "FSSAI CTR Reg 2.3.2 (banned antibiotics/veterinary drugs in meat and poultry); CSE 'Antibiotics in chicken' 2014 https://www.downtoearth.org.in/health/hatching-superbugs-45547"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Animals accumulate lead and cadmium from feed and water, especially in offal.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits) (lead 0.1 mg/kg in meat of cattle, sheep, pig and poultry)"
+    },
+    {
+      "name": "Rancidity (acid value, peroxide value)",
+      "why": "Frozen meat stored too long or thawed and refrozen goes rancid.",
+      "group": null,
+      "keywords": [
+        "acid value",
+        "peroxide value",
+        "rancidity",
+        "acidity of extracted fat",
+        "free fatty acid",
+        "kreis"
+      ],
+      "source": "Trustified meat tests (Kreis test for rancidity)"
+    },
+    {
+      "name": "Pesticide residues",
+      "why": "Pesticides in animal feed end up in meat fat; FSSAI sets meat-specific residue limits.",
+      "group": "pesticide",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.3.1 (meat and poultry MRLs); Trustified meat tests"
+    },
+    {
+      "name": "Synthetic colours",
+      "why": "Marinated and processed meats are sometimes coloured red with synthetic dyes to look fresher.",
+      "group": null,
+      "keywords": [
+        "synthetic dye",
+        "synthetic colour",
+        "food colour",
+        "artificial colour",
+        "added colour",
+        "colouring matter",
+        "sudan",
+        "metanil",
+        "rhodamine",
+        "tartrazine",
+        "sunset yellow"
+      ],
+      "source": "Trustified meat tests (synthetic dyes)"
+    }
+  ],
+  "nuts": [
+    {
+      "name": "Aflatoxins",
+      "why": "Groundnuts, almonds and pistachios are among the foods most prone to aflatoxin-producing moulds, which damage the liver.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (nuts: total aflatoxins 15 µg/kg, B1 10 µg/kg); Trustified nut tests"
+    },
+    {
+      "name": "Rancidity (acid value, peroxide value)",
+      "why": "Nuts are high in oil and go rancid with age and heat; FSSAI caps free fatty acid and peroxide value for cashews.",
+      "group": null,
+      "keywords": [
+        "acid value",
+        "peroxide value",
+        "rancidity",
+        "acidity of extracted fat",
+        "free fatty acid",
+        "kreis"
+      ],
+      "source": "FSSAI FPS Reg 2.3.47(7) cashew kernels (FFA ≤1.25%, peroxide value ≤10 meq/kg) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_3_Fruit_Vegetable_products.pdf"
+    },
+    {
+      "name": "Pesticide residues",
+      "why": "Nut crops are sprayed, and residues stay on kernels.",
+      "group": "pesticide",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.3.1; Trustified nut tests"
+    },
+    {
+      "name": "Quality: moisture, damaged kernels, foreign matter",
+      "why": "Damp nuts grow mould, and damaged, insect-eaten kernels or foreign matter mean a poor grade.",
+      "group": null,
+      "keywords": [
+        "moisture",
+        "damaged",
+        "foreign matter",
+        "insect"
+      ],
+      "source": "FSSAI FPS Reg 2.3.47 nuts and raisins (groundnut, pistachio, almond, cashew) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_3_Fruit_Vegetable_products.pdf"
+    },
+    {
+      "name": "Added colour",
+      "why": "Nuts and dried fruit are sometimes coloured to look fresher, which FSSAI does not allow.",
+      "group": null,
+      "keywords": [
+        "synthetic dye",
+        "synthetic colour",
+        "food colour",
+        "artificial colour",
+        "added colour",
+        "colouring matter",
+        "sudan",
+        "metanil",
+        "rhodamine",
+        "tartrazine",
+        "sunset yellow"
+      ],
+      "source": "FSSAI FPS Reg 2.3.47 (groundnut kernels, raisins, dates free from added colouring matter) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_3_Fruit_Vegetable_products.pdf"
+    }
+  ],
+  "peanut_butter": [
+    {
+      "name": "Aflatoxins",
+      "why": "Groundnuts are India's highest-risk crop for aflatoxins, which damage the liver and can cause cancer.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "FSSAI CTR Reg 2.2.1 (products containing nuts/oilseeds: total 20 µg/kg, B1 10 µg/kg); Unbox Health and Trustified tests"
+    },
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Checks protein, sugar and fat against the label, since many 'high protein' spreads add sugar and cheaper oil.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Unbox Health peanut butter tests"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Groundnuts take up cadmium and lead from soil.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits); Unbox Health peanut butter tests"
+    },
+    {
+      "name": "Trans fat (FSSAI 2% of fat limit)",
+      "why": "Some peanut butters add hydrogenated oil to stop oil separating, which can add trans fat.",
+      "group": "nutrition",
+      "keywords": [
+        "trans fat"
+      ],
+      "source": "FSSAI trans fat limit (industrial TFA ≤2% of fat) https://mail.fssai.gov.in/upload/advisories/2021/12/61c0659e591e2Letter_Compliance_Trans_Fat_20_12_2021.pdf; Unbox Health peanut butter tests"
+    }
+  ],
+  "chocolate": [
+    {
+      "name": "Cocoa solids & milk solids vs FSSAI standard",
+      "why": "Cheap chocolate cuts cocoa and milk solids below FSSAI's minimums (e.g. milk chocolate ≥2.5% cocoa solids, ≥10.5% milk solids).",
+      "group": null,
+      "keywords": [
+        "cocoa solids",
+        "total cocoa",
+        "milk fat",
+        "milk solids"
+      ],
+      "source": "FSSAI FPS Reg 2.7.4 chocolate https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_7%20(Sweets%20and%20Confectionary).pdf; Consumer Voice chocolate tests"
+    },
+    {
+      "name": "Vegetable fat (non-cocoa fat ≤5%)",
+      "why": "Cocoa butter is replaced with cheaper vegetable fats; FSSAI allows at most 5% and requires a label declaration.",
+      "group": null,
+      "keywords": [
+        "vegetable fat",
+        "cocoa butter equivalent",
+        "melting point"
+      ],
+      "source": "FSSAI FPS Reg 2.7.4(1) and 5(b) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_7%20(Sweets%20and%20Confectionary).pdf; Consumer Voice chocolate tests (melting point)"
+    },
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Checks sugar, fat and energy against the label.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Consumer Voice chocolate tests"
+    },
+    {
+      "name": "Synthetic colours",
+      "why": "Coloured and coated chocolates can contain non-permitted or excess synthetic colours.",
+      "group": null,
+      "keywords": [
+        "synthetic dye",
+        "synthetic colour",
+        "food colour",
+        "artificial colour",
+        "added colour",
+        "colouring matter",
+        "sudan",
+        "metanil",
+        "rhodamine",
+        "tartrazine",
+        "sunset yellow"
+      ],
+      "source": "Consumer Voice chocolate tests (synthetic food colour)"
+    },
+    {
+      "name": "Purity: ash insoluble in HCl",
+      "why": "Acid-insoluble ash above 0.2% means grit or poor-quality cocoa.",
+      "group": null,
+      "keywords": [
+        "acid insoluble ash",
+        "acid-insoluble ash",
+        "ash insoluble"
+      ],
+      "source": "FSSAI FPS Reg 2.7.4 chocolate https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_7%20(Sweets%20and%20Confectionary).pdf; Consumer Voice chocolate tests"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Cocoa takes up cadmium and lead from soil and drying, so chocolate can carry heavy metals.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead in cocoa powder 5.0 mg/kg fat-free dry basis)"
+    }
+  ],
+  "dark_chocolate": [
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Consumer Reports found lead and cadmium in all 28 dark chocolate bars it tested in 2022; more cocoa means more metal.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "Consumer Reports 2022 https://www.npr.org/2022/12/17/1143239430/dark-chocolate-lead-cadmium-consumer-reports; FSSAI CTR Reg 2.1 (lead in cocoa powder 5.0 mg/kg); Unbox Health tests"
+    },
+    {
+      "name": "Cocoa solids vs label %",
+      "why": "Dark chocolate must have at least 35% total cocoa solids under FSSAI; the '70%' on the label should match what's inside.",
+      "group": null,
+      "keywords": [
+        "cocoa"
+      ],
+      "source": "FSSAI FPS Reg 2.7.4(4)(iii) (dark chocolate ≥35% cocoa solids, ≥18% cocoa butter) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_7%20(Sweets%20and%20Confectionary).pdf; Unbox Health tests"
+    },
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Checks sugar and fat against the label, since dark chocolate is sold as the healthier choice.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Unbox Health dark chocolate tests"
+    },
+    {
+      "name": "Vegetable fat (non-cocoa fat ≤5%)",
+      "why": "Cocoa butter is swapped for cheaper vegetable fats; FSSAI allows at most 5% with a label declaration.",
+      "group": null,
+      "keywords": [
+        "vegetable fat",
+        "cocoa butter equivalent",
+        "melting point"
+      ],
+      "source": "FSSAI FPS Reg 2.7.4(1) and 5(b) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_7%20(Sweets%20and%20Confectionary).pdf"
+    },
+    {
+      "name": "Aflatoxins",
+      "why": "Cocoa beans fermented and dried in warm, damp conditions can grow toxin-producing moulds.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "Unbox Health dark chocolate tests"
+    }
+  ],
+  "cocoa_powder": [
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Cocoa powder concentrates the cadmium and lead in cocoa beans; FSSAI caps lead at 5 mg/kg.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (cocoa powder: lead 5.0, copper 70 mg/kg on fat-free dry basis)"
+    },
+    {
+      "name": "Purity: cocoa butter, ash insoluble in HCl, alkalinity, added colour",
+      "why": "Cocoa powder bulked with husk or coloured fillers fails FSSAI's limits for cocoa butter, acid-insoluble ash and ash alkalinity, and added colour isn't allowed.",
+      "group": null,
+      "keywords": [
+        "cocoa butter",
+        "alkalinity",
+        "crude fib",
+        "added colour",
+        "moisture",
+        "acid insoluble ash",
+        "acid-insoluble ash",
+        "ash insoluble"
+      ],
+      "source": "FSSAI FPS Reg 2.7.7 cocoa powder https://stg-old.fssai.gov.in/upload/uploadfiles/files/Chapter%202_7%20(Sweets%20and%20Confectionary).pdf"
+    },
+    {
+      "name": "Aflatoxins",
+      "why": "Cocoa beans dried in damp conditions can grow aflatoxin-producing moulds.",
+      "group": "toxin",
+      "keywords": [
+        "aflatoxin"
+      ],
+      "source": "Trustified cocoa powder tests"
+    },
+    {
+      "name": "Pesticide residues",
+      "why": "Cocoa is a heavily sprayed crop and residues carry into the powder.",
+      "group": "pesticide",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.3.1; Trustified cocoa powder tests"
+    }
+  ],
+  "sweets": [
+    {
+      "name": "Microbiology (E. coli, Salmonella, Listeria)",
+      "why": "Milk sweets like rasgulla and peda spoil fast and can carry Staph aureus, coliforms and E. coli from handling.",
+      "group": null,
+      "keywords": [
+        "microbiolog",
+        "micro organism",
+        "salmonella",
+        "listeria",
+        "e. coli",
+        "e.coli",
+        "coliform",
+        "plate count",
+        "yeast",
+        "staphylococcus",
+        "enterobacteriaceae",
+        "bacillus"
+      ],
+      "source": "FSSAI FPS Appendix B Table 1 (chhena-based and khoa-based sweets) https://stg-old.fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf; Consumer Voice sweets tests"
+    },
+    {
+      "name": "Synthetic colours",
+      "why": "Sweets are often coloured with non-permitted dyes or more than the legal limit of permitted colours.",
+      "group": null,
+      "keywords": [
+        "synthetic dye",
+        "synthetic colour",
+        "food colour",
+        "artificial colour",
+        "added colour",
+        "colouring matter",
+        "sudan",
+        "metanil",
+        "rhodamine",
+        "tartrazine",
+        "sunset yellow"
+      ],
+      "source": "FSSAI FPS Reg 3.1.2 / Appendix A (permitted synthetic colours, max 100 ppm in sweets)"
+    },
+    {
+      "name": "Silver leaf (aluminium)",
+      "why": "Chandi varq on sweets is sometimes cheap aluminium foil; FSSAI requires 99.9% pure silver.",
+      "group": null,
+      "keywords": [
+        "silver",
+        "aluminium",
+        "aluminum"
+      ],
+      "source": "FSSAI FPS Reg 2.11.4 silver leaf https://stg-old.fssai.gov.in/upload/uploadfiles/files/12_%20Chapter%202_11%20(Other%20food%20product%20and%20%20ingredients).pdf; FSSAI DART test 10"
+    },
+    {
+      "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+      "why": "Colours, silver leaf and utensils can add lead and other metals to sweets.",
+      "group": "heavy_metal",
+      "keywords": [],
+      "source": "FSSAI CTR Reg 2.1 (lead, arsenic, cadmium, mercury limits); Consumer Voice sweets tests (lead, arsenic)"
+    },
+    {
+      "name": "Starch in khoa / chhena",
+      "why": "Khoa and chhena are bulked with starch, so you get less milk solids than you pay for.",
+      "group": null,
+      "keywords": [
+        "starch"
+      ],
+      "source": "FSSAI DART test 3 (starch in khoa, chhena, paneer) https://stg-old.fssai.gov.in/upload/knowledge_hub/1878035b34b558a3b48DART%20Book.pdf"
+    },
+    {
+      "name": "Trans fat (FSSAI 2% of fat limit)",
+      "why": "Soan papdi and fried sweets are often made with vanaspati, a source of trans fat.",
+      "group": "nutrition",
+      "keywords": [
+        "trans fat"
+      ],
+      "source": "FSSAI trans fat limit (industrial TFA ≤2% of fat) https://mail.fssai.gov.in/upload/advisories/2021/12/61c0659e591e2Letter_Compliance_Trans_Fat_20_12_2021.pdf; Consumer Voice sweets tests"
+    },
+    {
+      "name": "Nutrition vs label claims",
+      "why": "Checks sugar, fat and energy against the label.",
+      "group": "nutrition",
+      "keywords": [
+        "protein",
+        "carbohydrate",
+        "total carbs",
+        "sugar",
+        "energy",
+        "calori",
+        "sodium",
+        "total fat",
+        "saturated fat",
+        "dietary fibre"
+      ],
+      "source": "Consumer Voice sweets tests"
+    }
+  ],
+  "_notes": "Grounded in FSSAI FPS compendium chapters 2.3, 2.4, 2.7, 2.8, 2.9, 2.11, 2.12 and Appendix B (stg-old.fssai.gov.in, 2023-2025 versions), the CTR 2011 compendium (v. 19.08.2020; newer CTR amendments, e.g. veterinary-drug MRLs, may supersede it) and the DART book. Keyword design: 'Nutrition vs label claims' uses named nutrients (protein, carbohydrate, sugar, energy, sodium, total/saturated fat) rather than [] because Consumer Voice files moisture, acid-insoluble ash and 'acidity of extracted fat' under nutrition; FSSAI quality parameters, microbiology and adulterants use group null. No FSSAI product standard exists for namkeen, chips, peanut butter, packaged sweets (non-dairy), or idli batter beyond Appendix B, so these rely on proprietary-food rules, CTR and lab practice. Left out on purpose: microplastics in salt (Toxics Link 2024 found them in every brand, but there's no FSSAI limit or routine NABL method), acrylamide in chips (no Indian limit), MSG in noodles (FSSAI 2016 stopped prosecuting natural MSG), and safrole in garam masala (CTR caps it at 10 ppm in foods with mace/nutmeg; Consumer Voice tests it, but it's niche). For spices, a generic pesticide panel may not include ethylene oxide, so it has to be asked for. The trans-fat 2% limit is confirmed for products made with fats and oils from 1 Jan 2022; whether it extends to all foods is unconfirmed. The jaggery, soya, muesli, granola, batter, meat and nuts sets rest on only 1-2 observed reports each."
+}

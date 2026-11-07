@@ -26,12 +26,8 @@ function grouped(results: Result[]) {
 	return GROUPS.map((g) => [g, results.filter((r) => groupOf(r) === g)] as const).filter(([, rs]) => rs.length);
 }
 
-// Tested value differs from the label claim by more than 10%.
-function offClaim(r: Result) {
-	if (r.value === null || r.label_claim === null) return false;
-	if (r.label_claim === 0) return r.value !== 0;
-	return Math.abs(r.value - r.label_claim) / Math.abs(r.label_claim) > 0.1;
-}
+// A result whose comparison with the label is past the official tolerance, in the harmful direction.
+const offClaim = (r: Result, bad: Set<string>) => bad.has(r.parameter);
 
 function summary(r: Report | undefined) {
 	if (!r) return 'Not tested yet. Request a test and others can help fund it.';
@@ -46,6 +42,9 @@ function gradeLabel(r: Report | undefined, ours: P['openlabel_grade']) {
 	if (r.kind === 'user') return 'Tested through OpenLabel';
 	return sourceGrade(r) ? `Graded by ${r.publisher?.name ?? 'the source'}` : `Tested for ${r.publisher?.name ?? 'a testing website'}`;
 }
+
+// Half-width of the tolerance band on a ±30% axis, as % of the axis.
+const band = (f: Finding) => (Math.min(30, f.tolerance_pct ?? 10) / 30) * 50;
 
 function LabelVsLab({ findings }: { findings: Finding[] }) {
 	return (
@@ -63,12 +62,12 @@ function LabelVsLab({ findings }: { findings: Finding[] }) {
 							<span className={`r b ${cls}`}>{num(f.tested)} {f.unit ?? ''}</span>
 							<span className="p-dot">
 								<span className="axis" />
-								<span className="band" />
+								<span className="band" style={{ left: `${50 - band(f)}%`, width: `${2 * band(f)}%` }} />
 								<span className="mid" />
 								<span className={`dot ${f.kind}`} style={{ left: `${left}%` }} />
 							</span>
 							<span className={`r b ${cls}`}>{pct(dev)}</span>
-							<span className={`res ${cls}`}><ResultIcon kind={f.kind} size={16} />{f.kind === 'bad' ? 'Off label' : f.kind === 'good' ? 'Better than label' : 'Within 10%'}</span>
+							<span className={`res ${cls}`}><ResultIcon kind={f.kind} size={16} />{f.kind === 'bad' ? 'Off label' : f.kind === 'good' ? 'Better than label' : 'Within tolerance'}</span>
 						</div>
 					);
 				})}
@@ -88,7 +87,8 @@ function overLimit(raw: string | null, unit: string | null): string {
 function ReportBlock({ r, findings }: { r: Report; findings: Finding[] }) {
 	const pdf = httpUrl(r.pdf_url);
 	const source = httpUrl(r.source_url);
-	const off = Math.max(findings.filter((f) => f.kind === 'bad').length, r.results.filter(offClaim).length);
+	const bad = new Set(findings.filter((f) => f.kind === 'bad').map((f) => f.parameter));
+	const off = bad.size;
 	const failed = r.results.filter((x) => x.status === 'fail').length;
 	const passed = r.results.filter((x) => x.status === 'pass').length;
 	// The few things worth reading first: label mismatches, then failed/passed limits.
@@ -170,7 +170,7 @@ function ReportBlock({ r, findings }: { r: Report; findings: Finding[] }) {
 										{rows.map((row, i) => (
 											<tr key={i}>
 												<td className="rp-param">{row.parameter}{row.method && <span className="rp-method">{row.method}</span>}</td>
-												<td className={`r rp-val${offClaim(row) ? ' off' : ''}`} title={offClaim(row) ? 'More than 10% away from the label claim' : undefined}>
+												<td className={`r rp-val${offClaim(row, bad) ? ' off' : ''}`} title={offClaim(row, bad) ? 'Past the official label tolerance' : undefined}>
 													{dash(row.value_raw)}<span className="rp-unit">{row.unit ? ` ${row.unit}` : ''}</span>
 													{row.label_claim !== null && <span className="rp-claim">label {row.label_claim}</span>}
 												</td>
@@ -199,9 +199,10 @@ function Breakdown({ g }: { g: NonNullable<P['openlabel_grade']> }) {
 		<div className="p-breakdown">
 			{part('Label honesty', g.parts.honesty)}
 			{part('Safety', g.parts.safety)}
-			{part('Nutrition', g.parts.nutrition)}
+			{part(g.nutri_score ? `Nutrition · Nutri-Score ${g.nutri_score}` : 'Nutrition', g.parts.nutrition)}
 			<Link className="link small" to="/about#grading">How we grade</Link>
-			{g.safety_failed && <p className="off small">A safety test failed, so the grade can't be higher than D.</p>}
+			{g.safety_tier === 'critical' && <p className="off small">A serious health hazard was found ({g.safety_flags?.filter((f) => f.tier === 'critical').map((f) => f.parameter).join(', ')}), so the grade is E.</p>}
+			{g.safety_tier === 'serious' && <p className="off small">A result is over its safety limit ({g.safety_flags?.filter((f) => f.tier === 'serious').map((f) => f.parameter).join(', ')}), so the grade can't be higher than D.</p>}
 		</div>
 	);
 }
@@ -305,7 +306,7 @@ export default function Product() {
 								<strong>{f.parameter}:</strong> lab found {num(f.tested)} {f.unit ?? ''} against {num(f.label)} {f.unit ?? ''} on the label ({pct(f.deviation_pct ?? 0)}), {f.kind === 'bad' ? 'off label' : 'better than the label'}.
 							</li>
 						))}
-						{compared.length > keys.length && <li>{compared.length - keys.length} more nutrients are within 10% of what the pack says.</li>}
+						{compared.length > keys.length && <li>{compared.length - keys.length} more nutrients are within the official label tolerance.</li>}
 						{p.tests.some((t) => t.tested) && <li>Covered by the results on file: {p.tests.filter((t) => t.tested).map((t) => t.name).join(', ')}.</li>}
 						{p.tests.some((t) => !t.tested) && <li>Standard tests not covered yet: {p.tests.filter((t) => !t.tested).map((t) => t.name).join(', ')}.</li>}
 					</ul>
@@ -329,7 +330,7 @@ export default function Product() {
 				<section className="p-section" id="results" aria-labelledby="lvl">
 					<div className="p-lvl-title">
 						<h2 id="lvl">Label vs lab</h2>
-						<span className="muted">Per 100 g. Shaded band = within 10% of the label. Dot = what the lab found.</span>
+						<span className="muted">Per 100 g. Shaded band = the official label tolerance for that nutrient. Dot = what the lab found.</span>
 					</div>
 					<LabelVsLab findings={compared} />
 				</section>

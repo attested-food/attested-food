@@ -1,0 +1,731 @@
+{
+ "honey": [
+  {
+   "name": "Sugar syrup adulteration (C4/C3 sugars, rice syrup marker)",
+   "why": "Cheap cane, corn or rice syrups are mixed into honey to bulk it up, and many big Indian brands have been caught doing it.",
+   "group": null,
+   "keywords": [
+    "c4 sugar",
+    "13c",
+    "oligosaccharide",
+    "afgp",
+    "rice syrup",
+    "pollen"
+   ],
+   "source": "FSSAI FPS Reg 2.8.3 (C4 sugar max 7%, Δδ13C, 2-AFGP rice-syrup marker absent, foreign oligosaccharides, pollen count) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_8%20(Sweetening%20agents%20including%20Honey).pdf; CSE NMR investigation Dec 2020 (10 of 13 brands failed); Consumer Voice & Unbox Health tests"
+  },
+  {
+   "name": "Purity: moisture, HMF, sucrose, fructose/glucose ratio, diastase",
+   "why": "These show whether honey is real, fresh and unheated: high HMF or sucrose, low diastase or an odd fructose/glucose ratio point to added sugar, overheating or old stock.",
+   "group": null,
+   "keywords": [
+    "hmf",
+    "hydroxymethylfurfural",
+    "sucrose",
+    "fructose–glucose",
+    "fructose-glucose",
+    "f/g ratio",
+    "diastase",
+    "fiehe",
+    "moisture",
+    "reducing sugar",
+    "proline",
+    "fructose",
+    "acidity",
+    "specific gravity",
+    "water-insoluble",
+    "water insoluble"
+   ],
+   "source": "FSSAI FPS Reg 2.8.3 (moisture ≤20%, reducing sugars ≥65%, sucrose ≤5%, F/G 0.95–1.50, HMF ≤80 mg/kg, diastase ≥3, proline ≥180) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_8%20(Sweetening%20agents%20including%20Honey).pdf; Consumer Voice & Unbox Health tests"
+  },
+  {
+   "name": "Antibiotic residues (chloramphenicol, nitrofurans, tetracyclines)",
+   "why": "Beekeepers sometimes dose hives with antibiotics, which are banned in honey and leave residues you then eat.",
+   "group": null,
+   "keywords": [
+    "antibiotic",
+    "chloramphenicol",
+    "nitrofuran",
+    "tetracycline",
+    "sulphonamide",
+    "sulfonamide",
+    "streptomycin",
+    "ampicillin",
+    "enrofloxacin",
+    "ciprofloxacin",
+    "erythromycin",
+    "tylosin"
+   ],
+   "source": "FSSAI CTR Reg 2.3.2(3) (antibiotics in honey, LC-MS/MS limits; tightened by Oct 2024 amendment) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; https://taxguru.in/?p=935564"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Honey can pick up lead and other metals from processing equipment, storage drums and polluted foraging areas.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.1.1 ('foods not specified' limits) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; Unbox Health tests"
+  }
+ ],
+ "jam": [
+  {
+   "name": "Fruit & sugar content: TSS, fruit %, pectin",
+   "why": "A jam must be at least 45% fruit and 65% soluble solids; low readings mean it is mostly sugar syrup, thickener and flavour.",
+   "group": null,
+   "keywords": [
+    "total soluble solids",
+    "total sugar",
+    "fruit content",
+    "pectin",
+    "sucrose",
+    "fructose"
+   ],
+   "source": "FSSAI FPS Reg 2.3.31(6)-(7) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_3_Fruit_Vegetable_products.pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Preservatives (benzoic acid, sulphur dioxide)",
+   "why": "Benzoate and sulphite are allowed only up to set limits; overuse can trigger allergies and asthma in sensitive people.",
+   "group": null,
+   "keywords": [
+    "benzoic",
+    "benzoate",
+    "sulphur dioxide",
+    "sulfur dioxide",
+    "sorbic",
+    "sorbate",
+    "preservative"
+   ],
+   "source": "FSSAI FPS Appendix A, category 4.1.2.5 (jams) https://fssai.gov.in/upload/uploadfiles/files/Appendix%20A(4).pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Mould and yeast",
+   "why": "Jam must show no mould growth or fermentation; high mould or yeast counts mean poor hygiene or spoilage.",
+   "group": null,
+   "keywords": [
+    "mould",
+    "mold",
+    "yeast",
+    "microbiolog",
+    "plate count"
+   ],
+   "source": "FSSAI FPS Reg 2.3.31(10) and Appendix B (fruit products) https://fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Lead and tin can leach into jam from cans, lids and processing equipment; FSSAI caps lead in jam at 1.0 ppm and tin at 250 ppm.",
+   "group": null,
+   "keywords": [
+    "heavy metal",
+    "metallic contaminant",
+    "lead",
+    "arsenic",
+    "cadmium",
+    "mercury",
+    "copper"
+   ],
+   "source": "FSSAI CTR Reg 2.1.1 (lead: jams 1.0 ppm; tin: jams 250 ppm) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; Consumer Voice 'Metallic contaminants (Pb, As, Sn, Cu)'"
+  },
+  {
+   "name": "Nutrition vs label claims",
+   "why": "Checks that the sugar and calorie numbers on the label match what is in the jar.",
+   "group": "nutrition",
+   "keywords": [],
+   "source": "FSS (Labelling & Display) Regulations 2020; Consumer Voice tests"
+  }
+ ],
+ "ketchup": [
+  {
+   "name": "Tomato content: TSS, lycopene, acidity",
+   "why": "Ketchup needs at least 25% tomato-derived solids; low lycopene or solids mean it is padded with starch, sugar and water.",
+   "group": null,
+   "keywords": [
+    "total soluble solids",
+    "lycopene",
+    "acidity",
+    "specific gravity",
+    "viscosity"
+   ],
+   "source": "FSSAI FPS Reg 2.3.27 (TSS ≥25% salt-free, acidity as acetic acid) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_3_Fruit_Vegetable_products.pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Added synthetic colour",
+   "why": "Dye is used to make watery, low-tomato ketchup look rich red; FSSAI's additive list for ketchup allows no synthetic colours.",
+   "group": "spiking",
+   "keywords": [
+    "colour",
+    "color"
+   ],
+   "source": "FSSAI FPS Appendix A, category 12.6.2 (non-emulsified sauces incl. ketchup: only natural colours like beta-carotene, paprika listed) https://fssai.gov.in/upload/uploadfiles/files/Appendix%20A(4).pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Preservatives (benzoic acid, sulphur dioxide)",
+   "why": "Preservatives are allowed only up to set limits; overuse can cause reactions in sensitive people.",
+   "group": null,
+   "keywords": [
+    "benzoic",
+    "benzoate",
+    "sulphur dioxide",
+    "sulfur dioxide",
+    "sorbic",
+    "sorbate",
+    "preservative"
+   ],
+   "source": "FSSAI FPS Appendix A, category 12.6.2 https://fssai.gov.in/upload/uploadfiles/files/Appendix%20A(4).pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Tomato concentrates and cans can carry lead, copper and tin; FSSAI caps copper in ketchup at 50 ppm.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.1.1 (lead: processed tomato concentrates 1.5 ppm; copper: tomato ketchup 50 ppm; tin 250 ppm) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Mould and yeast",
+   "why": "High mould, yeast or bacteria counts mean rotten tomatoes or poor hygiene went into the bottle.",
+   "group": null,
+   "keywords": [
+    "mould",
+    "mold",
+    "yeast",
+    "microbiolog",
+    "plate count"
+   ],
+   "source": "FSSAI FPS Reg 2.3.27(2) and Appendix B (fruit & vegetable products) https://fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Nutrition vs label claims",
+   "why": "Ketchup is high in sugar and salt, so the label numbers should be accurate.",
+   "group": "nutrition",
+   "keywords": [],
+   "source": "FSS (Labelling & Display) Regulations 2020; Consumer Voice tests (salt as NaCl, total sugar, energy)"
+  }
+ ],
+ "pickle": [
+  {
+   "name": "Mould and yeast",
+   "why": "A pickle must show no sign of fermentation; mould or yeast growth means spoilage and possible toxin formation.",
+   "group": null,
+   "keywords": [
+    "mould",
+    "mold",
+    "yeast",
+    "microbiolog",
+    "plate count",
+    "salmonella",
+    "e. coli",
+    "e.coli"
+   ],
+   "source": "FSSAI FPS Reg 2.3.43(1)-(2) and Appendix B (fermented/pickled fruit & vegetables: yeast & mould, Salmonella, Listeria) https://fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Synthetic colours and mineral acid",
+   "why": "Pickles must not contain synthetic dyes, mineral acid or alum, which are used to fake colour, sourness and crunch.",
+   "group": null,
+   "keywords": [
+    "synthetic colour",
+    "synthetic color",
+    "added colour",
+    "added color",
+    "artificial colour",
+    "artificial color",
+    "colouring matter",
+    "mineral acid"
+   ],
+   "source": "FSSAI FPS Reg 2.3.43(1) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_3_Fruit_Vegetable_products.pdf"
+  },
+  {
+   "name": "Preservatives (benzoic acid, sulphur dioxide)",
+   "why": "Preservatives are allowed only up to set limits; overuse can cause reactions in sensitive people.",
+   "group": null,
+   "keywords": [
+    "benzoic",
+    "benzoate",
+    "sulphur dioxide",
+    "sulfur dioxide",
+    "sorbic",
+    "sorbate",
+    "preservative"
+   ],
+   "source": "FSSAI FPS Appendix A (pickled fruits & vegetables) https://fssai.gov.in/upload/uploadfiles/files/Appendix%20A(4).pdf"
+  },
+  {
+   "name": "Salt, acidity and drained weight",
+   "why": "Too little salt or acid lets germs grow, and low drained weight means you are paying for oil or brine instead of fruit and vegetables.",
+   "group": null,
+   "keywords": [
+    "sodium chloride",
+    "salt",
+    "acidity",
+    "drained weight"
+   ],
+   "source": "FSSAI FPS Reg 2.3.43(2) (drained weight ≥60%, NaCl ≥12% in brine, acidity ≥1.2% citric / ≥2% acetic) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_3_Fruit_Vegetable_products.pdf"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Spices, oil and tin containers can bring lead and tin into pickles.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.1.1 (lead: pickled cucumbers 1.0 ppm, foods not specified 2.5 ppm; tin: pickled cucumber 250 ppm) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf"
+  }
+ ],
+ "apple_cider_vinegar": [
+  {
+   "name": "Acidity (acetic acid strength)",
+   "why": "Brewed vinegar must have at least 3.75% acetic acid; a lower figure means it has been watered down.",
+   "group": null,
+   "keywords": [
+    "acetic acid",
+    "acidity"
+   ],
+   "source": "FSSAI FPS Reg 2.3.46(1)(a)(i) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_3_Fruit_Vegetable_products.pdf; Unbox Health tests"
+  },
+  {
+   "name": "Real brewed vinegar: total solids, ash, no mineral acid",
+   "why": "Fake 'apple cider' vinegar is often diluted synthetic acetic acid; real brewed vinegar has fruit solids and ash, and must never contain sulphuric or other mineral acid.",
+   "group": null,
+   "keywords": [
+    "total solids",
+    "total ash",
+    "mineral acid",
+    "sulphuric",
+    "sulfuric"
+   ],
+   "source": "FSSAI FPS Reg 2.3.46(1)(a)(ii)-(iv) (total solids ≥1.5%, total ash ≥0.18%, no mineral acid, not fortified with acetic acid) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_3_Fruit_Vegetable_products.pdf"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Acidic vinegar can pull lead and other metals out of equipment and containers; FSSAI's lead limit for vinegar is very strict (0.01 ppm).",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.1.1 (brewed & synthetic vinegar: lead 0.01, copper 0.01, arsenic 0.1 ppm) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; Unbox Health tests"
+  },
+  {
+   "name": "Added colour (only caramel allowed)",
+   "why": "Vinegar may only be coloured with caramel; other dyes are used to make cheap vinegar look like apple cider vinegar.",
+   "group": null,
+   "keywords": [
+    "colour",
+    "color",
+    "caramel"
+   ],
+   "source": "FSSAI FPS Reg 2.3.46(1)(a)(iv) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_3_Fruit_Vegetable_products.pdf"
+  }
+ ],
+ "tea": [
+  {
+   "name": "Pesticide residues",
+   "why": "Tea leaves are sprayed heavily and are not washed before brewing, and FSSAI and the Tea Board keep finding samples above residue limits.",
+   "group": "pesticide",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.3.1 (tea-specific MRLs for dozens of pesticides) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; FSSAI direction to labs on pesticide testing in tea, 04.03.2024 https://mail.fssai.gov.in/upload/advisories/2024/03/65e6f53962cfbDirection_04.03.2024.pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Added synthetic colour",
+   "why": "Dyes like tartrazine are used to make low-grade or used tea give a strong colour; any added colour is banned in tea.",
+   "group": "spiking",
+   "keywords": [
+    "colour",
+    "color"
+   ],
+   "source": "FSSAI FPS Reg 2.10.1(1) (free from added colouring matter) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_10_BEVERAGES_Other%20than%20Dairy%20and%20Fruits%20Vegetables%20based.pdf; FSSAI DART (coloured tea) https://www.fssai.gov.in/book-details.php?bkid=201; Tea Board anti-adulteration campaign 2026; Consumer Voice tests"
+  },
+  {
+   "name": "Iron filings",
+   "why": "Iron dust from processing machines, or added to bulk up weight, ends up in the tea; FSSAI caps it at 125 mg/kg.",
+   "group": "spiking",
+   "keywords": [
+    "iron"
+   ],
+   "source": "FSSAI FPS Reg 2.10.1(1)(g) (iron filings ≤125 mg/kg) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_10_BEVERAGES_Other%20than%20Dairy%20and%20Fruits%20Vegetables%20based.pdf; FSSAI DART https://www.fssai.gov.in/book-details.php?bkid=201; Consumer Voice tests"
+  },
+  {
+   "name": "Purity: ash, water extract, crude fibre",
+   "why": "These show whether the pack is real tea leaf or padded with used (exhausted) tea, stalks, sand or dust.",
+   "group": null,
+   "keywords": [
+    "ash",
+    "water extract",
+    "crude fibre",
+    "crude fiber"
+   ],
+   "source": "FSSAI FPS Reg 2.10.1(1)(a)-(f) (total ash 4–8%, water-soluble ash ≥45%, acid-insoluble ash ≤1%, water extract ≥32%, crude fibre ≤16.5%) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_10_BEVERAGES_Other%20than%20Dairy%20and%20Fruits%20Vegetables%20based.pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Tea plants take up lead and copper from soil and sprays; FSSAI caps lead at 5 ppm and copper at 150 ppm in tea.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.1.1 (tea: lead 5.0 ppm, copper 150 ppm) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; Consumer Voice tests (lead, copper)"
+  },
+  {
+   "name": "Aflatoxins",
+   "why": "Damp storage can let moulds grow on tea and produce liver-damaging aflatoxins.",
+   "group": "toxin",
+   "keywords": [
+    "aflatoxin"
+   ],
+   "source": "Consumer Voice tests (aflatoxins in 14 tea reports); Trustified tests"
+  }
+ ],
+ "coffee_powder": [
+  {
+   "name": "Purity: caffeine, ash, chicory and fillers",
+   "why": "Coffee is bulked up with chicory, roasted husk, tamarind or date seed and even clay; low caffeine and high ash give it away, and 'pure coffee' must have no chicory at all.",
+   "group": null,
+   "keywords": [
+    "caffeine",
+    "total ash",
+    "acid insoluble ash",
+    "acid-insoluble ash",
+    "aqueous extract",
+    "chicory",
+    "moisture"
+   ],
+   "source": "FSSAI FPS Reg 2.10.2 (roasted & ground: caffeine ≥1.0%, total ash 3–6%, acid-insoluble ash ≤0.1%; soluble: caffeine ≥2.8%, no chicory) and 2.10.4 (coffee ≥51% in coffee-chicory) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_10_BEVERAGES_Other%20than%20Dairy%20and%20Fruits%20Vegetables%20based.pdf; FSSAI DART (chicory, clay in coffee) https://www.fssai.gov.in/book-details.php?bkid=201; Unbox Health tests"
+  },
+  {
+   "name": "Ochratoxin A",
+   "why": "Badly dried or stored coffee beans grow moulds that make ochratoxin A, which can harm the kidneys; FSSAI set a 5 µg/kg limit for coffee from April 2025.",
+   "group": "toxin",
+   "keywords": [
+    "ochratoxin"
+   ],
+   "source": "FSSAI CTR Reg 2.2.1 as amended 17.10.2024, effective 01.04.2025 (ochratoxin A: coffee 5 µg/kg) https://taxguru.in/?p=935564; Unbox Health tests"
+  },
+  {
+   "name": "Aflatoxins",
+   "why": "Mouldy beans can also carry aflatoxins, which damage the liver.",
+   "group": "toxin",
+   "keywords": [
+    "aflatoxin"
+   ],
+   "source": "Unbox Health tests (total aflatoxins in 8 coffee reports)"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Coffee can pick up lead, arsenic and copper from soil, sprays and roasting/grinding equipment.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.1.1 (copper: coffee beans 30 ppm; foods not specified lead 2.5 ppm) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; Unbox Health tests"
+  },
+  {
+   "name": "Pesticide residues",
+   "why": "Coffee is a sprayed crop and FSSAI sets residue limits for several pesticides on it.",
+   "group": "pesticide",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.3.1 (coffee MRLs, e.g. copper fungicides, others) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf"
+  }
+ ],
+ "juice": [
+  {
+   "name": "Real juice content: TSS, acidity, vitamin C",
+   "why": "Low soluble solids, acidity or vitamin C mean the 'juice' is mostly water, sugar and flavouring; nectars must have 20–40% juice and fruit drinks only 10%.",
+   "group": null,
+   "keywords": [
+    "total soluble solids",
+    "acidity",
+    "ascorbic acid",
+    "vitamin c",
+    "fruit content",
+    "juice content",
+    "brix",
+    "density"
+   ],
+   "source": "FSSAI FPS Reg 2.3.6 (fruit-wise min °Brix, max acidity, added sweetener ≤50 g/kg), 2.3.9 (nectar min juice %), 2.3.10 (fruit drink ≥10% juice) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_3_Fruit_Vegetable_products.pdf; FSSAI direction 03.06.2024 removing '100% fruit juice' claims; Consumer Voice tests"
+  },
+  {
+   "name": "Added synthetic colour",
+   "why": "Dyes make diluted juice look like fresh fruit; FSSAI's additive list for fruit juices permits no synthetic colours.",
+   "group": "spiking",
+   "keywords": [
+    "colour",
+    "color"
+   ],
+   "source": "FSSAI FPS Appendix A, category 14.1.2.1 (fruit juices: no synthetic colours listed) https://fssai.gov.in/upload/uploadfiles/files/Appendix%20A(4).pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Nutrition vs label claims",
+   "why": "Juice can be very sugary; the label must show sugar honestly and say 'sweetened juice' if more than 15 g/kg sugar is added.",
+   "group": "nutrition",
+   "keywords": [],
+   "source": "FSSAI FPS Reg 2.3.6(8) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_3_Fruit_Vegetable_products.pdf; FSS (Labelling & Display) Regulations 2020; Consumer Voice tests"
+  },
+  {
+   "name": "Patulin (apple juice mould toxin)",
+   "why": "Juice made from rotten apples can carry patulin, a mould toxin FSSAI caps at 50 µg/kg in apple juice.",
+   "group": "toxin",
+   "keywords": [
+    "patulin"
+   ],
+   "source": "FSSAI CTR Reg 2.2.1 (patulin: apple juice and apple juice as ingredient 50 µg/kg) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf"
+  },
+  {
+   "name": "Preservatives (benzoic acid, sulphur dioxide)",
+   "why": "Benzoate and sulphite are allowed only up to set limits; overuse can trigger asthma and allergies.",
+   "group": null,
+   "keywords": [
+    "benzoic",
+    "benzoate",
+    "sulphur dioxide",
+    "sulfur dioxide",
+    "sorbic",
+    "sorbate",
+    "preservative"
+   ],
+   "source": "FSSAI FPS Appendix A, category 14.1.2.1 (benzoates 1000 mg/kg, sulphites 50 mg/kg) https://fssai.gov.in/upload/uploadfiles/files/Appendix%20A(4).pdf"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Lead and tin can leach from cans and equipment; FSSAI caps lead in ready-to-drink juice at 0.05 ppm.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.1.1 (fruit juices incl. nectars: lead 0.05 ppm; juice arsenic 0.2, copper 5, tin 250 ppm) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf"
+  },
+  {
+   "name": "Microbiology (E. coli, Salmonella, Listeria)",
+   "why": "Poorly pasteurised juice can carry germs that cause food poisoning.",
+   "group": null,
+   "keywords": [
+    "microbiolog",
+    "salmonella",
+    "e. coli",
+    "e.coli",
+    "listeria",
+    "coliform",
+    "plate count",
+    "yeast",
+    "mould",
+    "mold"
+   ],
+   "source": "FSSAI FPS Appendix B (pasteurised & non-thermally processed juices: Salmonella, Listeria, E. coli, yeast & mould) https://fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf"
+  }
+ ],
+ "health_drink": [
+  {
+   "name": "Nutrition vs label claims",
+   "why": "These powders are sold on protein, vitamin and mineral claims; testing shows whether the pack delivers them.",
+   "group": "nutrition",
+   "keywords": [],
+   "source": "FSSAI FPS Reg 2.4.11 (malted milk food: protein ≥12.5%/11.25%, fat ≥7.5%/6%) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf; FSSAI Reg 2.12.1 proprietary food (vitamins/minerals ≤1 RDA); Consumer Voice tests"
+  },
+  {
+   "name": "Sugar content",
+   "why": "Many 'health drinks' are largely sugar; after a 2024 probe into Bournvita's sugar the government told e-commerce sites to stop listing them as health drinks.",
+   "group": "nutrition",
+   "keywords": [
+    "sugar"
+   ],
+   "source": "FSSAI FPS Reg 2.4.11 (malted milk food without cocoa may not contain added sugar); Commerce Ministry advisory 10.04.2024 after NCPCR probe https://www.tribuneindia.com/news/india/health-drink-not-defined-under-norms-remove-bournvita-from-category-centre-610476; Consumer Voice tests"
+  },
+  {
+   "name": "Quality: moisture, acid-insoluble ash, solubility",
+   "why": "High moisture spoils the powder, acid-insoluble ash means sand or dirt, and poor solubility suggests added starch or fillers.",
+   "group": null,
+   "keywords": [
+    "moisture",
+    "acid-insoluble ash",
+    "acid insoluble ash",
+    "solubility",
+    "alcoholic acidity",
+    "starch",
+    "physico-chemical"
+   ],
+   "source": "FSSAI FPS Reg 2.4.11 (moisture ≤5%, acid-insoluble ash ≤0.1%, solubility ≥85%/80%, starch test negative, alcoholic acidity ≤0.30%) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Microbiology (E. coli, Salmonella, Listeria)",
+   "why": "Milk and cereal powders can carry Salmonella or E. coli if made or packed unhygienically.",
+   "group": null,
+   "keywords": [
+    "microbiolog",
+    "salmonella",
+    "e. coli",
+    "e.coli",
+    "listeria",
+    "coliform",
+    "plate count",
+    "yeast",
+    "mould",
+    "mold"
+   ],
+   "source": "FSSAI FPS Reg 2.4.11 (bacterial count ≤50,000/g, coliform ≤10/g, Salmonella, E. coli absent) and Appendix B Table 9 (malted milk food) https://fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf; Consumer Voice tests"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Cocoa, cereals and added minerals can bring lead and cadmium into the powder.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.1.1 (cocoa powder lead 5 ppm; foods not specified 2.5 ppm) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf"
+  },
+  {
+   "name": "Aflatoxins",
+   "why": "Milk powder and malted grains can carry aflatoxin M1/B1 from mouldy feed or grain.",
+   "group": "toxin",
+   "keywords": [
+    "aflatoxin"
+   ],
+   "source": "FSSAI CTR Reg 2.2.1 (aflatoxin M1 in milk powders; total aflatoxin in cereal products 15 µg/kg) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf"
+  }
+ ],
+ "glucose_powder": [
+  {
+   "name": "Glucose (dextrose) content",
+   "why": "The product is sold as instant energy from glucose; testing shows whether it is mostly dextrose or cheaper sugars and fillers.",
+   "group": null,
+   "keywords": [
+    "dextrose",
+    "glucose"
+   ],
+   "source": "FSSAI FPS Reg 2.8.5 (dextrose: glucose ≥99.0% on dry basis) and 2.8.7 (dried glucose syrup) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_8%20(Sweetening%20agents%20including%20Honey).pdf; Consumer Voice tests (dextrose equivalent)"
+  },
+  {
+   "name": "Nutrition vs label claims",
+   "why": "Glucose drinks advertise added calcium, phosphorus and vitamin D; testing checks those claims and the calorie count.",
+   "group": "nutrition",
+   "keywords": [],
+   "source": "FSSAI FPS Reg 2.12.1 proprietary food (vitamins/minerals ≤1 RDA); FSS (Labelling & Display) Regulations 2020; Consumer Voice tests"
+  },
+  {
+   "name": "Purity: sulphated ash and acidity",
+   "why": "High ash or acidity means poorly refined glucose or added mineral fillers.",
+   "group": null,
+   "keywords": [
+    "sulphated ash",
+    "sulfated ash",
+    "acidity"
+   ],
+   "source": "FSSAI FPS Reg 2.8.5 (sulphated ash ≤0.1% dry basis, acidity limit) https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_8%20(Sweetening%20agents%20including%20Honey).pdf"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Refined dextrose should be almost metal-free; FSSAI caps lead in dextrose at 0.5 ppm.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.1.1 (anhydrous dextrose & dextrose monohydrate: lead 0.5 ppm) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf"
+  }
+ ],
+ "infant_formula": [
+  {
+   "name": "Nutrition vs label claims",
+   "why": "Babies rely on formula as their only food, so protein, fat, vitamins, minerals and DHA must match the label and the legal minimums.",
+   "group": "nutrition",
+   "keywords": [],
+   "source": "FSS (Foods for Infant Nutrition) Regulations 2020, composition tables and DHA 0.2–0.5% of fatty acids if claimed https://www.thc.nic.in/Central%20Governmental%20Regulations/Food%20Safety%20and%20Standards%20(Foods%20for%20Infant%20Nutrition)%20Regulations,%202020.pdf"
+  },
+  {
+   "name": "Microbiology (Cronobacter, Salmonella, Bacillus cereus)",
+   "why": "Powdered formula is not sterile; Cronobacter and Salmonella in it can cause deadly infections in newborns.",
+   "group": null,
+   "keywords": [
+    "cronobacter",
+    "sakazakii",
+    "salmonella",
+    "bacillus cereus",
+    "enterobacteriaceae",
+    "listeria",
+    "microbiolog"
+   ],
+   "source": "FSSAI FPS Appendix B Table 2B (infant formula: Salmonella, Listeria, B. cereus, Cronobacter, Enterobacteriaceae) https://fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf; FSS (Foods for Infant Nutrition) Reg 2020 cl. (12) https://www.thc.nic.in/Central%20Governmental%20Regulations/Food%20Safety%20and%20Standards%20(Foods%20for%20Infant%20Nutrition)%20Regulations,%202020.pdf"
+  },
+  {
+   "name": "Melamine",
+   "why": "Melamine was added to fake protein in formula in the 2008 China scandal; FSSAI caps it at 1 mg/kg in infant formula powder.",
+   "group": "spiking",
+   "keywords": [
+    "melamine"
+   ],
+   "source": "FSSAI CTR Reg 2.5.1 (melamine: powdered infant formula 1.0 mg/kg, liquid 0.15 mg/kg) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; Trustified tests"
+  },
+  {
+   "name": "Aflatoxins",
+   "why": "Aflatoxin M1 passes from mouldy cattle feed into milk powder, and infants are the most vulnerable to it.",
+   "group": "toxin",
+   "keywords": [
+    "aflatoxin"
+   ],
+   "source": "FSSAI CTR Reg 2.2.1 (aflatoxin M1 in milk powders) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; Trustified tests (aflatoxins B1, B2, G1, G2, M1)"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Even small amounts of lead or arsenic harm a baby's developing brain; FSSAI limits are much stricter for infant foods.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.1.1 (infant formula ready-to-use lead 0.02 ppm; infant milk substitutes lead 0.2, arsenic 0.05, cadmium 0.1 ppm) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf"
+  },
+  {
+   "name": "Pesticide residues",
+   "why": "Pesticides in milk or cereal ingredients carry over into formula, where babies eat it every day.",
+   "group": "pesticide",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.3.1 (0.01 mg/kg default where no MRL set) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; Foods for Infant Nutrition Reg 2020 cl. (10) https://www.thc.nic.in/Central%20Governmental%20Regulations/Food%20Safety%20and%20Standards%20(Foods%20for%20Infant%20Nutrition)%20Regulations,%202020.pdf; Trustified tests"
+  }
+ ],
+ "kids_nutrition_drink": [
+  {
+   "name": "Nutrition vs label claims",
+   "why": "These drinks are bought for their protein, vitamin, DHA and mineral claims, so testing shows whether the pack delivers them.",
+   "group": "nutrition",
+   "keywords": [],
+   "source": "FSSAI FPS Reg 2.12.1 proprietary food / Reg 2.4.11 malt-based food; FSS (Labelling & Display) Regulations 2020; Unbox Health tests"
+  },
+  {
+   "name": "Protein spiking (amino acids)",
+   "why": "Cheap amino acids like glycine can be added so a basic nitrogen test reads more protein than is really there.",
+   "group": "spiking",
+   "keywords": [
+    "amino"
+   ],
+   "source": "Trustified tests (amino spiking status); FSSAI FPS Reg 2.4.11 (protein measured as N x 6.25)"
+  },
+  {
+   "name": "Melamine",
+   "why": "Melamine has been added to milk powders to fake protein readings; FSSAI caps it at 2.5 mg/kg in foods.",
+   "group": "spiking",
+   "keywords": [
+    "melamine"
+   ],
+   "source": "FSSAI CTR Reg 2.5.1 (melamine: other foods 2.5 mg/kg) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; Trustified tests"
+  },
+  {
+   "name": "Aflatoxins",
+   "why": "Milk powder can carry aflatoxin M1 from mouldy cattle feed, and cereals can carry aflatoxin B1; children are especially sensitive.",
+   "group": "toxin",
+   "keywords": [
+    "aflatoxin"
+   ],
+   "source": "FSSAI CTR Reg 2.2.1 (aflatoxin M1 in milk powders; cereal products) https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; Trustified & Unbox Health tests"
+  },
+  {
+   "name": "Heavy metals (lead, arsenic, cadmium, mercury)",
+   "why": "Lead and cadmium in cocoa, cereals and mineral premixes harm children's development.",
+   "group": "heavy_metal",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.1.1 https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; Unbox Health tests"
+  },
+  {
+   "name": "Pesticide residues",
+   "why": "Pesticides in milk and cereal ingredients carry over into a drink children have every day.",
+   "group": "pesticide",
+   "keywords": [],
+   "source": "FSSAI CTR Reg 2.3.1 https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Contaminants_Regulations_20_08_2020.pdf; Trustified tests"
+  },
+  {
+   "name": "Microbiology (E. coli, Salmonella, Listeria)",
+   "why": "Milk-based powders can carry Salmonella or E. coli if made or packed unhygienically.",
+   "group": null,
+   "keywords": [
+    "microbiolog",
+    "salmonella",
+    "e. coli",
+    "e.coli",
+    "listeria",
+    "coliform",
+    "plate count",
+    "yeast",
+    "mould",
+    "mold"
+   ],
+   "source": "FSSAI FPS Appendix B (milk powders; malted milk food Table 9) https://fssai.gov.in/upload/uploadfiles/files/Appendix%20B(1).pdf; Reg 2.4.11 microbiological limits https://fssai.gov.in/upload/uploadfiles/files/Chapter%202_4_Cereals_and_Cereal_products.pdf"
+  }
+ ],
+ "_notes": "Primary sources were the FSSAI compendium chapter PDFs (FPS 2.3, 2.4, 2.8, 2.10, 2.12, Appendix A/B) and the CTR compendium (Version V, Aug 2020). Two later CTR changes I only saw through a secondary source (taxguru reprint of the 17.10.2024 notification): ochratoxin A 5 µg/kg for coffee from 01.04.2025, and tighter honey antibiotic limits. Check the gazette before quoting exact numbers. I couldn't get the DART PDF itself (fssai.gov.in is a JS app), so DART is cited by its book page. Consumer Voice puts metals for jam under 'other' ('Metallic contaminants (Pb,As,Sn,Cu)'), so jam heavy metals uses group null plus keywords. Tin isn't a keyword because 'tin' matches 'pectin'. Colour keywords ('colour'/'color') are only used where the test's group is 'spiking', so CV sensory 'Colour' (group other) won't match. health_drink's 'Sugar content' overlaps with 'Nutrition vs label claims' on purpose: one total-sugar result ticks both. Infant formula has only 1 scraped report, so its set comes almost entirely from FSSAI regulations. Tea and coffee aflatoxins have no FSSAI limit and are included only because labs (Consumer Voice, Unbox) routinely test them."
+}

@@ -32,15 +32,21 @@ def test_split_respects_brackets():
     assert split_ingredients("Malt (66.7%) [Barley (32%), Wheat], sugar") == ["Malt (66.7%) [Barley (32%), Wheat]", "sugar"]
 
 
-def test_findings_sodium_over_label():
+def test_findings_sodium_within_eu_tolerance():
+    # +47 mg is inside the EU ±150 mg band for sodium under 500 mg, so it isn't off the label.
     s = by_param(findings(KELLOGGS_RESULTS, KELLOGGS_LABEL), "Sodium")
-    assert s["kind"] == "bad"
-    assert s["deviation_pct"] == 19.8
+    assert s["kind"] == "info" and s["deviation_pct"] == 19.8 and s["tolerance_pct"] == 63.6
     assert s["text"] == "282.8 mg, +20% vs label"
 
 
+def test_findings_sodium_over_label():
+    s = findings([r("Sodium", 500, "mg/100g")], KELLOGGS_LABEL)[0]
+    assert s["kind"] == "bad"
+
+
 def test_findings_fibre_good():
-    assert by_param(findings(KELLOGGS_RESULTS, KELLOGGS_LABEL), "Dietary Fibre")["kind"] == "good"
+    assert by_param(findings(KELLOGGS_RESULTS, KELLOGGS_LABEL), "Dietary Fibre")["kind"] == "info"  # +1 g, within ±2 g
+    assert findings([r("Dietary Fibre", 12)], KELLOGGS_LABEL)[0]["kind"] == "good"
 
 
 def test_findings_within_ten_percent_is_info():
@@ -71,11 +77,12 @@ def test_segments_millet_share():
 
 
 def test_segments_sugar_highlight_and_salt():
-    segs = segments(KELLOGGS_INGREDIENTS, "Millet Muesli", findings(KELLOGGS_RESULTS, KELLOGGS_LABEL))
+    results = [r("Sodium", 500, "mg/100g")] + KELLOGGS_RESULTS[1:]
+    segs = segments(KELLOGGS_INGREDIENTS, "Millet Muesli", findings(results, KELLOGGS_LABEL))
     sugar = next(s for s in segs if s["t"] == "SUGAR")
     salt = next(s for s in segs if s["t"] == "IODIZED SALT")
     assert sugar["mark"] == "hl" and sugar["note"] == "14.9 g added sugar / 100 g, +9% vs label"
-    assert salt["mark"] == "circle" and salt["note"] == "sodium 282.8 mg, +20% vs label"
+    assert salt["mark"] == "circle" and salt["note"] == "sodium 500.0 mg, +112% vs label"
 
 
 def test_segments_rejoin_to_original_text():
@@ -92,8 +99,10 @@ def test_summary_counts():
                "label_nutrition": KELLOGGS_LABEL, "results": KELLOGGS_RESULTS,
                "tests": [{"name": "Nutrition vs label claims", "tested": True}, {"name": "Aflatoxins", "tested": False}]}
     s = summarize(product)
-    # Counted per standard test: sodium is 20% over the label, so the nutrition test fails.
-    assert s["counts"] == {"pass": 0, "fail": 1, "measured": 0, "untested": 1}
+    # Counted per standard test: every nutrient is within the official tolerance, so the label test passes.
+    assert s["counts"] == {"pass": 1, "fail": 0, "measured": 0, "untested": 1}
+    product["results"] = [r("Sodium", 500, "mg/100g")] + KELLOGGS_RESULTS[1:]
+    assert summarize(product)["counts"]["fail"] == 1
 
 
 def test_summary_counts_measured_without_verdict():
