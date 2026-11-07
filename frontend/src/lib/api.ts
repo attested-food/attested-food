@@ -134,6 +134,7 @@ export type TestRequest = {
 	buy_url?: string | null;
 	image_url?: string | null;
 	tests?: string[];
+	standard_tests?: { name: string; why: string }[];
 };
 
 export type Prefill = {

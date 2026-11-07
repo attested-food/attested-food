@@ -152,7 +152,7 @@ export default function Marketplace() {
 								const c = gradeColors(g)!;
 								const on = grades.includes(g);
 								return (
-									<label key={g} className={on ? 'on' : ''} style={on ? { background: c[0], color: c[1], borderColor: c[0] } : undefined}>
+									<label key={g} className={on ? 'on' : ''} style={on ? { background: c[0], color: c[1], borderColor: c[0] } : { borderColor: c[0] }}>
 										<input className="sr-only" type="checkbox" checked={on} onChange={(e) => toggle('grade', g, e.target.checked)} />
 										{g}
 									</label>

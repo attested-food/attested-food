@@ -180,3 +180,11 @@
 .p-part b { color: var(--ink); font-weight: 700; }
 .p-breakdown p { flex-basis: 100%; margin: 0; }
 .p-cov-hint { margin: 10px 0 4px; }
+
+/* Request page: fund card above the buy card, sticky together */
+.p-side { position: sticky; top: 20px; display: grid; gap: 16px; }
+.p-side .p-buy { position: static; }
+.p-req-line { margin: 10px 0 0; font-size: 14.5px; line-height: 1.5; }
+@media (max-width: 1100px) {
+	.p-side { grid-column: 1 / -1; position: static; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
+}

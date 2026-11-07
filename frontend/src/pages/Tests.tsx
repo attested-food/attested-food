@@ -13,7 +13,7 @@ type Item = {
 	cat: string | null;
 	brand: string;
 	name: string;
-	tests: string;
+	tests: string[];
 	state: TestState;
 	tag: string;
 	pct?: number;
@@ -48,29 +48,30 @@ function useCampaigns(requests: TestRequest[] | null) {
 }
 
 function Card({ it }: { it: Item }) {
+	const n = it.tests.length;
 	return (
 		<li className="t-card card">
-			<div className="t-top">
+			<Link to={it.to} className="t-top">
 				<Photo src={it.img} alt="" className="t-photo" />
-				<div className="t-text">
-					<div className="t-meta"><span className="eyebrow">{label(it.cat)}</span><StateTag state={it.state} text={it.tag} /></div>
-					<span className="muted small">{it.brand}</span>
-					<Link to={it.to} className="t-name">{it.name}</Link>
-				</div>
-			</div>
-			{it.tests && <div className="t-tests">Tests: <span>{it.tests}</span></div>}
+				<span className="t-text">
+					<span className="t-brand">{it.brand}</span>
+					<span className="t-name">{it.name}</span>
+					<span className="t-cat">{label(it.cat)}{n ? ` · ${n} standard tests` : ''}</span>
+				</span>
+			</Link>
+			<StateTag state={it.state} text={it.tag} />
 			{it.pct !== undefined && (
 				<div className="t-fund">
 					<span className="bar"><span style={{ width: `${it.pct}%` }} /></span>
-					<span className="small muted"><strong>{it.raised}</strong> of {usd(FUND_GOAL)}</span>
+					<span className="t-fund-row"><span><strong>{it.raised}</strong> raised</span><span className="muted">of {usd(FUND_GOAL)}</span></span>
 				</div>
 			)}
 			{it.status && (
 				<div className="t-status">{it.status.map((s, i) => <span key={i} className={s.c ?? 'muted'}>{s.t}</span>)}</div>
 			)}
-			<div className="t-actions">
-				<Link className="btn sm" to={it.to}>{it.action}</Link>
-				{it.alt && <Link className="link small" to={`${it.to}#fund`}>{it.alt}</Link>}
+			<div className={`t-actions${it.alt ? ' two' : ''}`}>
+				<Link className="btn sm" to={it.alt ? `${it.to}#fund` : it.to}>{it.action}</Link>
+				{it.alt && <Link className="btn sm outline" to={`${it.to}#fund`}>{it.alt}</Link>}
 			</div>
 		</li>
 	);
@@ -82,7 +83,7 @@ export default function Tests() {
 	const tested = useApi<{ items: ProductCard[] }>('/api/products?evidence=lab&page_size=24');
 	const { map, error } = useCampaigns(requests.data);
 
-	const testsFor = (c: string | null) => (cats.data?.find((x) => x.category === c)?.tests ?? []).join(', ');
+	const testsFor = (c: string | null) => cats.data?.find((x) => x.category === c)?.tests ?? [];
 	const cols: Record<'requested' | 'funding' | 'funded' | 'tested', Item[]> = { requested: [], funding: [], funded: [], tested: [] };
 
 	for (const r of requests.data ?? []) {

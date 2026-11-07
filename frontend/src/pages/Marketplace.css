@@ -40,5 +40,6 @@
 .m-cats a[aria-current='page'] { font-weight: 700; color: var(--green); }
 .m-count { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--sub); }
 .m-grades { margin-top: 10px; display: flex; gap: 6px; }
-.m-grades label { flex: 1; min-height: 38px; justify-content: center; border: 1px solid var(--card-line); border-radius: var(--r); font-weight: 700; font-size: 15px; color: var(--sub); }
-.m-grades label.on { border-bottom: 1px solid; }
+.m-grades label { flex: 1; min-height: 38px; justify-content: center; border: 1.5px solid; border-radius: var(--r); background: var(--white); font-weight: 700; font-size: 15px; color: var(--ink); cursor: pointer; }
+.m-grades label:hover { box-shadow: inset 0 0 0 1px currentColor; }
+.m-grades label.on { border-bottom: 1.5px solid; }

@@ -23,7 +23,7 @@ from backend.annotate import findings, summarize, test_statuses
 from backend import departments
 from backend.grading import openlabel_grade
 from backend.thumbs import thumbnail
-from backend.category_tests import coverage, names_for
+from backend.category_tests import coverage, names_for, tests_for
 
 load_dotenv()
 set_json_loads(orjson.loads)
@@ -446,7 +446,8 @@ def get_test_request(rid: str) -> dict:
     req = rows.pop()
     if req.pop("has_image"):
         req["image_url"] = f"/api/test-requests/{req['id']}/image"
-    return {**req, "tests": names_for(req["category"])}
+    standard = tests_for(req["category"])
+    return {**req, "tests": [t["name"] for t in standard], "standard_tests": [{"name": t["name"], "why": t["why"]} for t in standard]}
 
 
 @app.get("/api/test-requests/{rid}/image")

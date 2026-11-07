@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { type Address, type Hex } from 'viem';
-import { fundAbi, fundAddress, publicClient, registryAbi, short, txUrl, usd } from '@/lib/wallet';
+import { fundAbi, fundAddress, publicClient, registryAbi, txUrl, usd } from '@/lib/wallet';
 
 type Proven = {
 	tx: Hex;
@@ -12,7 +12,7 @@ type Proven = {
 };
 
 /** A posted report: the values the tester's ZK proof committed to, read back from the chain. */
-export function ProvenReport({ id, tester, reportBlock }: { id: Hex; tester: Address; reportBlock: bigint }) {
+export function ProvenReport({ id, reportBlock }: { id: Hex; tester?: Address; reportBlock: bigint }) {
 	const [p, setP] = useState<Proven | null>(null);
 	const [error, setError] = useState('');
 
@@ -30,7 +30,7 @@ export function ProvenReport({ id, tester, reportBlock }: { id: Hex; tester: Add
 
 	const link = p && txUrl(p.tx);
 	return (
-		<section className="fund card" aria-labelledby="proven-h">
+		<section className="proven card" aria-labelledby="proven-h">
 			<h2 id="proven-h" className="fund-title">Tested · lab report proven on-chain</h2>
 			<p className="muted fund-lede">
 				The tester posted a zero-knowledge proof that this report is the lab's own copy (fetched from <code>{p?.host ?? 'the lab'}</code> under TLSNotary).
@@ -41,7 +41,7 @@ export function ProvenReport({ id, tester, reportBlock }: { id: Hex; tester: Add
 			{p && (
 				<>
 					<p className="small muted">
-						Tester <span className="mono" title={tester}>{short(tester)}</span> · paid {usd(p.payout)} · lab copy fetched {p.sessionTime.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+						Tester paid {usd(p.payout)} · lab copy fetched {p.sessionTime.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
 						{link && <> · <a href={link} target="_blank" rel="noopener">transaction</a></>}
 					</p>
 					{p.rows.length > 0 && (
