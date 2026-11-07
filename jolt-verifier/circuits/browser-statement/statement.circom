@@ -26,6 +26,7 @@ template BrowserWebsiteStatement(TIER, INPUT_LENGTH, OUTPUT_LENGTH) {
     signal input result[OUTPUT_LENGTH];
     signal output inputBytes[inputSize];
     signal output outputBytes[outputSize];
+    signal output vmOutputBytes[8 * ((outputSize + 7) \ 8)];
     component inputRange[INPUT_LENGTH];
     component outputRange[OUTPUT_LENGTH];
 
@@ -55,5 +56,12 @@ template BrowserWebsiteStatement(TIER, INPUT_LENGTH, OUTPUT_LENGTH) {
         outputRange[i] = BrowserBits(8);
         outputRange[i].in <== result[i];
         outputBytes[outputPrefix + i] <== result[i];
+    }
+    for (var i = 0; i < 8 * ((outputSize + 7) \ 8); i++) {
+        if (i < outputSize) {
+            vmOutputBytes[i] <== outputBytes[i];
+        } else {
+            vmOutputBytes[i] <== 0;
+        }
     }
 }

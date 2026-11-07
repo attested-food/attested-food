@@ -1,5 +1,6 @@
 """Website postcard framing constraints, not complete proof verification."""
 
+import json
 import os
 from pathlib import Path
 import shutil
@@ -54,11 +55,13 @@ class StatementTests(unittest.TestCase):
     signal input result[{m}];
     signal input expectedInput[{ni}];
     signal input expectedOutput[{mo}];
+    signal input expectedVmOutput[{8 * ((mo + 7) // 8)}];
     component statement = BrowserWebsiteStatement({tier}, {n}, {m});
     for (var i = 0; i < {n}; i++) {{ statement.payload[i] <== payload[i]; }}
     for (var i = 0; i < {m}; i++) {{ statement.result[i] <== result[i]; }}
     for (var i = 0; i < {ni}; i++) {{ statement.inputBytes[i] === expectedInput[i]; }}
     for (var i = 0; i < {mo}; i++) {{ statement.outputBytes[i] === expectedOutput[i]; }}
+    for (var i = 0; i < {8 * ((mo + 7) // 8)}; i++) {{ statement.vmOutputBytes[i] === expectedVmOutput[i]; }}
 }}
 component main = Test();"""
             source.write_text(
@@ -72,11 +75,13 @@ component main = Test();"""
         return self.compiled[key]
 
     def inputs(self, tier, payload, result):
+        output = encode_guest_output(result)
         return {
             "payload": list(payload),
             "result": list(result),
             "expectedInput": list(encode_guest_input(tier, payload)),
-            "expectedOutput": list(encode_guest_output(result)),
+            "expectedOutput": list(output),
+            "expectedVmOutput": list(output + bytes(-len(output) % 8)),
         }
 
     def check(self, tier, inputs, valid=True):
@@ -102,6 +107,25 @@ component main = Test();"""
 
     def test_maximum_serialized_output(self):
         self.check(31, self.inputs(31, b"", bytes(4094)))
+
+    def test_output_word_boundaries(self):
+        for size in (7, 8):
+            self.check(21, self.inputs(21, b"", bytes(size)))
+
+    def test_native_pair_io_encoding(self):
+        for name in ("tier21-abc", "tier21-def"):
+            fixture = ROOT / "fixtures/browser" / name
+            payload = (fixture / "segment-input.bin").read_bytes()
+            result = (fixture / "outputs.bin").read_bytes()
+            io = json.loads((fixture / "program-io.json").read_text())
+            inputs = self.inputs(21, payload, result)
+            self.assertEqual(inputs["expectedInput"], io["inputs"])
+            self.assertEqual(inputs["expectedVmOutput"], io["outputs"])
+            inputs["expectedInput"] = io["inputs"]
+            inputs["expectedVmOutput"] = io["outputs"]
+            self.check(21, inputs)
+            inputs["expectedVmOutput"][-1] = 1
+            self.check(21, inputs, valid=False)
 
     def test_tampered_framing_and_payload_rejected(self):
         for name, index in (

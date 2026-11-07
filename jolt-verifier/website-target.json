@@ -219,7 +219,8 @@
   "scope": "Individual Jolt segment proofs produced by the website /prove page",
   "verification": {
     "complete_circom_verifier": false,
-    "native_fixtures_checked": false,
+    "native_fixture_evidence": "fixtures/browser/pair-validation.json",
+    "native_fixtures_checked": true,
     "source_to_asset_rebuild_checked": false
   },
   "website": {
