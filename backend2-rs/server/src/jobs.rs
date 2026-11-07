@@ -5,7 +5,10 @@
 //!
 //! The provers report stages, and results that exist before the final one
 //! (`partial`, e.g. SP1's compressed STARK ahead of its Groth16 proof),
-//! through a [`Progress`] handle. Progress is an
+//! through a [`Progress`] handle. A partial's `proof` (the STARK is 1.7 MB of
+//! base64) is not in the polled view, which every few seconds would download
+//! it again; the view has `proofUrl`, `GET /jobs/{id}/partial/{name}`, instead.
+//! Progress is an
 //! estimate: neither SDK reports a fraction done, so it is the elapsed working
 //! time over the sum of the stage durations of the last finished job of the
 //! same mode (time spent waiting for the prove lock or the queue excluded).
@@ -156,6 +159,11 @@ impl Jobs {
         }
     }
 
+    /// A partial result in full, `proof` included.
+    pub fn partial_of(&self, id: &str, name: &str) -> Option<Value> {
+        self.jobs.lock().unwrap().get(id)?.partial.get(name).cloned()
+    }
+
     pub fn view(&self, id: &str) -> Option<Value> {
         let all = self.jobs.lock().unwrap();
         let j = all.get(id)?;
@@ -196,7 +204,19 @@ impl Jobs {
             "elapsedMs": end.duration_since(j.created).as_millis() as u64,
             "progress": progress,
             "preview": j.preview,
-            "partial": j.partial,
+            "partial": j
+                .partial
+                .iter()
+                .map(|(name, v)| {
+                    let mut v = v.clone();
+                    if let Some(o) = v.as_object_mut() {
+                        if o.remove("proof").is_some() {
+                            o.insert("proofUrl".into(), json!(format!("/jobs/{id}/partial/{name}")));
+                        }
+                    }
+                    (name.clone(), v)
+                })
+                .collect::<serde_json::Map<_, _>>(),
             "result": j.result.as_ref().and_then(|r| r.as_ref().ok()),
             "error": j.result.as_ref().and_then(|r| r.as_ref().err()),
         }))

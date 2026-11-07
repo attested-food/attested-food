@@ -9,7 +9,10 @@
 //! - `GET  /jobs/{id}`: `status` (`queued`, `running`, `done`, `failed`),
 //!   current `stage`, `stages` with timings, `progress` (an estimate from the
 //!   last job of the same mode), `preview` (the public values the proof will
-//!   commit, known at once), and `result` (the `/prove` response) or `error`.
+//!   commit, known at once), `partial` (results ready before the end, without
+//!   their `proof`: SP1's compressed STARK), and `result` (the `/prove`
+//!   response) or `error`.
+//! - `GET  /jobs/{id}/partial/{name}`: one partial with its `proof`.
 //!
 //! Modes and fields of `/prove`:
 //!
@@ -539,6 +542,12 @@ async fn job(Path(id): Path<String>) -> Result<Json<serde_json::Value>, ApiError
     JOBS.view(&id).map(Json).ok_or_else(|| ApiError(StatusCode::NOT_FOUND, format!("no job {id}")))
 }
 
+async fn job_partial(Path((id, name)): Path<(String, String)>) -> Result<Json<serde_json::Value>, ApiError> {
+    JOBS.partial_of(&id, &name)
+        .map(Json)
+        .ok_or_else(|| ApiError(StatusCode::NOT_FOUND, format!("no partial {name} on job {id}")))
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct VerifyRequest {
@@ -596,6 +605,7 @@ async fn main() {
         .route("/program", get(program))
         .route("/prove", post(prove))
         .route("/jobs/{id}", get(job))
+        .route("/jobs/{id}/partial/{name}", get(job_partial))
         .route("/verify", post(verify))
         // A report PDF is a few hundred KB; a base64 proof under 1 MB.
         .layer(DefaultBodyLimit::max(16 << 20))
