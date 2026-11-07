@@ -3,7 +3,7 @@
 // Proving ends at `ready`: the transaction is only sent when the tester clicks Submit.
 import { useSyncExternalStore } from 'react';
 import { stringToHex, type Hex } from 'viem';
-import { MOCK_PROVER, mockProof, pollJob, startProof, type Job } from './prover';
+import { pollJob, startProof, type Job } from './prover';
 import { fundAbi, fundAddress, send } from './wallet';
 
 type Artifact = { publicValues: Hex; proof: Hex; notarySignature: Hex };
@@ -56,7 +56,7 @@ export async function prove(requestId: string, id: Hex, title: string, pdf: File
 	try {
 		if (!pdf) throw new Error('Choose the lab report PDF.');
 		const onJob = (job: Job) => update({ job });
-		const done = MOCK_PROVER ? await mockProof(onJob) : await pollJob(await startProof(pdf), onJob);
+		const done = await pollJob(await startProof(pdf), onJob);
 		const raw = done.result?.artifact as Record<string, unknown> | undefined;
 		if (done.status === 'failed' || !raw) throw new Error(done.error ?? 'The prover returned no proof.');
 		const artifact = { publicValues: hex(raw.publicValues), proof: hex(raw.proof), notarySignature: hex(raw.notarySignature) };
