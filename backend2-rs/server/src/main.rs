@@ -13,6 +13,8 @@
 //!   their `proof`: SP1's compressed STARK), and `result` (the `/prove`
 //!   response) or `error`.
 //! - `GET  /jobs/{id}/partial/{name}`: one partial with its `proof`.
+//! - `POST /tls/session`: JSON `{ url }`, a TLSNotary session of that report
+//!   URL as a one-time job ([`tls_session`]).
 //!
 //! Modes and fields of `/prove`:
 //!
@@ -41,16 +43,19 @@
 //! `BIND` (default `127.0.0.1:8793`), `EUREKHA_SP1_BIN` (default
 //! `../sp1/target/release/eurekha-sp1`), `EUREKHA_SP1_WARM_RUN`, `SP1_GROTH16_PROVER` (`snarkrs`,
 //! the default, or `gnark`; see [`sp1`]), `EUREKHA_SP1_RUST_LOG`, `NOTARY_ADDRESS` (the notary attested
-//! reports must be signed by, hex; default the public dev notary), `RUST_LOG`.
+//! reports must be signed by, hex; default the public dev notary), `EQUINOX_NOTARY_KEY` (the
+//! `zktls` notary's key; unset, the public dev key), `ALLOWED_ORIGINS` (see [`tls_session`]), `RUST_LOG`.
 
 mod jobs;
 mod lock;
 mod prover;
 mod report_url;
 mod sp1;
+mod tls_session;
 mod zktls;
 
 use std::{
+    net::SocketAddr,
     panic::AssertUnwindSafe,
     sync::{Arc, LazyLock},
     time::Instant,
@@ -58,7 +63,7 @@ use std::{
 
 use axum::{
     extract::{DefaultBodyLimit, Multipart, Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
@@ -263,6 +268,17 @@ fn catch<T>(f: impl FnOnce() -> T) -> Result<T, ApiError> {
 /// The public dev notary's address (key `[1u8; 32]`, see the backend's `zktls`).
 const DEV_NOTARY: &str = "1a642f0e3c3af545e7acbd38b07251b3990914f1";
 
+/// The dev notary key `[1u8; 32]`, in hex.
+const DEV_NOTARY_KEY: &str = "0101010101010101010101010101010101010101010101010101010101010101";
+
+/// The `zktls` notary signs with the public dev key (`EQUINOX_NOTARY_KEY`
+/// unset or the dev key), or attestations are pinned to the dev notary.
+fn notary_is_dev() -> bool {
+    let key = std::env::var("EQUINOX_NOTARY_KEY").ok();
+    key.is_none_or(|k| k.trim().trim_start_matches("0x").eq_ignore_ascii_case(DEV_NOTARY_KEY))
+        || notary_address().is_ok_and(|a| hex::encode(a) == DEV_NOTARY)
+}
+
 fn notary_address() -> Result<[u8; 20], ApiError> {
     let h = std::env::var("NOTARY_ADDRESS").unwrap_or_else(|_| DEV_NOTARY.into());
     hex::decode(h.trim().trim_start_matches("0x"))
@@ -397,9 +413,11 @@ async fn prove(State(prover): State<Prover>, Query(q): Query<ProveQuery>, mp: Mu
             let job = match (prepared, fetch) {
                 (Some(job), _) => job,
                 (None, Some((url, mut form))) => {
+                    let slot = zktls::slot(&progress).await;
                     progress.stage("zktls fetch");
                     let session =
                         tokio::task::spawn_blocking(move || zktls::fetch(&url)).await.map_err(|e| e.to_string())??;
+                    drop(slot);
                     if session.body != form.pdf {
                         return Err("the uploaded PDF differs from the lab's copy at its QR link".to_string());
                     }
@@ -538,7 +556,11 @@ async fn run_job(prover: Prover, job: JobInput, progress: jobs::Progress) -> Res
     })
 }
 
-async fn job(Path(id): Path<String>) -> Result<Json<serde_json::Value>, ApiError> {
+async fn job(Path(id): Path<String>, headers: HeaderMap) -> Result<Json<serde_json::Value>, ApiError> {
+    // A one-time result is for the allowed origins only (the route itself is permissive).
+    if JOBS.is_once(&id) && !tls_session::origin_allowed(&headers) {
+        return Err(ApiError(StatusCode::FORBIDDEN, "origin not allowed".into()));
+    }
     JOBS.view(&id).map(Json).ok_or_else(|| ApiError(StatusCode::NOT_FOUND, format!("no job {id}")))
 }
 
@@ -576,10 +598,13 @@ async fn program(State(prover): State<Prover>) -> Result<Json<ProgramCommit>, Ap
 }
 
 async fn health() -> Json<serde_json::Value> {
-    match prover::guest_built() {
-        Ok(n) => Json(json!({ "ok": true, "guestElfBytes": n, "sp1": SP1.status() })),
-        Err(e) => Json(json!({ "ok": false, "error": e, "sp1": SP1.status() })),
-    }
+    let mut v = match prover::guest_built() {
+        Ok(n) => json!({ "ok": true, "guestElfBytes": n, "sp1": SP1.status() }),
+        Err(e) => json!({ "ok": false, "error": e, "sp1": SP1.status() }),
+    };
+    v["notary"] = json!(notary_address().ok().map(hex::encode));
+    v["notaryIsDevKey"] = json!(notary_is_dev());
+    Json(v)
 }
 
 #[tokio::main]
@@ -591,6 +616,12 @@ async fn main() {
                 .unwrap_or_else(|_| "warn,equinox_openvm_server=info,tower_http=info".into()),
         )
         .init();
+    if notary_is_dev() {
+        tracing::warn!(
+            "!!! zktls notary is the PUBLIC DEV KEY (EQUINOX_NOTARY_KEY unset, or NOTARY_ADDRESS the dev notary): \
+             anyone can forge attestations it signs; set both for a real deploy !!!"
+        );
+    }
     let prover = Prover::spawn();
     // Warm both provers in the background: OpenVM keygen if the prove lock is
     // free now; SP1 setup (+ warm-up proof), waiting for the lock.
@@ -600,6 +631,14 @@ async fn main() {
             tracing::warn!("sp1 worker not started: {e}");
         }
     });
+    // Unread one-time results expire even when no new job comes in.
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+            JOBS.sweep();
+        }
+    });
+    let tls = tls_session::router(tls_session::Config::new(JOBS.clone(), Arc::new(tls_session::fetch_checked)));
     let app = Router::new()
         .route("/health", get(health))
         .route("/program", get(program))
@@ -610,10 +649,13 @@ async fn main() {
         // A report PDF is a few hundred KB; a base64 proof under 1 MB.
         .layer(DefaultBodyLimit::max(16 << 20))
         .layer(CorsLayer::permissive())
+        // Its own CORS and body limit; never logs the URL in the body.
+        .merge(tls)
         .layer(TraceLayer::new_for_http())
         .with_state(prover);
     let bind = std::env::var("BIND").unwrap_or_else(|_| "127.0.0.1:8793".into());
     let listener = tokio::net::TcpListener::bind(&bind).await.expect("bind");
     tracing::info!("listening on http://{bind}");
-    axum::serve(listener, app).await.expect("serve");
+    // The peer address feeds `/tls/session`'s per-IP rate limit.
+    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.expect("serve");
 }

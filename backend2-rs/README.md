@@ -31,11 +31,12 @@ curl -s localhost:8793/jobs/$(echo $J | jq -r .jobId)
 
 | Route | In | Out |
 |---|---|---|
-| `GET /health` | | `{ ok, guestElfBytes, sp1 }` (`sp1`: the warm worker's setup and warm-up status) |
+| `GET /health` | | `{ ok, guestElfBytes, sp1, notary, notaryIsDevKey }` (`sp1`: the warm worker's setup and warm-up status; `notary`: the pinned `NOTARY_ADDRESS`) |
 | `GET /program` | | `{ appExeCommit, appVmCommit }`, the pinned OpenVM program |
 | `POST /prove?mode=...` | multipart `pdf`, `format` (`equinox`, `eurekha`, `eurekha-attested`, `eurekha-attested-sig`), `labels` (Equinox), `blinder` (16 bytes hex; random if absent, required for attested formats), `onchain` + `request` (attested formats: `onchain.json`, `request.json` of a `zktls` run) | `202 { jobId, status, statusUrl }` |
 | `GET /jobs/{id}` | | `{ status: queued\|running\|done\|failed, stage, stages: [{ name, ms \| elapsedMs }], elapsedMs, progress: { fraction, etaMs }, preview: { publicValues, publicValuesHex }, partial, result, error }` |
 | `POST /verify` | JSON `{ proof, publicValues }` | `{ valid, publicValues, program }`, or 400 (OpenVM STARKs) |
+| `POST /tls/session` | JSON `{ url }` (a report URL) | `202 { jobId, status, statusUrl }`; the job's `result` is `{ onchain, request, blinder, bodySha256, bodyLen, notary }`, readable once |
 
 Modes (default `sp1-groth16`): `stark` (OpenVM STARK, `proof` base64 bincode `VersionedVmStarkProof`), `sp1-groth16` (`format=eurekha-attested`: `artifact { vkey, publicValues, proof, notarySignature }`, the arguments of `EurekhaReportRegistry.submit`), `openvm-halo2` (reserved, 501). `result` is `{ mode, format, publicValues, publicValuesHex, notarySignature, redactedPdf, revealed, instructions, program, proof, proofBytes, artifact, timingsMs }`.
 
@@ -46,6 +47,26 @@ Stages: `queued`, `starting sp1 worker`, `waiting for prove lock`, `execute`, `k
 Both provers stay warm: OpenVM keygen runs at start and its keys stay in the prover thread; SP1 runs as one long-lived `eurekha-sp1 serve` child that sets up at start and, with `EUREKHA_SP1_WARM_RUN=<zktls run dir>`, proves once so the Groth16 prover's key is loaded before the first request. Locking (`server/src/lock.rs`): every heavy step takes the machine-wide lock right before it starts and drops it right after, and waits, never skips, while someone else holds it: OpenVM execute + keygen + prove + verify per job, SP1 start-up (and warm-up proof), each SP1 job. The lock is `/tmp/equinox-prove.lock.d`, or with `PROVE_FLOCK=<file>` an `flock` on that file in the GPU box's `heavy` protocol: the holder line (`backend2-rs job <id> <mode> pid= since=`) goes to the sibling `.holder` file, a waiting job registers in `waiting/<pid>` so `heavy status` lists it, and the job's stage reads `waiting for prove lock (held by <holder>)`. Boot-time OpenVM keygen runs only if the lock is free at that moment; otherwise the first job does it under its own lock.
 
 Before proving, the server runs the same extraction natively: a PDF the guest would reject fails in milliseconds, and a result that would publish PII is refused. `/prove` checks the guest revealed `sha256(publicValues)` and verifies the proof before returning it. `/verify` checks the proof against the pinned program and that it commits to the given public values (a flipped public-value byte is rejected).
+
+### TLS session only
+
+`POST /tls/session` runs the server's TLSNotary fetch for a client that proves on its own (`server/src/tls_session.rs`). The job has `mode: "tls-session"` and stage `zktls fetch` (`waiting for zktls slot` first if another session runs). When done, `result` holds `onchain` and `request` (`onchain.json`, `request.json` of the run), `blinder` (16 bytes, hex), `bodySha256` and `bodyLen` of the fetched PDF, and `notary` (the pinned address). The server checks the attestation against `NOTARY_ADDRESS` and binds it to the body before it reports done.
+
+```sh
+J=$(curl -s -X POST localhost:8793/tls/session -H 'content-type: application/json' \
+  -d '{"url":"https://eurekhalabs.s3.amazonaws.com/reports/2026/<object>.pdf"}')
+curl -s localhost:8793/jobs/$(echo $J | jq -r .jobId)
+```
+
+Security, since the URL is a capability (its key links to the unredacted report) and the result opens it:
+
+- The URL is checked before any network activity (`report_url::check_url`, also used for QR links): the exact prefix `https://eurekhalabs.s3.amazonaws.com/reports/` (so no other scheme, host, userinfo or port), then a key of `/`-separated `[A-Za-z0-9._-]` segments ending in `.pdf`, with no `%`, query, fragment, `.`, `..` or empty segment, at most 1 KB. `equinox-tls-prove` follows no redirect: anything but `200` fails the session.
+- The URL, `request` and blinder are never logged; errors never echo the URL (fetch errors have it scrubbed). The request body is read by the handler, not by `TraceLayer`.
+- The result is handed out by the first `GET /jobs/{id}` that sees the job done, then cleared (later views: `result: null`, `resultConsumed: true`); unread, it is dropped 10 minutes after the job finishes. The job id is 128 random bits. Partials and other jobs never carry it.
+- One TLS session at a time server-wide (`/prove`'s server-side fetch shares the slot), at most 4 queued or running (else 503), 5 per client IP per 10 minutes (429; the IP is the peer, or with the peer on loopback, nginx's `X-Real-IP`, else the last `X-Forwarded-For` entry; IPv6 by /64), a 4 KB body (413), `Content-Type: application/json` only (415).
+- CORS on `/tls/session` allows only `ALLOWED_ORIGINS` (comma-separated; default `https://prover.openlabel.fyi` and `http://localhost` / `http://127.0.0.1` on 5173, 5180, 4173); a request from another browser origin gets 403, and so does a read of a session's job. Other routes stay permissive.
+
+Notary key: with `EQUINOX_NOTARY_KEY` unset the `zktls` notary signs with the public dev key `[1u8; 32]` (address `1a642f0e...0914f1`), so anyone can forge its attestations; the server logs a warning at start and `/health` reports `notaryIsDevKey: true`. For a real deploy set both in `~/backend2-start.sh` (or `~/backend2-env.sh`) before the server starts: `export EQUINOX_NOTARY_KEY=<32-byte hex secp256k1 key>` and `export NOTARY_ADDRESS=<its 20-byte Ethereum address>`. They must match, or every session fails the signature check. `EurekhaReportRegistry` pins its notary at deploy (`immutable`), so a new key also needs a registry redeployed with the new address.
 
 ## Measured
 

@@ -7,8 +7,27 @@
 //! `EQUINOX_NOTARY_KEY`, default the public dev key), so the attestation says
 //! "this server fetched these bytes from the bucket"; an independent notary
 //! is what makes it evidence against the server operator.
+//!
+//! One session at a time ([`slot`]): a proxy-mode session is 15-30 s, an MPC
+//! one up to 22 GB.
 
 use std::path::PathBuf;
+
+use tokio::sync::{Semaphore, SemaphorePermit};
+
+use crate::jobs::Progress;
+
+/// Every server-side session (`/prove` and `/tls/session`) holds this.
+static SLOT: Semaphore = Semaphore::const_new(1);
+
+/// Waits for the session slot; the job's stage says so while it waits.
+pub async fn slot(progress: &Progress) -> SemaphorePermit<'static> {
+    if let Ok(p) = SLOT.try_acquire() {
+        return p;
+    }
+    progress.stage("waiting for zktls slot");
+    SLOT.acquire().await.expect("zktls slot never closes")
+}
 
 /// What one session yields: the attested body and the files `/prove` takes.
 pub struct Session {
@@ -32,7 +51,16 @@ pub fn fetch(url: &str) -> Result<Session, String> {
     let dir = std::env::temp_dir().join(format!("eurekha-tls-{}", hex::encode(id)));
     let res = fetch_in(&dir, url);
     let _ = std::fs::remove_dir_all(&dir);
-    res
+    res.map_err(|e| scrub(e, url))
+}
+
+/// `e` without `url` or its object key: the URL is private, errors get logged.
+pub fn scrub(e: String, url: &str) -> String {
+    let e = if url.is_empty() { e } else { e.replace(url, "<report url>") };
+    match crate::report_url::ALLOWED_PREFIXES.iter().find_map(|p| url.strip_prefix(p)) {
+        Some(key) if !key.is_empty() => e.replace(key, "<key>"),
+        _ => e,
+    }
 }
 
 fn fetch_in(dir: &PathBuf, url: &str) -> Result<Session, String> {

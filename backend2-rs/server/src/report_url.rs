@@ -12,6 +12,32 @@
 /// Report objects the server will fetch.
 pub const ALLOWED_PREFIXES: [&str; 1] = ["https://eurekhalabs.s3.amazonaws.com/reports/"];
 
+/// Longest report URL accepted.
+pub const MAX_URL_LEN: usize = 1024;
+
+/// A report URL the server may fetch: an allowlisted prefix (so `https`, the
+/// exact bucket host, no userinfo or port), then an object key of `/`-separated
+/// segments of `[A-Za-z0-9._-]` ending in `.pdf`: no `%` escapes, query,
+/// fragment, `..`, `.` or empty segment. Checked before any network activity;
+/// the error never echoes the URL.
+pub fn check_url(url: &str) -> Result<(), &'static str> {
+    if url.len() > MAX_URL_LEN {
+        return Err("report URL is too long");
+    }
+    let key = ALLOWED_PREFIXES
+        .iter()
+        .find_map(|p| url.strip_prefix(p))
+        .ok_or("not a report URL on an allowlisted lab bucket")?;
+    let ok = key.ends_with(".pdf")
+        && key.bytes().all(|c| c.is_ascii_alphanumeric() || b"._-/".contains(&c))
+        && key.split('/').all(|seg| !seg.is_empty() && seg != "." && seg != "..")
+        && !key.contains("..");
+    match ok {
+        true => Ok(()),
+        false => Err("unexpected report object key shape"),
+    }
+}
+
 /// A filled path: closed polygons in user space.
 type Fill = Vec<Vec<(f64, f64)>>;
 
@@ -118,11 +144,7 @@ pub fn report_url(pdf: &[u8]) -> Result<String, String> {
     let mut fills: Vec<Fill> = pages.iter().flat_map(|c| fills(c)).filter(|f| f.len() >= 20).collect();
     fills.sort_by_key(|f| std::cmp::Reverse(f.len()));
     let url = fills.iter().find_map(decode).ok_or("no QR code with the report link found in the PDF")?;
-    let ok = ALLOWED_PREFIXES.iter().any(|p| {
-        url.strip_prefix(p)
-            .is_some_and(|key| key.ends_with(".pdf") && !key.contains("..") && !key.contains(['?', '#', ' ']))
-    });
-    if !ok {
+    if check_url(&url).is_err() {
         return Err("the PDF's QR code does not link to a report on an allowlisted lab bucket".into());
     }
     Ok(url)
@@ -131,6 +153,52 @@ pub fn report_url(pdf: &[u8]) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
+
+    use super::check_url;
+
+    #[test]
+    fn url_check() {
+        let p = "https://eurekhalabs.s3.amazonaws.com/reports/";
+        for key in ["2026/x-0123.pdf", "x.pdf", "2026/November/choco_millet-muesli.v2.pdf"] {
+            assert!(check_url(&format!("{p}{key}")).is_ok(), "{key}");
+        }
+        let long = format!("{p}{}.pdf", "a".repeat(1024));
+        let bad = [
+            "http://eurekhalabs.s3.amazonaws.com/reports/x.pdf",
+            "HTTPS://eurekhalabs.s3.amazonaws.com/reports/x.pdf",
+            "https://EUREKHALABS.s3.amazonaws.com/reports/x.pdf",
+            "https://eurekhalabs.s3.amazonaws.com:443/reports/x.pdf",
+            "https://user@eurekhalabs.s3.amazonaws.com/reports/x.pdf",
+            "https://eurekhalabs.s3.amazonaws.com@evil.com/reports/x.pdf",
+            "https://eurekhalabs.s3.amazonaws.com.evil.com/reports/x.pdf",
+            "https://evil.com/https://eurekhalabs.s3.amazonaws.com/reports/x.pdf",
+            "https://eurekhalabs.s3.amazonaws.com/other/x.pdf",
+            "https://eurekhalabs.s3.amazonaws.com/reports/",
+            "https://eurekhalabs.s3.amazonaws.com/reports/.pdf/",
+            "https://eurekhalabs.s3.amazonaws.com/reports/x.txt",
+            "https://eurekhalabs.s3.amazonaws.com/reports/../x.pdf",
+            "https://eurekhalabs.s3.amazonaws.com/reports/a/../x.pdf",
+            "https://eurekhalabs.s3.amazonaws.com/reports/a/./x.pdf",
+            "https://eurekhalabs.s3.amazonaws.com/reports//x.pdf",
+            "https://eurekhalabs.s3.amazonaws.com/reports/%2e%2e/x.pdf",
+            "https://eurekhalabs.s3.amazonaws.com/reports/x%2Epdf",
+            "https://eurekhalabs.s3.amazonaws.com/reports/x.pdf?x=1",
+            "https://eurekhalabs.s3.amazonaws.com/reports/x?.pdf",
+            "https://eurekhalabs.s3.amazonaws.com/reports/x.pdf#a.pdf",
+            "https://eurekhalabs.s3.amazonaws.com/reports/a b.pdf",
+            "https://eurekhalabs.s3.amazonaws.com/reports/a\\b.pdf",
+            "https://eurekhalabs.s3.amazonaws.com/reports/a\nb.pdf",
+            "https://eurekhalabs.s3.amazonaws.com/reports/\u{e9}.pdf",
+            " https://eurekhalabs.s3.amazonaws.com/reports/x.pdf",
+            "https://eurekhalabs.s3.amazonaws.com/reports/x.pdf ",
+            "",
+            &long,
+        ];
+        for url in bad {
+            let e = check_url(url).unwrap_err();
+            assert!(url.is_empty() || !e.contains(url), "error echoes the URL");
+        }
+    }
 
     /// The `mock-pdfs` reports carry their S3 URL in the QR (`template/eurekha-report.typ`).
     #[test]
