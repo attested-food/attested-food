@@ -1,8 +1,8 @@
 diff --git a/crates/recursion/gnark-ffi/Cargo.toml b/crates/recursion/gnark-ffi/Cargo.toml
-index 7037d5a..e70236f 100644
+index 7037d5a..03fafd5 100644
 --- a/crates/recursion/gnark-ffi/Cargo.toml
 +++ b/crates/recursion/gnark-ffi/Cargo.toml
-@@ -26,6 +26,13 @@ cfg-if = { workspace = true }
+@@ -26,6 +26,14 @@ cfg-if = { workspace = true }
  bincode = { workspace = true }
  anyhow = { workspace = true }
  sha2 = { workspace = true }
@@ -10,18 +10,19 @@ index 7037d5a..e70236f 100644
 +# the gnark crates are pushed to github.com/zemse/snarkrs.
 +snarkrs-field = { path = "/home/ubuntu/rust-groth16-prover/crates/field", optional = true }
 +snarkrs-gnark = { path = "/home/ubuntu/rust-groth16-prover/crates/gnark", optional = true }
++snarkrs-cuda = { path = "/home/ubuntu/rust-groth16-prover/crates/cuda", features = ["cuda"], optional = true }
 +snarkrs-gnark-solver = { path = "/home/ubuntu/rust-groth16-prover/crates/gnark-solver", optional = true }
 +snarkrs-groth16 = { path = "/home/ubuntu/rust-groth16-prover/crates/groth16", optional = true }
 +ark-std = { version = "0.5", features = ["std", "getrandom"], optional = true }
  
  [build-dependencies]
  bindgen = { workspace = true, optional = true }
-@@ -35,6 +42,8 @@ cfg-if = { workspace = true }
+@@ -35,6 +43,8 @@ cfg-if = { workspace = true }
  native = ["dep:bindgen"]
  groth16-cuda = []
  experimental = []
 +# `Groth16Bn254Prover::prove` uses snarkrs when `SP1_GROTH16_PROVER=snarkrs`.
-+snarkrs = ["dep:snarkrs-field", "dep:snarkrs-gnark", "dep:snarkrs-gnark-solver", "dep:snarkrs-groth16", "dep:ark-std"]
++snarkrs = ["dep:snarkrs-field", "dep:snarkrs-gnark", "dep:snarkrs-cuda", "dep:snarkrs-gnark-solver", "dep:snarkrs-groth16", "dep:ark-std"]
  
  [lints]
  workspace = true
@@ -60,15 +61,16 @@ index b08817a..39362b5 100644
  pub use groth16_bn254::*;
 diff --git a/crates/recursion/gnark-ffi/src/snarkrs.rs b/crates/recursion/gnark-ffi/src/snarkrs.rs
 new file mode 100644
-index 0000000..2ab27dc
+index 0000000..dd31f64
 --- /dev/null
 +++ b/crates/recursion/gnark-ffi/src/snarkrs.rs
-@@ -0,0 +1,111 @@
+@@ -0,0 +1,110 @@
 +//! Groth16 proving with snarkrs in place of gnark's Go prover. The witness the Go side
 +//! would read is solved by `snarkrs-gnark-solver` against `groth16_circuit.bin` and proved
 +//! by `snarkrs-gnark` with `groth16_pk.bin` (gnark's `WriteDump`, as Go's `ReadDump` reads
 +//! it), so the proof is one gnark's verifier and the Solidity verifier accept. The circuit
-+//! and key are loaded once per process, on the first proof.
++//! is read once per process and the key streamed once to the GPU (`snarkrs-cuda`), on the
++//! first proof; the server's `CUDA_VISIBLE_DEVICES` makes its GPU device 0.
 +
 +use std::{
 +    path::{Path, PathBuf},
@@ -77,12 +79,12 @@ index 0000000..2ab27dc
 +};
 +
 +use snarkrs_field::{BigInteger, PrimeField};
-+use snarkrs_gnark::{proof::write_proof, GnarkProvingKey, GnarkVerifyingKey, GnarkWitness};
++use snarkrs_gnark::{proof::write_proof, GnarkVerifyingKey, GnarkWitness};
 +use snarkrs_gnark_solver::{
 +    sp1::{parse_go_int, Witness},
 +    GnarkR1cs, Solver,
 +};
-+use snarkrs_groth16::{cpu::CpuBackend, Backend, PreparedCircuit, StageTimings};
++use snarkrs_groth16::{PreparedCircuit, StageTimings};
 +use crate::Groth16Bn254Proof;
 +
 +/// Bytes of `Proof.MarshalSolidity` without commitments: `Ar`, `Bs`, `Krs` raw.
@@ -102,9 +104,7 @@ index 0000000..2ab27dc
 +        let t = Instant::now();
 +        let r1cs = GnarkR1cs::read(&build_dir.join("groth16_circuit.bin"))?;
 +        let vk = GnarkVerifyingKey::read(&build_dir.join("groth16_vk.bin"))?;
-+        let pk = GnarkProvingKey::read_dump(&build_dir.join("groth16_pk.bin"))?
-+            .into_proving_key(&vk)?;
-+        let circuit = CpuBackend::new().prepare(pk)?;
++        let circuit = snarkrs_cuda::gnark::prepare(0, &build_dir.join("groth16_pk.bin"), &vk)?;
 +        tracing::info!(
 +            "snarkrs: loaded {} on {} in {:?}",
 +            build_dir.display(),
