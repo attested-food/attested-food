@@ -233,3 +233,9 @@ a.card:hover, .card.hoverable:hover { border-color: var(--field-line); }
 .proven th { text-align: left; font-size: 12px; font-weight: 600; color: var(--sub); padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); }
 .proven td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 .proven details summary { cursor: pointer; font-weight: 600; color: var(--green); }
+.task-window { position: fixed; right: 16px; bottom: 16px; z-index: 50; width: min(340px, calc(100vw - 32px)); display: grid; gap: 8px; padding: 14px 16px; background: var(--white, #fff); box-shadow: 0 8px 28px rgba(0, 0, 0, .16); }
+.task-head { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+.task-close { border: 0; background: none; font-size: 20px; line-height: 1; cursor: pointer; color: inherit; padding: 0 4px; }
+.task-window p { margin: 0; }
+.task-progress { display: grid; gap: 6px; }
+.task-progress p { margin: 0; }

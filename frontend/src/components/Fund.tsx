@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { parseUnits, stringToHex, type Hex } from 'viem';
-import { MOCK_PROVER, mockProof, pollJob, startProof, type Job } from '@/lib/prover';
+import { parseUnits, type Hex } from 'viem';
+import { isRunning, proveAndPost, savedProof, useReportTask, dismissReportTask } from '@/lib/reportTask';
+import { TaskProgress } from './ReportTaskWindow';
 import { ProvenReport } from './ProvenReport';
 import {
 	FUND_GOAL, FUND_STAKE, campaignId, ensureAllowance, fundAbi, fundAddress, publicClient, send, usd, usdAbi, usdAddress, useWallet
@@ -15,8 +16,9 @@ const firstLine = (e: unknown) =>
 export type PostedReport = { id: Hex; tester: Hex; reportBlock: bigint };
 
 /** On-chain funding for one test request. With `onReport`, a posted report is handed to the page to show in full. */
-export function Fund({ requestId, onReport }: { requestId: string; onReport?: (r: PostedReport) => void }) {
+export function Fund({ requestId, title, onReport }: { requestId: string; title: string; onReport?: (r: PostedReport) => void }) {
 	const wallet = useWallet();
+	const task = useReportTask();
 	const id = campaignId(requestId);
 	const [c, setC] = useState<Campaign | null>(null);
 	const [busy, setBusy] = useState('');
@@ -39,6 +41,14 @@ export function Fund({ requestId, onReport }: { requestId: string; onReport?: (r
 	useEffect(() => {
 		if (fundAddress) load().catch((e) => setError(`Could not read the campaign: ${firstLine(e)}`));
 	}, [load]);
+
+	// A background prove-and-post for this pool finished while the page is open: show the result here.
+	const posted = task?.id === id && task.phase === 'done';
+	useEffect(() => {
+		if (!posted) return;
+		dismissReportTask();
+		load().catch((e) => setError(firstLine(e)));
+	}, [posted, load]);
 
 	async function act(name: string, fn: () => Promise<unknown>) {
 		setBusy(name);
@@ -136,7 +146,7 @@ export function Fund({ requestId, onReport }: { requestId: string; onReport?: (r
 								</div>
 							)}
 							{late && <button type="button" className="btn outline fund-btn" disabled={!!busy} onClick={slash}>{busy === 'slash' ? 'Working…' : 'Reopen the job'}</button>}
-							{c.status === 'Pending' && isTester && !late && <PostReport id={id} pool={c.pool} onPosted={load} />}
+							{c.status === 'Pending' && isTester && !late && <PostReport requestId={requestId} id={id} title={title} pool={c.pool} />}
 							{busy && busy !== 'faucet' && <p className="small muted">Confirm in your wallet, then wait for the transaction to be mined…</p>}
 							<p className="fund-wallet small muted">
 								You've put in {usd(c.mine)} · Balance {usd(c.balance)}
@@ -154,60 +164,20 @@ export function Fund({ requestId, onReport }: { requestId: string; onReport?: (r
 	);
 }
 
-type Artifact = { publicValues: Hex; proof: Hex; notarySignature: Hex };
-const hex = (v: unknown) => (String(v).startsWith('0x') ? String(v) : `0x${v}`) as Hex;
-const saved = (id: string): Artifact | null => {
-	try {
-		return JSON.parse(localStorage.getItem(`proof:${id}`) ?? 'null');
-	} catch {
-		return null;
-	}
-};
-
-/** Tester only: upload the lab report PDF, prove it with backend2-rs, post the proof to TestFund. */
-function PostReport({ id, pool, onPosted }: { id: Hex; pool: bigint; onPosted: () => Promise<void> }) {
+/** Tester only: upload the lab report PDF; proving and posting run in the background (lib/reportTask). */
+function PostReport({ requestId, id, title, pool }: { requestId: string; id: Hex; title: string; pool: bigint }) {
+	const task = useReportTask();
 	const [pdf, setPdf] = useState<File | null>(null);
-	const [job, setJob] = useState<Job | null>(null);
-	const [artifact, setArtifact] = useState<Artifact | null>(() => saved(id));
-	const [busy, setBusy] = useState('');
 	const [error, setError] = useState('');
+	const mine = task?.id === id ? task : null;
+	const running = isRunning(mine);
+	const ready = !running && !!savedProof(id);
 	const payout = usd(pool + FUND_STAKE);
 
-	async function post(a: Artifact) {
-		setBusy('post');
+	function start(e?: FormEvent) {
+		e?.preventDefault();
 		setError('');
-		try {
-			await send({
-				address: fundAddress!, abi: fundAbi, functionName: 'submitReport',
-				args: [id, stringToHex('sp1', { size: 32 }), a.publicValues, a.proof, a.notarySignature]
-			});
-			try { localStorage.removeItem(`proof:${id}`); } catch { /* storage unavailable */ }
-			await onPosted();
-		} catch (e) {
-			setError(firstLine(e));
-		} finally {
-			setBusy('');
-		}
-	}
-
-	async function prove(e: FormEvent) {
-		e.preventDefault();
-		if (!pdf) return;
-		setBusy('prove');
-		setError('');
-		setJob(null);
-		try {
-			const done = MOCK_PROVER ? await mockProof(setJob) : await pollJob(await startProof(pdf), setJob);
-			const raw = done.result?.artifact as Record<string, unknown> | undefined;
-			if (done.status === 'failed' || !raw) throw new Error(done.error ?? 'The prover returned no proof.');
-			const a = { publicValues: hex(raw.publicValues), proof: hex(raw.proof), notarySignature: hex(raw.notarySignature) };
-			setArtifact(a);
-			try { localStorage.setItem(`proof:${id}`, JSON.stringify(a)); } catch { /* storage unavailable */ }
-			await post(a);
-		} catch (err) {
-			setError(firstLine(err));
-			setBusy('');
-		}
+		proveAndPost(requestId, id, title, pdf).catch((err: Error) => setError(err.message));
 	}
 
 	return (
@@ -217,24 +187,21 @@ function PostReport({ id, pool, onPosted }: { id: Hex; pool: bigint; onPosted: (
 				Upload the lab's PDF. We prove it came from the lab and publish only the test results, never your name or address.
 				A valid proof pays you <strong>{payout}</strong> (your stake plus the pool){pool < FUND_GOAL && <>, and the {usd(FUND_GOAL - pool)} the pool was short counts as your contribution</>}.
 			</p>
-			{artifact && busy !== 'prove' ? (
+			{running ? (
+				<TaskProgress task={mine!} />
+			) : ready ? (
 				<div className="fund-row">
-					<button type="button" className="btn" disabled={!!busy} onClick={() => post(artifact)}>{busy === 'post' ? 'Posting…' : 'Post the proof'}</button>
+					<button type="button" className="btn" onClick={() => start()}>Post the proof</button>
 					<span className="small muted">Proof ready.</span>
 				</div>
 			) : (
-				<form className="fund-row" onSubmit={prove}>
-					<input type="file" accept="application/pdf" aria-label="Lab report PDF" onChange={(e) => setPdf(e.target.files?.[0] ?? null)} disabled={!!busy} />
-					<button className="btn" disabled={!pdf || !!busy}>{busy === 'prove' ? 'Proving…' : 'Prove and post'}</button>
+				<form className="fund-row" onSubmit={start}>
+					<input type="file" accept="application/pdf" aria-label="Lab report PDF" onChange={(e) => setPdf(e.target.files?.[0] ?? null)} />
+					<button className="btn" disabled={!pdf || isRunning(task)}>Prove and post</button>
 				</form>
 			)}
-			{job && busy === 'prove' && (
-				<p className="small muted">
-					Proving: {job.stage ?? job.status}, {Math.round(job.elapsedMs / 1000)} s
-					{job.progress?.fraction != null && <> · ~{Math.round(job.progress.fraction * 100)}%</>}. This takes a few minutes; keep this tab open.
-				</p>
-			)}
-			{error && <p className="error">{error}</p>}
+			{running && <p className="small muted">You can leave this page; it keeps going in the background.</p>}
+			{(error || mine?.error) && <p className="error">{error || mine?.error}</p>}
 		</div>
 	);
 }

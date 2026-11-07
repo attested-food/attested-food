@@ -57,17 +57,19 @@ export const MOCK_PROVER = true;
 
 export async function mockProof(onUpdate: (job: Job) => void): Promise<Job> {
 	const { default: artifact } = await import('./mock-proof.json');
+	const SECONDS = 30;
 	const stages = ['zktls fetch', 'prove stark', 'prove groth16'];
 	let job: Job = {
 		id: 'mock', mode: 'sp1-groth16', format: 'eurekha-attested', status: 'running', stage: null, stages: [], elapsedMs: 0,
 		progress: null, preview: { publicValues: null, publicValuesHex: '' }, partial: {}, result: null, error: null
 	};
-	for (const [i, stage] of stages.entries()) {
-		job = { ...job, stage, elapsedMs: i * 1000, progress: { fraction: i / stages.length } };
+	for (let t = 0; t < SECONDS; t++) {
+		const fraction = t / SECONDS;
+		job = { ...job, stage: stages[Math.floor(fraction * stages.length)], elapsedMs: t * 1000, progress: { fraction, etaMs: (SECONDS - t) * 1000 } };
 		onUpdate(job);
 		await new Promise((r) => setTimeout(r, 1000));
 	}
-	job = { ...job, status: 'done', stage: null, elapsedMs: 3000, progress: { fraction: 1 }, result: { artifact } };
+	job = { ...job, status: 'done', stage: null, elapsedMs: SECONDS * 1000, progress: { fraction: 1 }, result: { artifact } };
 	onUpdate(job);
 	return job;
 }
