@@ -20,15 +20,30 @@ This historical revision retains Jolt's symbolic verifier exporter. Its stages 1
 - `tools/circuits/`: circuit generation tools.
 - `tests/`: circuit compilation, witness generation, R1CS checks and integration tests.
 
-## Test harness
+## Verified status (2026-11-07)
 
-With the already installed Circom, Node and snarkjs:
+- 13 harness and scalar-input schema tests passed.
+- 18 scalar-generator, transcript and Poseidon component tests passed, with no skips.
+- 6 upstream source-patcher tests passed inside the disposable Linux VM.
+- The source patch applied and Rust formatting parsed the exporter, but Rust type-checking has not completed.
+- Offline locked Cargo resolution stopped at a missing crates.io `ark-bn254` dependency through `dory-pcs` 0.3.0.
+
+**No genuine Jolt fixtures have been generated yet. Full Dory PCS constraints and full Jolt acceptance tests are not implemented.** The generated scalar manifest explicitly records `pcs_verified: false` and `complete_jolt_verifier: false`.
+
+Dependency downloads require approval. The proposed external pairing code also has an unresolved GPL-v3 license file versus ISC package-metadata conflict. It has not been vendored or executed. See [the circuit notes](circuits/README.md) and [the PCS boundary contract](circuits/pcs-boundary.md).
+
+## Component tests
+
+With the already installed Circom, Node and snarkjs, run from the project root:
 
 ```bash
-python3 -m unittest discover -s jolt-verifier/tests -p test_circom_runner.py -v
+python3 -m unittest discover -s jolt-verifier/tests -v
+python3 -m unittest discover -s jolt-verifier/tools/circuits -p test_ast_to_circom.py -v
 ```
 
-These tests validate the harness using a multiplication circuit. They are not Jolt verification tests. The harness compiles circuits, generates witnesses and explicitly runs `snarkjs wtns check`; witness generation alone does not count as success.
+These tests validate the harness, input schema and circuit components. They are not Jolt verification tests. Successful circuit cases generate witnesses and explicitly run `snarkjs wtns check`; witness generation alone does not count as success.
+
+For upstream source-patcher tests and the pending two-proof generation workflow, see [fixture tooling](tools/fixtures/README.md). `tools/scalar_inputs.py` maps its indexed scalar witness format to the scalar generator's named inputs, with strict field/schema validation and an explicit scalar-only acknowledgement.
 
 ## Completion checks
 

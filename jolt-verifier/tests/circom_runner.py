@@ -54,7 +54,11 @@ class CompiledCircuit:
                 str(witness_path),
             ]
         )
-        run([tool("snarkjs"), "wtns", "check", str(self.r1cs), str(witness_path)])
+        checked = run(
+            [tool("snarkjs"), "wtns", "check", str(self.r1cs), str(witness_path)]
+        )
+        if "WITNESS IS CORRECT" not in checked.stdout + checked.stderr:
+            raise RuntimeError("snarkjs did not confirm R1CS witness satisfaction")
 
 
 def compile_circuit(

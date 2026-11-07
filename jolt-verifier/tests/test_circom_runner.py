@@ -1,8 +1,10 @@
 """Tests of the test harness, not evidence of Jolt proof verification."""
 
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from circom_runner import ToolFailure, compile_circuit
 
@@ -44,6 +46,17 @@ class CircomRunnerTests(unittest.TestCase):
     def test_rejects_missing_inputs(self):
         with self.assertRaises(ToolFailure):
             self.compiled.check({"a": "2", "product": "6"}, self.directory / "missing")
+
+    def test_exit_zero_without_witness_confirmation_is_not_acceptance(self):
+        result = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout="", stderr=""
+        )
+        with patch("circom_runner.run", return_value=result):
+            with self.assertRaisesRegex(RuntimeError, "did not confirm"):
+                self.compiled.check(
+                    {"a": "2", "b": "3", "product": "6"},
+                    self.directory / "unconfirmed",
+                )
 
     def test_compile_failure_is_not_an_acceptance(self):
         source = self.directory / "invalid.circom"
