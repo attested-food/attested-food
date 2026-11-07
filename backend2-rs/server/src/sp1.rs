@@ -1,10 +1,17 @@
 //! Warm SP1 Groth16 prover: one long-lived `eurekha-sp1 serve` child (its own
 //! workspace, `../sp1`, so sp1-sdk stays out of this server's lock). It sets
-//! up once and gnark keeps the Groth16 proving key loaded after the first
-//! proof, so only the first proof per process pays that load. The server
-//! starts it at boot and, with `EUREKHA_SP1_WARM_RUN` (a `zktls` run dir),
-//! warms it with a throwaway proof, both under the machine-wide prove lock.
-//! A dead child is restarted on the next job.
+//! up once and the Groth16 prover keeps its key loaded after the first proof,
+//! so only the first proof per process pays that load. The server starts it
+//! at boot and, with `EUREKHA_SP1_WARM_RUN` (a `zktls` run dir), warms it
+//! with a throwaway proof, both under the machine-wide prove lock. A dead
+//! child is restarted on the next job.
+//!
+//! The Groth16 step runs inside `sp1-gpu-server`; built from `../sp1/gpu-server`
+//! it proves with snarkrs on the GPU when `SP1_GROTH16_PROVER=snarkrs`, which
+//! the worker gets by default ([`groth16_prover`]). That server logs one
+//! `snarkrs: solved in .., proved in ..` line per proof; a proof without one
+//! was made by gnark (the released binary, or `SP1_GROTH16_PROVER=gnark`), and
+//! each artifact says which (`groth16Prover`).
 
 use std::{
     io::{BufRead, BufReader, Write},
@@ -21,6 +28,29 @@ use crate::{jobs::Progress, lock::ProveLock};
 /// Prefix of the worker's protocol lines (`eurekha-sp1 serve`).
 const REPLY: &str = "EUREKHA_SP1 ";
 
+/// What `sp1-gpu-server` logs for each snarkrs proof.
+const SNARKRS_PROVED: &str = "snarkrs: solved in ";
+
+/// The Groth16 prover asked of `sp1-gpu-server`: `SP1_GROTH16_PROVER`,
+/// default `snarkrs`; `gnark` for SP1's own.
+pub fn groth16_prover() -> String {
+    std::env::var("SP1_GROTH16_PROVER").unwrap_or_else(|_| "snarkrs".into())
+}
+
+/// `s` without ANSI colour codes.
+fn plain(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut it = s.chars();
+    while let Some(c) = it.next() {
+        if c == '\x1b' {
+            it.by_ref().find(|c| c.is_ascii_alphabetic());
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 pub struct Worker {
     proc: Mutex<Option<Proc>>,
     /// What the last start replied (`ready`, `vkey`, `setupMs`, `warm`), or why it failed.
@@ -31,6 +61,8 @@ struct Proc {
     child: Child,
     stdin: ChildStdin,
     stdout: BufReader<ChildStdout>,
+    /// The last snarkrs proof line (`solved in .., proved in ..`) since it was cleared.
+    snarkrs: Option<String>,
 }
 
 fn bin() -> String {
@@ -39,6 +71,15 @@ fn bin() -> String {
 }
 
 impl Proc {
+    /// Who made the Groth16 proof since `snarkrs` was last cleared.
+    fn used(&self) -> &'static str {
+        if self.snarkrs.is_some() {
+            "snarkrs"
+        } else {
+            "gnark"
+        }
+    }
+
     /// Next reply, forwarding `{"stage"}` and `{"partial"}` lines to
     /// `progress`; `None` when the worker exited.
     fn reply(&mut self, progress: &Progress) -> Option<Value> {
@@ -68,6 +109,10 @@ impl Proc {
             }
             // The GPU server's own log shares this stdout; its snarkrs Groth16 lines
             // carry the solve/prove split.
+            let l = plain(l);
+            if let Some(i) = l.find(SNARKRS_PROVED) {
+                self.snarkrs = Some(l[i + "snarkrs: ".len()..].to_string());
+            }
             if l.contains("snarkrs") {
                 tracing::info!("sp1-gpu-server: {l}");
             } else if !l.is_empty() {
@@ -123,6 +168,13 @@ impl Worker {
         let bin = bin();
         let mut cmd = Command::new(&bin);
         cmd.arg("serve").stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
+        // Inherited by sp1-gpu-server, which reads both: the Groth16 prover, and a
+        // log level that keeps its snarkrs lines (it logs nothing below ERROR by default).
+        cmd.env("SP1_GROTH16_PROVER", groth16_prover());
+        cmd.env(
+            "RUST_LOG",
+            std::env::var("EUREKHA_SP1_RUST_LOG").unwrap_or_else(|_| "warn,sp1_recursion_gnark_ffi=info".into()),
+        );
         if let Ok(run) = std::env::var("EUREKHA_SP1_WARM_RUN") {
             cmd.arg("--warm").arg(run);
         }
@@ -135,8 +187,13 @@ impl Worker {
             stdin: child.stdin.take().expect("piped stdin"),
             stdout: BufReader::new(child.stdout.take().expect("piped stdout")),
             child,
+            snarkrs: None,
         };
-        let ready = p.reply(&Progress::none()).ok_or_else(|| format!("{bin} exited during setup"))?;
+        let mut ready = p.reply(&Progress::none()).ok_or_else(|| format!("{bin} exited during setup"))?;
+        ready["groth16Prover"] = json!(groth16_prover());
+        if ready.get("warm").is_some() {
+            ready["warm"]["groth16Prover"] = json!(p.used());
+        }
         tracing::info!(%ready, "sp1 worker ready");
         *self.status.lock().unwrap() = ready;
         *proc = Some(p);
@@ -196,6 +253,7 @@ impl Worker {
         let label = format!("job {} sp1-groth16", progress.job().unwrap_or("-"));
         let _lock = ProveLock::acquire(&label, progress).map_err(|e| format!("prove lock: {e}"))?;
         let p = proc.as_mut().expect("started");
+        p.snarkrs = None;
         let job = json!({ "run": dir, "out": out });
         if writeln!(p.stdin, "{job}").and_then(|_| p.stdin.flush()).is_err() {
             *proc = None;
@@ -209,6 +267,24 @@ impl Worker {
             return Err(format!("eurekha-sp1: {e}"));
         }
         let artifact = std::fs::read(&out).map_err(|e| format!("artifact: {e}"))?;
-        serde_json::from_slice(&artifact).map_err(|e| format!("artifact: {e}"))
+        let mut artifact: Value = serde_json::from_slice(&artifact).map_err(|e| format!("artifact: {e}"))?;
+        let used = p.used();
+        if used != groth16_prover() {
+            tracing::warn!("asked sp1-gpu-server for {}, but {used} made the proof", groth16_prover());
+        }
+        artifact["groth16Prover"] = json!(used);
+        if let Some(t) = &p.snarkrs {
+            artifact["timingsMs"]["groth16Snarkrs"] = json!(t);
+        }
+        Ok(artifact)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn plain_strips_colours() {
+        let l = "\x1b[2m2026-11-07T00:50:55Z\x1b[0m \x1b[32m INFO\x1b[0m snarkrs: solved in 3.5s, proved in 1.8s";
+        assert_eq!(super::plain(l), "2026-11-07T00:50:55Z  INFO snarkrs: solved in 3.5s, proved in 1.8s");
     }
 }

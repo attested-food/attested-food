@@ -36,7 +36,8 @@
 //! once so the Groth16 key is loaded).
 //!
 //! `BIND` (default `127.0.0.1:8793`), `EUREKHA_SP1_BIN` (default
-//! `../sp1/target/release/eurekha-sp1`), `EUREKHA_SP1_WARM_RUN`, `NOTARY_ADDRESS` (the notary attested
+//! `../sp1/target/release/eurekha-sp1`), `EUREKHA_SP1_WARM_RUN`, `SP1_GROTH16_PROVER` (`snarkrs`,
+//! the default, or `gnark`; see [`sp1`]), `EUREKHA_SP1_RUST_LOG`, `NOTARY_ADDRESS` (the notary attested
 //! reports must be signed by, hex; default the public dev notary), `RUST_LOG`.
 
 mod jobs;

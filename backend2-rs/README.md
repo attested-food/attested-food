@@ -73,7 +73,7 @@ Eurekha report (`format=eurekha`, `mock-pdfs/out/raw/choco-millet-muesli.pdf`, 9
 
 Proof 534,601 B (aggregation output, independent of the guest run). Public values: 5 redaction spans, `redacted_sha256 0f3af67c...e426cc` (matches the `mock-pdfs` manifest), 22 key-value pairs, 11 result rows. `/verify` accepts it and rejects a one-byte change to the public values.
 
-GPU box (g6e.xlarge: L40S 46 GB, 4 vCPU, 30 GB), `mode=sp1-groth16`, `format=eurekha-attested`, the mock choco-millet-muesli report, warm, one job each. The Groth16 step runs inside `sp1-gpu-server` built from `sp1/gpu-server` (SP1 6.10.0 with the snarkrs patch); `SP1_GROTH16_PROVER` picks the prover:
+GPU box (g6e.xlarge: L40S 46 GB, 4 vCPU, 30 GB), `mode=sp1-groth16`, `format=eurekha-attested`, the mock choco-millet-muesli report, warm, one job each. The Groth16 step runs inside `sp1-gpu-server` built from `sp1/gpu-server` (SP1 6.10.0 with the snarkrs patch). The server asks it for snarkrs by default; `SP1_GROTH16_PROVER=gnark` on the server picks SP1's gnark instead. Each artifact names the prover that made it (`groth16Prover`, from the GPU server's snarkrs log line, so the released binary shows `gnark`) and, for snarkrs, its split (`timingsMs.groth16Snarkrs`); `/health` shows the configured prover and the warm-up's:
 
 | Stage | gnark (job 5c3b6345) | snarkrs CUDA (job 35d7267e) |
 |---|---|---|
