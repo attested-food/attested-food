@@ -57,7 +57,7 @@ export type Product = {
 	ingredients_source: string | null;
 	label_nutrition: LabelNutrition | null;
 	reports: Report[];
-	tests: { name: string; why?: string; tested: boolean }[];
+	tests: { name: string; why?: string; tested: boolean; status?: 'pass' | 'fail' | 'measured' | 'untested' }[];
 	annotations: Annotations;
 	openlabel_grade: OpenLabelGrade | null;
 };
@@ -97,7 +97,7 @@ export type Segment = { t: string; mark: 'under' | 'circle' | 'hl' | 'good' | nu
 export type Annotations = {
 	segments: Segment[];
 	findings: Finding[];
-	counts: { pass: number; fail: number; untested: number };
+	counts: { pass: number; fail: number; measured?: number; untested: number };
 };
 
 export type WallItem = {

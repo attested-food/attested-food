@@ -4,6 +4,9 @@ import { gradeColors } from '@/lib/grade';
 
 export type TestState = 'requested' | 'funding' | 'funded' | 'tested';
 
+/** "3rd-party tested" when the only evidence is another site's published test. */
+export const testedText = (thirdParty: boolean) => (thirdParty ? '3rd-party tested' : 'Tested');
+
 export function StateTag({ state, text, style }: { state: TestState; text?: string; style?: CSSProperties }) {
 	return (
 		<span className={`tag ${state}`} style={style}>
@@ -26,10 +29,10 @@ export function GradeChip({ grade, size = 28 }: { grade: string | null; size?: n
 }
 
 /** Whose grade it is: OpenLabel's own (filled) or a third party's (outlined). */
-export function GradeTag({ ours, provisional = false }: { ours: boolean; provisional?: boolean }) {
+export function GradeTag({ ours }: { ours: boolean; provisional?: boolean }) {
 	return (
 		<span className={`gtag ${ours ? 'ours' : 'third'}`} title={ours ? 'Graded by OpenLabel from our own lab test' : 'Grade from a third-party testing website'}>
-			{ours ? (provisional ? 'OpenLabel · provisional' : 'OpenLabel') : '3rd-party'}
+			{ours ? 'OpenLabel' : '3rd-party'}
 		</span>
 	);
 }
@@ -49,12 +52,13 @@ export function ResultIcon({ kind, size = 18 }: { kind: Kind; size?: number }) {
 }
 
 /** "2 passed · 1 failed · 0 not tested" with icons. */
-export function ResultCounts({ counts, size = 'md' }: { counts: { pass: number; fail: number; untested: number }; size?: 'sm' | 'md' | 'lg' }) {
+export function ResultCounts({ counts, size = 'md' }: { counts: { pass: number; fail: number; measured?: number; untested: number }; size?: 'sm' | 'md' | 'lg' }) {
 	const px = size === 'lg' ? 20 : size === 'sm' ? 15 : 17;
 	return (
 		<span className={`rc rc-${size}`}>
 			<span className="rc-item"><ResultIcon kind="good" size={px} /><b>{counts.pass}</b> passed</span>
 			<span className="rc-item"><ResultIcon kind="bad" size={px} /><b>{counts.fail}</b> failed</span>
+			{!!counts.measured && <span className="rc-item" title="The lab gave values but no pass or fail"><ResultIcon kind="info" size={px} /><b>{counts.measured}</b> measured</span>}
 			<span className="rc-item rc-muted"><ResultIcon kind="unk" size={px} /><b>{counts.untested}</b> not tested</span>
 		</span>
 	);

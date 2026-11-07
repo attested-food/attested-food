@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router';
 import { buyUrl, imgFallback, imgSrc, label, nutritionRows, productName, type Finding, type WallItem } from '@/lib/api';
 import { Segments } from './Segments';
-import { GradeChip, ResultCounts, ResultIcon, StateTag } from './bits';
+import { GradeChip, ResultCounts, ResultIcon, StateTag, testedText } from './bits';
 import { S_DONE, S_REST, ease, peelShape, toClipPath, toPoints } from './peel';
 import './LabelCard.css';
 
@@ -43,7 +43,7 @@ export function LabelCard({ item, theme, peeled, onPeel, onUnpeel }: { item: Wal
 	const gradeLabel = isRequest
 		? 'Not tested yet'
 		: item.openlabel_grade
-			? item.openlabel_grade.provisional ? 'OpenLabel grade · provisional' : 'OpenLabel grade'
+			? 'OpenLabel grade'
 			: item.grade && item.grade_source
 				? `3rd-party grade · ${item.grade_source}`
 				: item.report_kind === 'user'
@@ -163,7 +163,7 @@ export function LabelCard({ item, theme, peeled, onPeel, onUnpeel }: { item: Wal
 					<div className="lc-info">
 						<div className="lc-top">
 							<span className="lc-eyebrow">{label(item.category)}</span>
-							<StateTag state={item.state} />
+							<StateTag state={item.state} text={item.state === 'tested' ? testedText(item.report_kind === 'fallback') : undefined} />
 						</div>
 						<div className="lc-brand">{item.brand}</div>
 						<div className="lc-name">{name}</div>

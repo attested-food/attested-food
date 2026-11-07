@@ -2,7 +2,15 @@ import { Link, useParams } from 'react-router';
 import { buyUrl, dash, httpUrl, imgFallback, imgSrc, label, nutritionRows, productName, verdictText, type Finding, type Product as P, type ProductCard, type Report, type Result } from '@/lib/api';
 import { sourceGrade } from '@/lib/grade';
 import { useApi } from '@/lib/useApi';
-import { GradeChip, GradeTag, Photo, ResultCounts, ResultIcon, StateTag } from '@/components/bits';
+import { GradeChip, GradeTag, Photo, ResultCounts, ResultIcon, StateTag, testedText } from '@/components/bits';
+
+// How a standard test shows in "What's been tested".
+const COV = {
+	pass: { icon: 'good', text: 'Passed' },
+	fail: { icon: 'bad', text: 'Failed' },
+	measured: { icon: 'info', text: 'Measured' },
+	untested: { icon: 'unk', text: 'Not tested' }
+} as const;
 import { gradeInfo } from './Marketplace';
 import { Segments } from '@/components/Segments';
 import './Product.css';
@@ -304,7 +312,7 @@ export default function Product() {
 				</div>
 
 				<aside className="p-buy card" aria-label="Buy">
-					<div className="p-buy-state"><StateTag state={p.reports.length ? 'tested' : 'requested'} /></div>
+					<div className="p-buy-state"><StateTag state={p.reports.length ? 'tested' : 'requested'} text={p.reports.length ? testedText(!p.reports.some((r) => r.kind === 'user')) : undefined} /></div>
 					<p className="p-buy-price">See today’s price on Amazon</p>
 					<a className="btn lg p-buy-btn" href={buyUrl(p)} target="_blank" rel="sponsored noopener">Buy on Amazon</a>
 					<Link className="btn lg outline p-buy-btn" to="/request">Request more tests</Link>
@@ -352,9 +360,9 @@ export default function Product() {
 							<li key={t.name}>
 								<details>
 									<summary>
-										<ResultIcon kind={t.tested ? 'good' : 'unk'} size={20} />
+										<ResultIcon kind={COV[t.status ?? (t.tested ? 'pass' : 'untested')].icon} size={20} />
 										<span className="p-cov-n">{t.name}</span>
-										<span className="eyebrow">{t.tested ? 'Tested' : 'Not tested'}</span>
+										<span className="eyebrow">{COV[t.status ?? (t.tested ? 'pass' : 'untested')].text}</span>
 									</summary>
 									{t.why && <p>{t.why}</p>}
 								</details>

@@ -4,6 +4,8 @@ Everything here states numbers only. No judgement sentences are generated.
 """
 import re
 
+from backend.category_tests import matches, tests_for
+
 THRESHOLD = 10.0  # % difference from the label before a value counts as off its label
 
 # parameter keywords -> (label_nutrition key, higher_is_worse)
@@ -204,13 +206,37 @@ def segments(ingredients: str | None, name: str, fnds: list[dict]) -> list[dict]
     return segs
 
 
+def test_statuses(category: str | None, results: list[dict], fnds: list[dict], tests: list[dict]) -> list[dict]:
+    """Each standard test with a status: fail if any matching result is bad, pass if any is good, "measured" when
+    the lab gave values but no verdict (e.g. Consumer Voice scores), "untested" when no result covers it.
+    `fnds` must line up with `results` (findings(results, ...))."""
+    defs = {t["name"]: t for t in tests_for(category)}
+    out = []
+    for t in tests:
+        d = defs.get(t["name"])
+        kinds = [f["kind"] for r, f in zip(results, fnds) if d and matches(d, r)]
+        if not t.get("tested") or not kinds:
+            status = "untested"
+        elif "bad" in kinds:
+            status = "fail"
+        elif "good" in kinds:
+            status = "pass"
+        else:
+            status = "measured"
+        out.append({**t, "status": status})
+    return out
+
+
 def summarize(product: dict) -> dict:
-    fnds = findings(product.get("results") or [], product.get("label_nutrition"))
+    results = product.get("results") or []
+    fnds = findings(results, product.get("label_nutrition"))
     tests = product.get("tests") or []
+    if tests and "status" not in tests[0]:
+        tests = test_statuses(product.get("category"), results, fnds, tests)
+    # Counted per standard test, so the numbers add up to the category's test list.
+    count = lambda s: sum(t.get("status") == s for t in tests)
     return {
         "segments": segments(product.get("ingredients"), product.get("name") or "", fnds),
         "findings": fnds,
-        "counts": {"pass": sum(f["kind"] == "good" for f in fnds),
-                   "fail": sum(f["kind"] == "bad" for f in fnds),
-                   "untested": sum(not t.get("tested") for t in tests)},
+        "counts": {"pass": count("pass"), "fail": count("fail"), "measured": count("measured"), "untested": count("untested")},
     }

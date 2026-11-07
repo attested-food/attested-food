@@ -304,7 +304,10 @@ def test_wall_limit_bounds(limit):
 
 def test_detail_has_annotations(kelloggs):
     body = client.get(f"/api/products/{kelloggs['id']}").json()
-    assert set(body["annotations"]["counts"]) == {"pass", "fail", "untested"}
+    counts = body["annotations"]["counts"]
+    assert set(counts) == {"pass", "fail", "measured", "untested"}
+    assert sum(counts.values()) == len(body["tests"])  # one status per standard test
+    assert {t["status"] for t in body["tests"]} <= {"pass", "fail", "measured", "untested"}
     assert "ingredients" in body and "label_nutrition" in body
 
 

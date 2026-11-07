@@ -19,7 +19,7 @@ from psycopg.types.json import set_json_loads
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend import amazon
-from backend.annotate import summarize
+from backend.annotate import findings, summarize, test_statuses
 from backend import departments
 from backend.grading import openlabel_grade
 from backend.thumbs import thumbnail
@@ -301,7 +301,9 @@ def get_product(product_id: str) -> dict:
     if not rows:
         raise HTTPException(404, "product not found")
     product = rows[0]
-    product["tests"] = coverage(product["category"], [x for r in product["reports"] for x in r["results"]])
+    every = [x for r in product["reports"] for x in r["results"]]
+    product["tests"] = test_statuses(product["category"], every, findings(every, product["label_nutrition"]),
+                                     coverage(product["category"], every))
     primary = product["reports"][0]["results"] if product["reports"] else []
     product["annotations"] = summarize({**product, "results": primary})
     ours = bool(product["reports"]) and product["reports"][0]["kind"] == "user"

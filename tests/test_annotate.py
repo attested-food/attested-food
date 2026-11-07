@@ -88,11 +88,20 @@ def test_no_ingredients():
 
 
 def test_summary_counts():
-    product = {"name": "Millet Muesli", "ingredients": KELLOGGS_INGREDIENTS, "label_nutrition": KELLOGGS_LABEL,
-               "results": KELLOGGS_RESULTS, "tests": [{"name": "Nutrition vs label claims", "tested": True},
-                                                       {"name": "Aflatoxins", "tested": False}]}
+    product = {"name": "Millet Muesli", "category": "breakfast_cereal", "ingredients": KELLOGGS_INGREDIENTS,
+               "label_nutrition": KELLOGGS_LABEL, "results": KELLOGGS_RESULTS,
+               "tests": [{"name": "Nutrition vs label claims", "tested": True}, {"name": "Aflatoxins", "tested": False}]}
     s = summarize(product)
-    assert s["counts"] == {"pass": 1, "fail": 1, "untested": 1}
+    # Counted per standard test: sodium is 20% over the label, so the nutrition test fails.
+    assert s["counts"] == {"pass": 0, "fail": 1, "measured": 0, "untested": 1}
+
+
+def test_summary_counts_measured_without_verdict():
+    # Values with no limit, no status and no label to compare (Consumer Voice style) are "measured".
+    results = [{"parameter": "Lead", "group": "heavy_metal", "value": 0.01, "value_raw": "0.01", "unit": "mg/kg"}]
+    tests = [{"name": "Heavy metals (lead, arsenic, cadmium, mercury)", "tested": True}]
+    s = summarize({"name": "Milk", "category": "milk", "results": results, "tests": tests})
+    assert s["counts"] == {"pass": 0, "fail": 0, "measured": 1, "untested": 0}
     assert set(s) == {"segments", "findings", "counts"}
 
 

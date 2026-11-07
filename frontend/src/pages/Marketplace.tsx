@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import { buyUrl, label, nameOf, productName, type Brand, type Department, type ProductCard, type TestRequest } from '@/lib/api';
 import { cardGrade, gradeColors } from '@/lib/grade';
 import { useApi } from '@/lib/useApi';
-import { GradeChip, GradeTag, Photo, StateTag } from '@/components/bits';
+import { GradeChip, GradeTag, Photo, StateTag, testedText } from '@/components/bits';
 import './Marketplace.css';
 
 type Page = { items: ProductCard[]; page: number; page_size: number; total: number };
@@ -29,12 +29,12 @@ export function gradeInfo(p: ProductCard) {
 
 type GradeInfo = ReturnType<typeof gradeInfo>;
 
-function Tile({ to, img, alt, state, brand, name, g, buy }: { to: string; img: string | null; alt: string; state: 'tested' | 'requested'; brand: string; name: string; g: GradeInfo; buy: string }) {
+function Tile({ to, img, alt, state, tag, brand, name, g, buy }: { to: string; img: string | null; alt: string; state: 'tested' | 'requested'; tag?: string; brand: string; name: string; g: GradeInfo; buy: string }) {
 	return (
 		<article className="m-tile card hoverable">
 			<Link to={to} className="m-photo">
 				<Photo src={img} alt={alt} />
-				<StateTag state={state} style={{ position: 'absolute', left: 10, top: 10 }} />
+				<StateTag state={state} text={tag} style={{ position: 'absolute', left: 10, top: 10 }} />
 			</Link>
 			<Link to={to} className="m-text">
 				<span className="m-brand">{brand}</span>
@@ -218,6 +218,7 @@ export default function Marketplace() {
 									img={p.image_url}
 									alt={`${p.brand} ${productName(p)} pack`}
 									state={p.latest ? 'tested' : 'requested'}
+									tag={p.latest ? testedText(!p.has_user_report) : undefined}
 									brand={p.brand}
 									name={productName(p)}
 									g={gradeInfo(p)}

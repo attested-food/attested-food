@@ -29,7 +29,7 @@ def names_for(category: str | None) -> list[str]:
     return [t["name"] for t in tests_for(category)]
 
 
-def _matches(test: dict, result: dict) -> bool:
+def matches(test: dict, result: dict) -> bool:
     if test["group"] is not None and result.get("group") != test["group"]:
         return False
     parameter = (result.get("parameter") or "").lower()
@@ -38,6 +38,6 @@ def _matches(test: dict, result: dict) -> bool:
 
 def coverage(category: str | None, results: list[dict]) -> list[dict]:
     return [
-        {"name": t["name"], "why": t["why"], "tested": any(_matches(t, r) for r in results)}
+        {"name": t["name"], "why": t["why"], "tested": any(matches(t, r) for r in results)}
         for t in tests_for(category)
     ]
