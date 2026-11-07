@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+/build/
+*.r1cs
+*.sym
+*.wtns
+*.zkey
+*.ptau
