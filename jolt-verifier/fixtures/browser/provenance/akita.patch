@@ -1,0 +1,790 @@
+diff --git a/crates/akita-pcs/src/lib.rs b/crates/akita-pcs/src/lib.rs
+index b9d5588..83583c1 100644
+--- a/crates/akita-pcs/src/lib.rs
++++ b/crates/akita-pcs/src/lib.rs
+@@ -40,6 +40,7 @@
+ #![warn(unreachable_pub)]
+ 
+ mod scheme;
++mod wasm_instant;
+ #[cfg(test)]
+ #[path = "../tests/support/mod.rs"]
+ mod test_support;
+diff --git a/crates/akita-pcs/src/scheme/mod.rs b/crates/akita-pcs/src/scheme/mod.rs
+index 9cc0cbb..1f207c3 100644
+--- a/crates/akita-pcs/src/scheme/mod.rs
++++ b/crates/akita-pcs/src/scheme/mod.rs
+@@ -24,7 +24,7 @@ use akita_types::{
+ };
+ use jolt_field::{AdditiveGroup, CanonicalEncoding, ExtField, Field, PseudoMersenne, Ring};
+ use jolt_field::{Fold, Unreduced, WithCommitAccumulator};
+-use std::time::Instant;
++use crate::wasm_instant::Instant;
+ 
+ /// End-to-end PCS wrapper, generic over commitment config `Cfg`.
+ ///
+diff --git a/crates/akita-prover/src/compute/compression.rs b/crates/akita-prover/src/compute/compression.rs
+index be3c8ff..f94a9cb 100644
+--- a/crates/akita-prover/src/compute/compression.rs
++++ b/crates/akita-prover/src/compute/compression.rs
+@@ -8,7 +8,9 @@ use akita_types::{
+ };
+ use jolt_field::{CanonicalEncoding, Field};
+ use std::collections::BTreeMap;
+-use std::time::{Duration, Instant};
++use std::time::Duration;
++
++use crate::wasm_instant::Instant;
+ 
+ /// Maximum number of expanded right-hand sides in one compression kernel call.
+ pub(crate) const MAX_COMPRESSION_RHS_BATCH: usize = 8;
+diff --git a/crates/akita-prover/src/lib.rs b/crates/akita-prover/src/lib.rs
+index ef1b4c2..1a29854 100644
+--- a/crates/akita-prover/src/lib.rs
++++ b/crates/akita-prover/src/lib.rs
+@@ -12,6 +12,7 @@ pub mod kernels;
+ pub mod protocol;
+ pub mod types;
+ mod validation;
++mod wasm_instant;
+ 
+ use akita_algebra::CyclotomicRing;
+ use akita_error::AkitaError;
+@@ -72,6 +73,18 @@ pub use compute::{
+     SuffixOpeningProveBackend, SuffixTensorProveBackend, TensorBackendFor, TensorCluster,
+     TieredProveStacks, UniformProverStack,
+ };
++pub use protocol::sumcheck::digit_range::device::{
++    set_digit_range_device, set_digit_range_parity_rounds, DigitRangeDevice, DigitRangeJob,
++    DigitRangeSession, FIELD_BYTES as DIGIT_RANGE_FIELD_BYTES,
++    MESSAGE_BYTES as DIGIT_RANGE_MESSAGE_BYTES,
++};
++pub use protocol::sumcheck::relation_range_image::device::{
++    set_relation_range_device, set_relation_range_parity_rounds, RelationRangeDevice,
++    RelationRangeJob, RelationRangeSession, RelationRangeShape, RoundInput as RelationRangeRoundInput,
++    WeightsKind as RelationRangeWeightsKind, FIELD_BYTES as RELATION_RANGE_FIELD_BYTES,
++    MESSAGE_BYTES as RELATION_RANGE_MESSAGE_BYTES, PAIR_BYTES as RELATION_RANGE_PAIR_BYTES,
++    SEGMENT_BYTES as RELATION_RANGE_SEGMENT_BYTES, TERMS as RELATION_RANGE_TERMS,
++};
+ pub use protocol::sumcheck::{
+     DigitRangeProver, LowBasisRangeCheckProver, RelationRangeImageProver,
+ };
+diff --git a/crates/akita-prover/src/protocol/core/fold/stages.rs b/crates/akita-prover/src/protocol/core/fold/stages.rs
+index 7473241..9bcbac4 100644
+--- a/crates/akita-prover/src/protocol/core/fold/stages.rs
++++ b/crates/akita-prover/src/protocol/core/fold/stages.rs
+@@ -170,6 +170,16 @@ where
+         );
+         linear_weights.sort_unstable_by_key(|(index, _)| *index);
+     }
++    tracing::info!(
++        level,
++        domain_len,
++        live_len = domain.live_len(),
++        linear_weights = linear_weights.len(),
++        binary_intervals = binary_intervals.len(),
++        binary_support = binary_intervals.iter().map(|r| r.len()).sum::<usize>(),
++        physical_l2 = physical_l2.is_some(),
++        "stage2_additional_plan"
++    );
+     let additional_relation_terms = (!linear_weights.is_empty() || !binary_intervals.is_empty())
+         .then(|| {
+             AdditionalRelationTerms::new(
+@@ -223,6 +233,7 @@ where
+                 .ok_or_else(|| AkitaError::InvalidSetup("Stage 2 round overflow".into()))?;
+             Ok(challenge)
+         })?;
++    stage2_prover.take_device_error()?;
+     if final_claim != stage2_prover.expected_final_claim()? {
+         return Err(AkitaError::InvalidInput(
+             "stage-2 prover final claim disagrees with its folded oracle".into(),
+diff --git a/crates/akita-prover/src/protocol/sumcheck/digit_range/direct_range_leaf/state.rs b/crates/akita-prover/src/protocol/sumcheck/digit_range/direct_range_leaf/state.rs
+index b73a09a..d4ef50e 100644
+--- a/crates/akita-prover/src/protocol/sumcheck/digit_range/direct_range_leaf/state.rs
++++ b/crates/akita-prover/src/protocol/sumcheck/digit_range/direct_range_leaf/state.rs
+@@ -79,6 +79,38 @@ impl<E: Field + Ring + Unreduced> LowBasisRangeCheckProver<E> {
+         })
+     }
+ 
++    /// Resume from a materialized table after `rounds_completed` rounds in
++    /// the low-variable phase (`rounds_completed <= ring_bits`); `split_eq`
++    /// must already be bound to those challenges.
++    pub(crate) fn from_materialized(
++        range_image: Vec<E>,
++        split_eq: GruenSplitEq<E>,
++        basis: usize,
++        live_x_cols: usize,
++        col_bits: usize,
++        ring_bits: usize,
++        rounds_completed: usize,
++    ) -> Self {
++        debug_assert!(rounds_completed <= ring_bits);
++        debug_assert_eq!(
++            range_image.len(),
++            (live_x_cols << ring_bits) >> rounds_completed
++        );
++        Self {
++            range_image: LowBasisRangeImageStorage::Materialized(range_image),
++            split_eq,
++            polynomial_precomputation: RangePolynomialPrecomputation::new(basis),
++            live_x_cols,
++            col_bits,
++            num_vars: col_bits + ring_bits,
++            basis,
++            prefix_tau: None,
++            initial_round_prefix: None,
++            cached_round_poly: None,
++            rounds_completed,
++        }
++    }
++
+     /// Return `range_image(stage1_point)` after the final fold.
+     ///
+     /// # Panics
+diff --git a/crates/akita-prover/src/protocol/sumcheck/digit_range/mod.rs b/crates/akita-prover/src/protocol/sumcheck/digit_range/mod.rs
+index 8096151..fd44297 100644
+--- a/crates/akita-prover/src/protocol/sumcheck/digit_range/mod.rs
++++ b/crates/akita-prover/src/protocol/sumcheck/digit_range/mod.rs
+@@ -18,6 +18,7 @@ mod class_indexed_product;
+ pub(in crate::protocol::sumcheck) mod class_indexed_range_leaf;
+ mod class_indexed_state;
+ mod compact_digit_source;
++pub mod device;
+ pub(crate) mod direct_range_leaf;
+ pub(in crate::protocol::sumcheck) mod exact_prefix;
+ mod range_class_tables;
+@@ -346,7 +347,7 @@ impl<E: Field + Ring + Unreduced + Fold + AkitaSerialize> DigitRangeProver<E> {
+         }
+         if physical_plan.is_none() && plan.basis() <= 8 {
+             let _leaf_span = tracing::info_span!("digit_range_direct_leaf").entered();
+-            let mut leaf_stage = direct_range_leaf::LowBasisRangeCheckProver::new(
++            let mut leaf_stage = device::DeviceLeaf::new(
+                 digit_source.digits(),
+                 &equality_point,
+                 plan,
+@@ -354,6 +355,13 @@ impl<E: Field + Ring + Unreduced + Fold + AkitaSerialize> DigitRangeProver<E> {
+                 high_variable_count,
+                 low_variable_count,
+             )?;
++            tracing::info!(
++                device_rounds = leaf_stage.device_rounds(),
++                live_x_cols = live_block_count,
++                col_bits = high_variable_count,
++                ring_bits = low_variable_count,
++                "digit_range_direct_leaf_plan"
++            );
+             let mut round = 0u32;
+             let (sumcheck, stage1_point, _final_claim) =
+                 prove_eq_factored_sumcheck::<F, T, E, _, _>(&mut leaf_stage, transcript, |tr| {
+@@ -369,6 +377,7 @@ impl<E: Field + Ring + Unreduced + Fold + AkitaSerialize> DigitRangeProver<E> {
+                     })?;
+                     Ok(challenge)
+                 })?;
++            leaf_stage.take_error()?;
+             let range_image_eval = leaf_stage.final_range_image_eval();
+             let proof = AkitaStage1Proof {
+                 stages: vec![AkitaStage1StageProof {
+diff --git a/crates/akita-prover/src/protocol/sumcheck/relation_range_image/additional_terms.rs b/crates/akita-prover/src/protocol/sumcheck/relation_range_image/additional_terms.rs
+index e82d0a1..a9d596e 100644
+--- a/crates/akita-prover/src/protocol/sumcheck/relation_range_image/additional_terms.rs
++++ b/crates/akita-prover/src/protocol/sumcheck/relation_range_image/additional_terms.rs
+@@ -175,6 +175,58 @@ impl<E: Field + Ring> AdditionalRelationTerms<E> {
+         self.input_claim
+     }
+ 
++    /// Add the linear weights into a flat table over the current domain.
++    pub(crate) fn add_linear_into(&self, out: &mut [E]) {
++        for weight in &self.weights {
++            if let Some(slot) = out.get_mut(weight.index) {
++                *slot += weight.linear;
++            }
++        }
++    }
++
++    /// Keep only the binary weights (the linear part moved elsewhere).
++    pub(crate) fn drop_linear(&mut self) {
++        for weight in &mut self.weights {
++            weight.linear = E::zero();
++        }
++        self.weights.retain(|weight| !weight.binary.is_zero());
++    }
++
++    /// Current pairs on the wire: per parent index `m` the bytes
++    /// `[m, 0, 0, 0]` (u32) then `l0, l1, rho*b0, rho*b1`; returns the blob.
++    pub(crate) fn pairs_bytes(
++        &self,
++        binary_only: bool,
++        to_bytes: impl Fn(&E, &mut [u8]),
++    ) -> Vec<u8> {
++        let mut out = Vec::with_capacity(self.weights.len() * 80);
++        let mut cursor = 0usize;
++        let mut slot = [0u8; 16];
++        while cursor < self.weights.len() {
++            let parent = self.weights[cursor].index >> 1;
++            let mut linear = [E::zero(); 2];
++            let mut binary = [E::zero(); 2];
++            while cursor < self.weights.len() && self.weights[cursor].index >> 1 == parent {
++                let weight = self.weights[cursor];
++                let side = weight.index & 1;
++                linear[side] = if binary_only {
++                    E::zero()
++                } else {
++                    weight.linear
++                };
++                binary[side] = self.binary_batching * weight.binary;
++                cursor += 1;
++            }
++            out.extend_from_slice(&(parent as u32).to_le_bytes());
++            out.extend_from_slice(&[0u8; 12]);
++            for value in [linear[0], linear[1], binary[0], binary[1]] {
++                to_bytes(&value, &mut slot);
++                out.extend_from_slice(&slot);
++            }
++        }
++        out
++    }
++
+     /// Compute the complete cubic directly in coefficient form.
+     ///
+     /// For one folded pair, write `w(t) = w0 + t dw`, and likewise for the
+diff --git a/crates/akita-prover/src/protocol/sumcheck/relation_range_image/evaluation_trace.rs b/crates/akita-prover/src/protocol/sumcheck/relation_range_image/evaluation_trace.rs
+index 941df54..e136234 100644
+--- a/crates/akita-prover/src/protocol/sumcheck/relation_range_image/evaluation_trace.rs
++++ b/crates/akita-prover/src/protocol/sumcheck/relation_range_image/evaluation_trace.rs
+@@ -13,6 +13,7 @@ use akita_types::{
+     CoefficientPackingStage2Source, CoefficientPackingStage2Terms, EvaluationTraceInputs,
+     FpExtEncoding,
+ };
++use jolt_field::solinas::parallel::*;
+ use jolt_field::{CanonicalEncoding, ExtField, Field, Ring};
+ 
+ /// One contiguous physical opening-digit run for a claim inside one witness chunk.
+@@ -232,6 +233,116 @@ impl<E: Field> PreparedProverLinearTerms<E> {
+         self.sources.len()
+     }
+ 
++    /// Add the structured linear term of every live flat address
++    /// (`lane * coeff_count + coefficient`) into `out`.
++    pub(crate) fn add_flat_into(&self, out: &mut [E]) {
++        let coeff_count = self.coeff_count;
++        let live = &mut out[..self.live_lane_count * coeff_count];
++        cfg_chunks_mut!(live, coeff_count)
++            .enumerate()
++            .for_each(|(lane, row)| {
++                self.resolve_lane(lane).for_each_factored(|factor, values| {
++                    for (slot, value) in row.iter_mut().zip(values) {
++                        *slot += factor * *value;
++                    }
++                });
++            });
++    }
++
++    /// Per-lane linear segments for the device: `lane_map[lane] = start << 8 |
++    /// count` into the returned segments `([source_lane, source_index, 0, 0],
++    /// factor)`; `None` for the dense lane kind, more than 255 terms on one
++    /// lane or more than `max` segments.
++    pub(crate) fn export_lane_segments(
++        &self,
++        max: usize,
++    ) -> Option<(Vec<u32>, Vec<([u32; 4], E)>)> {
++        let mut lane_map = vec![0u32; self.live_lane_count];
++        let mut out: Vec<([u32; 4], E)> = Vec::new();
++        match &self.lane_weights {
++            PreparedLaneWeights::Dense(_) => return None,
++            PreparedLaneWeights::Packing(packing) => {
++                for (lane, slot) in lane_map.iter_mut().enumerate() {
++                    let Some(segment) = packing
++                        .lane_to_segment
++                        .get(lane)
++                        .and_then(|s| *s)
++                        .and_then(|s| packing.segments.get(s.get() - 1))
++                    else {
++                        continue;
++                    };
++                    let offset = lane.checked_sub(segment.target_lane_start)?;
++                    if offset >= segment.lane_count {
++                        continue;
++                    }
++                    *slot = ((out.len() as u32) << 8) | 1;
++                    out.push((
++                        [
++                            (segment.source_lane_start + offset) as u32,
++                            segment.source_index as u32,
++                            0,
++                            0,
++                        ],
++                        segment.factor,
++                    ));
++                    if out.len() > max {
++                        return None;
++                    }
++                }
++            }
++            PreparedLaneWeights::Sparse(lanes) => {
++                for (lane, terms) in lanes.iter().enumerate() {
++                    if terms.is_empty() {
++                        continue;
++                    }
++                    if terms.len() > 255 {
++                        return None;
++                    }
++                    lane_map[lane] = ((out.len() as u32) << 8) | terms.len() as u32;
++                    for term in terms {
++                        out.push((
++                            [term.lane as u32, term.source_index as u32, 0, 0],
++                            term.factor,
++                        ));
++                    }
++                    if out.len() > max {
++                        return None;
++                    }
++                }
++            }
++        }
++        Some((lane_map, out))
++    }
++
++    /// Lanes per source (values are `lane_count * coeff_count` each).
++    pub(crate) fn source_lanes(&self) -> Vec<u32> {
++        self.sources.iter().map(|s| s.lane_count as u32).collect()
++    }
++
++    /// Every source's current values, concatenated.
++    pub(crate) fn source_values_bytes(&self, to_bytes: impl Fn(&E, &mut [u8])) -> Vec<u8> {
++        let total: usize = self.sources.iter().map(|s| s.values.len()).sum();
++        let mut out = vec![0u8; total * 16];
++        let mut slots = out.chunks_exact_mut(16);
++        for source in &self.sources {
++            for value in &source.values {
++                to_bytes(value, slots.next().expect("sized above"));
++            }
++        }
++        out
++    }
++
++    /// `(lane-weight kind, sources, source values)` for the stage-2 plan log line.
++    pub(crate) fn describe(&self) -> (&'static str, usize, usize) {
++        let kind = match &self.lane_weights {
++            PreparedLaneWeights::Sparse(_) => "sparse",
++            PreparedLaneWeights::Packing(_) => "packing",
++            PreparedLaneWeights::Dense(_) => "dense",
++        };
++        let values = self.sources.iter().map(|s| s.values.len()).sum();
++        (kind, self.sources.len(), values)
++    }
++
+     pub(crate) fn final_value(&self) -> Result<E, AkitaError> {
+         if self.live_lane_count != 1 || self.coeff_count != 1 {
+             return Err(AkitaError::InvalidProof);
+diff --git a/crates/akita-prover/src/protocol/sumcheck/relation_range_image/lifecycle.rs b/crates/akita-prover/src/protocol/sumcheck/relation_range_image/lifecycle.rs
+index 799d302..9c31c8f 100644
+--- a/crates/akita-prover/src/protocol/sumcheck/relation_range_image/lifecycle.rs
++++ b/crates/akita-prover/src/protocol/sumcheck/relation_range_image/lifecycle.rs
+@@ -1,4 +1,5 @@
+ use super::*;
++use akita_serialization::AkitaSerialize;
+ 
+ fn stage2_geometry(
+     lane_bits: usize,
+@@ -17,7 +18,7 @@ fn stage2_geometry(
+     Ok((lane_capacity, coeff_count))
+ }
+ 
+-impl<E: Field + Ring + Unreduced> RelationRangeImageProver<E> {
++impl<E: Field + Ring + Unreduced + AkitaSerialize> RelationRangeImageProver<E> {
+     /// Create a stage-2 instance containing only the virtual range-image term.
+     ///
+     /// This is the standalone companion to
+@@ -179,6 +180,23 @@ impl<E: Field + Ring + Unreduced> RelationRangeImageProver<E> {
+             }
+         }
+ 
++        let (linear_kind, linear_sources, linear_values) = linear_terms.describe();
++        tracing::info!(
++            mode = match &relation_weights {
++                RelationWeightOracle::QuotientFactored(_) => "quotient_factored",
++                RelationWeightOracle::ReducedDense(_) => "reduced_dense",
++            },
++            coefficient_bits,
++            lane_bits,
++            live_lane_count,
++            witness_len,
++            b,
++            linear_kind,
++            linear_sources,
++            linear_values,
++            additional = additional_relation_terms.is_some(),
++            "stage2_plan"
++        );
+         let relation_linear_claim = relation_claim + linear_opening_claim;
+         let additional_claim = additional_relation_terms
+             .as_ref()
+@@ -187,51 +205,17 @@ impl<E: Field + Ring + Unreduced> RelationRangeImageProver<E> {
+             batching_coeff * range_image_evaluation + relation_linear_claim + additional_claim;
+         let relation_state = match relation_weights {
+             RelationWeightOracle::QuotientFactored(weights) => {
+-                let prefix = if can_use_stage2_two_round_prefix(coefficient_bits, b) {
+-                    let proof = build_stage2_bivariate_skip_proof_from_m_compact(
+-                        w_evals_compact.view(),
+-                        weights.common_alpha_factor(),
+-                        weights.relation_lane_weights(),
+-                        &linear_terms,
+-                        stage1_point,
+-                        b,
+-                        live_lane_count,
+-                        lane_bits,
+-                        coefficient_bits,
+-                    )
+-                    .ok_or_else(|| {
+-                        AkitaError::InvalidSetup(
+-                            "stage-2 compact prefix is unavailable for the validated geometry"
+-                                .into(),
+-                        )
+-                    })?;
+-                    let skip_state = Stage2BivariateSkipState::new(
+-                        &proof,
+-                        stage1_point,
+-                        range_image_evaluation,
+-                        relation_linear_claim,
+-                        batching_coeff,
+-                    )
+-                    .ok_or_else(|| {
+-                        AkitaError::InvalidSetup(
+-                            "stage-2 compact prefix claim recovery failed".into(),
+-                        )
+-                    })?;
+-                    QuotientPrefixState::Deferred(DeferredCompactPrefix {
+-                        skip_state,
+-                        phase: DeferredCompactPrefixPhase::Round0,
+-                    })
+-                } else {
+-                    QuotientPrefixState::Disabled
+-                };
+-                RelationRoundState::QuotientFactored { weights, prefix }
++                RelationRoundState::QuotientFactored {
++                    weights,
++                    prefix: QuotientPrefixState::Disabled,
++                }
+             }
+             RelationWeightOracle::ReducedDense(weights) => {
+                 RelationRoundState::ReducedDense { weights }
+             }
+         };
+ 
+-        Ok(Self {
++        let mut prover = Self {
+             witness_state: WitnessState::CompactPrefix(w_evals_compact),
+             b,
+             input_claim,
+@@ -248,9 +232,64 @@ impl<E: Field + Ring + Unreduced> RelationRangeImageProver<E> {
+             scan_time_total: 0.0,
+             fold_time_total: 0.0,
+             rounds_completed: 0,
+-        })
++            device: None,
++            device_error: None,
++            device_add_poly: None,
++            device_parity_poly: None,
++            pending_tables: None,
++        };
++        // The device replaces the two-round compact prefix. Parity mode keeps
++        // the CPU authoritative but on the round-by-round flow (no prefix), so
++        // the alpha / linear folds the device receives advance one round at a time.
++        prover.try_open_device();
++        let cpu_prefix = prover.device.is_none();
++        if let (
++            true,
++            true,
++            RelationRoundState::QuotientFactored { weights, prefix },
++            WitnessState::CompactPrefix(w_evals_compact),
++        ) = (
++            cpu_prefix,
++            can_use_stage2_two_round_prefix(coefficient_bits, b),
++            &mut prover.relation_state,
++            &prover.witness_state,
++        ) {
++            let proof = build_stage2_bivariate_skip_proof_from_m_compact(
++                w_evals_compact.view(),
++                weights.common_alpha_factor(),
++                weights.relation_lane_weights(),
++                &prover.linear_terms,
++                stage1_point,
++                b,
++                live_lane_count,
++                lane_bits,
++                coefficient_bits,
++            )
++            .ok_or_else(|| {
++                AkitaError::InvalidSetup(
++                    "stage-2 compact prefix is unavailable for the validated geometry".into(),
++                )
++            })?;
++            let skip_state = Stage2BivariateSkipState::new(
++                &proof,
++                stage1_point,
++                range_image_evaluation,
++                relation_linear_claim,
++                batching_coeff,
++            )
++            .ok_or_else(|| {
++                AkitaError::InvalidSetup("stage-2 compact prefix claim recovery failed".into())
++            })?;
++            *prefix = QuotientPrefixState::Deferred(DeferredCompactPrefix {
++                skip_state,
++                phase: DeferredCompactPrefixPhase::Round0,
++            });
++        }
++        Ok(prover)
+     }
++}
+ 
++impl<E: Field + Ring + Unreduced> RelationRangeImageProver<E> {
+     /// Return the fully folded witness evaluation after the final round.
+     ///
+     /// # Panics
+diff --git a/crates/akita-prover/src/protocol/sumcheck/relation_range_image/mod.rs b/crates/akita-prover/src/protocol/sumcheck/relation_range_image/mod.rs
+index 1f48294..c622256 100644
+--- a/crates/akita-prover/src/protocol/sumcheck/relation_range_image/mod.rs
++++ b/crates/akita-prover/src/protocol/sumcheck/relation_range_image/mod.rs
+@@ -87,6 +87,7 @@ use super::two_round_prefix::{
+     stage2_b4_lookup_index_from_digits, stage2_b4_w_digit, stage2_b8_lookup_index_from_digits,
+     stage2_b8_w_digit,
+ };
++use crate::wasm_instant::Instant;
+ use akita_algebra::poly::trim_trailing_zeros;
+ use akita_algebra::split_eq::GruenSplitEq;
+ use akita_error::AkitaError;
+@@ -97,7 +98,6 @@ use jolt_field::solinas::parallel::*;
+ use jolt_field::{Field, Ring, Zero};
+ use jolt_field::{Fold, Unreduced};
+ use std::mem;
+-use std::time::Instant;
+ 
+ use crate::backend::packed_digits::{
+     PackedSignedDigitIter, PackedSignedDigitView, PackedSignedDigits,
+@@ -270,6 +270,16 @@ pub struct RelationRangeImageProver<E: Field> {
+     scan_time_total: f64,
+     fold_time_total: f64,
+     rounds_completed: usize,
++
++    device: Option<device::DeviceRounds<E>>,
++    device_error: Option<AkitaError>,
++    /// Device additional-term polynomial of the round whose combined
++    /// polynomial is cached (replaces `additional_round_polynomial`).
++    device_add_poly: Option<UniPoly<E>>,
++    /// Parity mode: the device's full round polynomial to compare.
++    device_parity_poly: Option<UniPoly<E>>,
++    /// Parity mode: handed-back tables to compare after the CPU fold.
++    pending_tables: Option<(Vec<E>, Vec<E>)>,
+ }
+ 
+ mod additional_terms;
+@@ -278,6 +288,8 @@ mod coefficient_prefix;
+ mod coefficient_round_fold;
+ mod compact_prefix;
+ mod dense_terms;
++pub mod device;
++mod device_flow;
+ mod evaluation_trace;
+ mod lane_prefix;
+ mod lifecycle;
+diff --git a/crates/akita-prover/src/protocol/sumcheck/relation_range_image/round_flow.rs b/crates/akita-prover/src/protocol/sumcheck/relation_range_image/round_flow.rs
+index 6b485a7..2457498 100644
+--- a/crates/akita-prover/src/protocol/sumcheck/relation_range_image/round_flow.rs
++++ b/crates/akita-prover/src/protocol/sumcheck/relation_range_image/round_flow.rs
+@@ -1,8 +1,24 @@
++use super::device_flow::DeviceFold;
+ use super::*;
++use akita_serialization::AkitaSerialize;
+ 
+-impl<E: Field + Ring + Unreduced> RelationRangeImageProver<E> {
++impl<E: Field + Ring + Unreduced + AkitaSerialize> RelationRangeImageProver<E> {
+     fn finish_ingested_round(&mut self, fold_started: Instant) {
+         self.rounds_completed += 1;
++        if let Some((witness, weights)) = self.pending_tables.take() {
++            self.check_device_tables(&witness, &weights);
++        }
++        // Parity mode: CPU paths that cache the next round themselves still
++        // have to run the device round so the comparison (and the device's
++        // fold sequence) stays in step.
++        if self.cached_round_poly.is_some() && self.device.as_ref().is_some_and(|d| d.parity) {
++            if let Some(dev) = self.device_round() {
++                let (norm_poly, relation_poly) = self.polys_from_terms(dev.virt, dev.rel);
++                let mut combined = self.combine_polys(&norm_poly, &relation_poly);
++                add_coeffs(&mut combined, &dev.additional);
++                self.device_parity_poly = Some(combined);
++            }
++        }
+         if self.rounds_completed < self.num_vars {
+             if self.cached_round_poly.is_none() {
+                 self.cached_round_poly = Some(self.compute_current_round_poly_from_state());
+@@ -23,6 +39,19 @@ impl<E: Field + Ring + Unreduced> RelationRangeImageProver<E> {
+ 
+     pub(super) fn compute_current_round_poly_from_state(&mut self) -> UniPoly<E> {
+         let t_scan = Instant::now();
++        if let Some(dev) = self.device_round() {
++            let (norm_poly, relation_poly) = self.polys_from_terms(dev.virt, dev.rel);
++            let mut combined = self.combine_polys(&norm_poly, &relation_poly);
++            if self.device.as_ref().is_some_and(|d| d.parity) {
++                add_coeffs(&mut combined, &dev.additional);
++                self.device_parity_poly = Some(combined);
++            } else {
++                self.device_add_poly = Some(dev.additional);
++                self.prev_norm_poly = Some(norm_poly);
++                self.scan_time_total += t_scan.elapsed().as_secs_f64();
++                return combined;
++            }
++        }
+         let (poly, norm_poly) = match &self.relation_state {
+             RelationRoundState::ReducedDense { weights: dense } => match &self.witness_state {
+                 WitnessState::CompactPrefix(compact_witness) => {
+@@ -50,7 +79,18 @@ impl<E: Field + Ring + Unreduced> RelationRangeImageProver<E> {
+         self.scan_time_total += t_scan.elapsed().as_secs_f64();
+         poly
+     }
++}
++
++fn add_coeffs<E: Field>(polynomial: &mut UniPoly<E>, additional: &UniPoly<E>) {
++    if polynomial.coeffs.len() < additional.coeffs.len() {
++        polynomial.coeffs.resize(additional.coeffs.len(), E::zero());
++    }
++    for (coefficient, addition) in polynomial.coeffs.iter_mut().zip(&additional.coeffs) {
++        *coefficient += *addition;
++    }
++}
+ 
++impl<E: Field + Ring + Unreduced> RelationRangeImageProver<E> {
+     fn compute_quotient_round_from_state(
+         &self,
+         weights: &RelationWeightFactorization<E>,
+@@ -190,7 +230,9 @@ impl<E: Field + Ring + Unreduced + Fold> RelationRangeImageProver<E> {
+     }
+ }
+ 
+-impl<E: Field + Ring + Unreduced + Fold> SumcheckInstanceProver<E> for RelationRangeImageProver<E> {
++impl<E: Field + Ring + Unreduced + Fold + AkitaSerialize> SumcheckInstanceProver<E>
++    for RelationRangeImageProver<E>
++{
+     fn num_rounds(&self) -> usize {
+         self.num_vars
+     }
+@@ -209,26 +251,34 @@ impl<E: Field + Ring + Unreduced + Fold> SumcheckInstanceProver<E> for RelationR
+         } else {
+             self.compute_current_round_poly_from_state()
+         };
+-        if let Some(additional) = self.additional_round_polynomial() {
+-            if polynomial.coeffs.len() < additional.coeffs.len() {
+-                polynomial.coeffs.resize(additional.coeffs.len(), E::zero());
+-            }
+-            for (coefficient, addition) in polynomial.coeffs.iter_mut().zip(additional.coeffs) {
+-                *coefficient += addition;
+-            }
++        let additional = match self.device_add_poly.take() {
++            Some(additional) => Some(additional),
++            None => self.additional_round_polynomial(),
++        };
++        if let Some(additional) = additional {
++            add_coeffs(&mut polynomial, &additional);
+         }
++        self.check_device_poly(&polynomial);
+         polynomial
+     }
+ 
+     fn ingest_challenge(&mut self, _round: usize, r: E) {
+         let t_fold = Instant::now();
+         let _span = tracing::info_span!("RelationRangeImageProver::fold_round").entered();
+-        if let Some(additional) = &mut self.additional_relation_terms {
+-            additional.bind(r);
+-        }
+         if let Some(prev_norm_poly) = self.prev_norm_poly.take() {
+             self.prev_norm_claim = prev_norm_poly.evaluate(&r);
+         }
++        match self.device_ingest(r) {
++            DeviceFold::Skip => {
++                drop(_span);
++                self.finish_ingested_round(t_fold);
++                return;
++            }
++            DeviceFold::Cpu(tables) => self.pending_tables = tables,
++        }
++        if let Some(additional) = &mut self.additional_relation_terms {
++            additional.bind(r);
++        }
+ 
+         if matches!(self.relation_state, RelationRoundState::ReducedDense { .. }) {
+             self.ingest_reduced_dense_challenge(r);
+diff --git a/crates/akita-transcript/src/sponge.rs b/crates/akita-transcript/src/sponge.rs
+index d61049c..8a2707d 100644
+--- a/crates/akita-transcript/src/sponge.rs
++++ b/crates/akita-transcript/src/sponge.rs
+@@ -139,6 +139,8 @@ where
+     /// from `akita-types`, and this method must be called before any absorb or
+     /// squeeze operation for the proof being replayed.
+     pub fn bind_instance_bytes(&mut self, instance_bytes: &[u8]) {
++        fixture_record("session", &self.session_label);
++        fixture_record("instance", instance_bytes);
+         let domain = domain_separator_from_label(&self.session_label, instance_bytes);
+         self.state = Some(match self.side {
+             TranscriptSide::Prover => {
+@@ -170,6 +172,7 @@ where
+ {
+     /// Absorb prefix-free bytes into the transcript.
+     pub fn absorb_bytes(&mut self, _label: Label, bytes: &[u8]) {
++        fixture_record("absorb", bytes);
+         let framed = FramedBytes { bytes };
+         match self.state_mut() {
+             TranscriptState::Prover(state) => state.public_message(&framed),
+@@ -214,15 +217,18 @@ where
+             let take = (len - out.len()).min(chunk.len());
+             out.extend_from_slice(&chunk[..take]);
+         }
++        fixture_record("squeeze_bytes", &out);
+         out
+     }
+ 
+     /// Squeeze one native transcript block.
+     pub fn squeeze_block(&mut self, _label: Label) -> [u8; SQUEEZE_CHUNK_LEN] {
+-        match self.state_mut() {
++        let out: [u8; SQUEEZE_CHUNK_LEN] = match self.state_mut() {
+             TranscriptState::Prover(state) => state.verifier_message(),
+             TranscriptState::Verifier(state) => state.verifier_message(),
+-        }
++        };
++        fixture_record("squeeze_block", &out);
++        out
+     }
+ 
+     /// Preview the final 32-byte challenge after hypothetical absorbs.
+@@ -570,3 +576,14 @@ mod tests {
+         );
+     }
+ }
++
++// Native fixture diagnostics only; does not alter transcript state.
++fn fixture_record(kind: &str, bytes: &[u8]) {
++    if let Some(directory) = std::env::var_os("JOLT_BROWSER_FIXTURE_CAPTURE") {
++        use std::io::Write;
++        let path = std::path::PathBuf::from(directory).join("akita-transcript.tsv");
++        let mut file = std::fs::OpenOptions::new().create(true).append(true).open(path).unwrap();
++        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
++        writeln!(file, "{kind}\t{hex}").unwrap();
++    }
++}
+diff --git a/crates/akita-types/src/sis/honest_fold_policy.rs b/crates/akita-types/src/sis/honest_fold_policy.rs
+index 51c0354..c480c9a 100644
+--- a/crates/akita-types/src/sis/honest_fold_policy.rs
++++ b/crates/akita-types/src/sis/honest_fold_policy.rs
+@@ -207,8 +207,11 @@ impl UnitOneHotFoldPolicy {
+         }
+         let groups = self.independent_challenge_groups(query)?;
+         let worst_case = self.deterministic_cap(query)?;
+-        const MAX_EXACT_F64_INTEGER: usize = 1usize << 52;
+-        if groups > MAX_EXACT_F64_INTEGER || query.num_fold_coeffs > MAX_EXACT_F64_INTEGER {
++        // u64: `1usize << 52` overflows on 32-bit targets (wasm32).
++        const MAX_EXACT_F64_INTEGER: u64 = 1u64 << 52;
++        if groups as u64 > MAX_EXACT_F64_INTEGER
++            || query.num_fold_coeffs as u64 > MAX_EXACT_F64_INTEGER
++        {
+             return None;
+         }
+         // For each exact power-of-two point, solve the Chernoff

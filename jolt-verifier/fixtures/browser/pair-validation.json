@@ -1,0 +1,29 @@
+{
+  "browser_execution": false,
+  "circuit_verification": "not-run",
+  "cycles": 5084,
+  "identical_verifier_preprocessing": true,
+  "native_full_verification_recorded": true,
+  "outputs_match_standard_sha256": true,
+  "same_shape": {
+    "one_hot_config": {
+      "log_k_chunk": 4,
+      "lookups_ra_virtual_log_k_chunk": 16
+    },
+    "protocol": {
+      "commitment": "Packed",
+      "scalar_challenge_endianness": "Little",
+      "zk": "Transparent"
+    },
+    "ram_K": 131072,
+    "rw_config": {
+      "ram_rw_phase1_num_rounds": 13,
+      "ram_rw_phase2_num_rounds": 17,
+      "registers_rw_phase1_num_rounds": 13,
+      "registers_rw_phase2_num_rounds": 7
+    },
+    "trace_length": 8192,
+    "trace_polynomial_order": "CycleMajor"
+  },
+  "schema": "website-jolt-akita-fixture-pair-v1"
+}

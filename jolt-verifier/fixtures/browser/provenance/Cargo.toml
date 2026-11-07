@@ -1,0 +1,237 @@
+[package]
+name = "jolt-wasm-prover"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+# The guests form their own workspace (guests/Cargo.toml): `#[jolt::provable]`
+# emits host glue that needs `jolt-sdk/host`, which is Dory-only and cannot
+# share a dependency graph with `jolt-prover/akita`. They are only ever built
+# for RISC-V through `jolt build` (see preprocessing/generate.rs). The
+# setup-wasm-deps.sh checkouts stay out so their crates resolve workspace
+# inheritance against their own roots.
+exclude = [".wasm-deps", "guests"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[[bin]]
+name = "generate-preprocessing"
+path = "preprocessing/generate.rs"
+required-features = ["native"]
+
+[[bin]]
+name = "test-roundtrip"
+path = "preprocessing/test_roundtrip.rs"
+required-features = ["native"]
+
+[features]
+default = []
+native = []
+# Routes the stage-0 one-hot trace commit through `jolt_akita::TraceCommitDevice`
+# (patches/0006). Needs the patched checkouts from ./setup-wasm-deps.sh.
+trace-commit-device = []
+# Experimental GPU offload harness: mailbox transport to the gpu-proxy.js
+# Worker plus the fp128 self-test. Off by default; native builds ignore it.
+webgpu = []
+# Routes the stage-1 digit-range sumcheck rounds through
+# `akita_prover::DigitRangeDevice` (patches/0007). Pulls `akita-prover` in as a
+# direct dependency for the seam types; needs the patched checkouts.
+digit-range-device = ["dep:akita-prover"]
+# Routes the leading stage-2 relation-range sumcheck rounds (quotient-factored
+# and reduced-dense levels) through
+# `akita_prover::RelationRangeDevice` (patches/0008); same dependency and
+# patched-checkout requirement as `digit-range-device`.
+relation-range-device = ["dep:akita-prover"]
+
+[dependencies]
+tracing = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+postcard = { version = "1.0.8", features = ["use-std"] }
+bincode = { version = "2", features = ["serde"] }
+serde_json = "1.0"
+rayon = "1"
+
+# One compiled prover proves exactly one protocol: `akita` selects the packed
+# lattice path (jolt-akita PCS over the Solinas fp128 field) and compiles the
+# Dory/elliptic-curve path out. It is mutually exclusive with `zk`.
+jolt-prover = { git = "https://github.com/a16z/jolt", rev = "d39bd518a65ea89401de63c3343e98fbad5f1b80", features = ["akita"] }
+jolt-verifier = { git = "https://github.com/a16z/jolt", rev = "d39bd518a65ea89401de63c3343e98fbad5f1b80", features = ["akita"] }
+jolt-akita = { git = "https://github.com/a16z/jolt", rev = "d39bd518a65ea89401de63c3343e98fbad5f1b80" }
+jolt-witness = { git = "https://github.com/a16z/jolt", rev = "d39bd518a65ea89401de63c3343e98fbad5f1b80" }
+jolt-program = { git = "https://github.com/a16z/jolt", rev = "d39bd518a65ea89401de63c3343e98fbad5f1b80" }
+tracer = { git = "https://github.com/a16z/jolt", rev = "d39bd518a65ea89401de63c3343e98fbad5f1b80" }
+common = { git = "https://github.com/a16z/jolt", rev = "d39bd518a65ea89401de63c3343e98fbad5f1b80", features = ["std"] }
+jolt-field = { git = "https://github.com/a16z/jolt", rev = "d39bd518a65ea89401de63c3343e98fbad5f1b80", default-features = false, features = ["solinas"] }
+akita-prover = { git = "https://github.com/LayerZero-Labs/akita.git", rev = "252abb895046cc1d5b9955a26a2ad2318148ac26", optional = true }
+
+jolt-inlines-sha2 = { git = "https://github.com/a16z/jolt", rev = "d39bd518a65ea89401de63c3343e98fbad5f1b80", features = ["host"] }
+jolt-inlines-secp256k1 = { git = "https://github.com/a16z/jolt", rev = "d39bd518a65ea89401de63c3343e98fbad5f1b80", features = ["host"] }
+jolt-inlines-keccak256 = { git = "https://github.com/a16z/jolt", rev = "d39bd518a65ea89401de63c3343e98fbad5f1b80", features = ["host"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+wasm-bindgen-rayon = { version = "1.3", features = ["no-bundler"] }
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["console", "Window", "Performance"] }
+console_error_panic_hook = "0.1"
+getrandom = { version = "0.2.16", features = ["js"] }
+tracing-subscriber = { version = "0.3", features = ["std"] }
+
+# Guest compilation goes through jolt-host (the `jolt` CLI) rather than the
+# jolt-sdk host machinery: jolt-sdk's host side is Dory-only and does not
+# compile against a jolt-prover built with `akita`.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+jolt-host = { git = "https://github.com/a16z/jolt", rev = "d39bd518a65ea89401de63c3343e98fbad5f1b80" }
+sha2 = "0.11"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+# One ark world for the whole graph: dory-pcs (crates.io, still a hard
+# dependency of jolt-prover even though the Dory path is compiled out under
+# `akita`) depends on registry ark-* 0.5.0 while the jolt crates use the a16z
+# fork (branch dev/twist-shout); without the crates-io redirect the two
+# resolve to distinct crate instances and the fork's trait bounds are
+# unsatisfiable. (The jolt workspace root does the same with a [replace]
+# section.) The redirect must use the same branch source as jolt's own ark
+# dependencies — a rev-pinned source would be a distinct package source and
+# split the world again, and cargo rejects same-repo
+# [patch.'…/arkworks-algebra'] tables. The exact rev is pinned by the
+# committed Cargo.lock; only `cargo update` can drift it.
+#
+# Proving IN THE BROWSER additionally needs wasm32 fixes that are not
+# upstream yet — see patches/ and ./setup-wasm-deps.sh, which rewrites the
+# block below onto locally patched checkouts.
+# >>> wasm-deps overrides (managed by setup-wasm-deps.sh — keep markers)
+# LOCAL patched checkouts (written by setup-wasm-deps.sh — do not commit)
+[patch.crates-io]
+ark-bn254 = { git = "https://github.com/a16z/arkworks-algebra", branch = "dev/twist-shout" }
+ark-ff = { git = "https://github.com/a16z/arkworks-algebra", branch = "dev/twist-shout" }
+ark-ec = { git = "https://github.com/a16z/arkworks-algebra", branch = "dev/twist-shout" }
+ark-serialize = { git = "https://github.com/a16z/arkworks-algebra", branch = "dev/twist-shout" }
+wasm-bindgen-rayon = { path = ".wasm-deps/wasm-bindgen-rayon" }
+
+[patch.'https://github.com/a16z/jolt']
+jolt-prover = { path = ".wasm-deps/jolt/crates/jolt-prover" }
+jolt-verifier = { path = ".wasm-deps/jolt/crates/jolt-verifier" }
+jolt-akita = { path = ".wasm-deps/jolt/crates/jolt-akita" }
+jolt-witness = { path = ".wasm-deps/jolt/crates/jolt-witness" }
+jolt-field = { path = ".wasm-deps/jolt/crates/jolt-field" }
+jolt-program = { path = ".wasm-deps/jolt/crates/jolt-program" }
+jolt-host = { path = ".wasm-deps/jolt/crates/jolt-host" }
+tracer = { path = ".wasm-deps/jolt/tracer" }
+common = { path = ".wasm-deps/jolt/common" }
+jolt-sdk = { path = ".wasm-deps/jolt/jolt-sdk" }
+jolt-inlines-sha2 = { path = ".wasm-deps/jolt/jolt-inlines/sha2" }
+jolt-inlines-secp256k1 = { path = ".wasm-deps/jolt/jolt-inlines/secp256k1" }
+jolt-inlines-keccak256 = { path = ".wasm-deps/jolt/jolt-inlines/keccak256" }
+
+[patch.'https://github.com/LayerZero-Labs/akita.git']
+akita-algebra = { path = ".wasm-deps/akita/crates/akita-algebra" }
+akita-challenges = { path = ".wasm-deps/akita/crates/akita-challenges" }
+akita-config = { path = ".wasm-deps/akita/crates/akita-config" }
+akita-error = { path = ".wasm-deps/akita/crates/akita-error" }
+akita-pcs = { path = ".wasm-deps/akita/crates/akita-pcs" }
+akita-planner = { path = ".wasm-deps/akita/crates/akita-planner" }
+akita-prover = { path = ".wasm-deps/akita/crates/akita-prover" }
+akita-schedules = { path = ".wasm-deps/akita/crates/akita-schedules" }
+akita-serialization = { path = ".wasm-deps/akita/crates/akita-serialization" }
+akita-setup = { path = ".wasm-deps/akita/crates/akita-setup" }
+akita-sumcheck = { path = ".wasm-deps/akita/crates/akita-sumcheck" }
+akita-transcript = { path = ".wasm-deps/akita/crates/akita-transcript" }
+akita-types = { path = ".wasm-deps/akita/crates/akita-types" }
+akita-verifier = { path = ".wasm-deps/akita/crates/akita-verifier" }
+# <<< wasm-deps overrides
+
+# spongefish before 4ee5f2b2 hashed its squeeze counters at pointer width
+# (`usize::to_be_bytes`), so the Blake2b512 sponge behind `AkitaTranscript`
+# derived different Fiat-Shamir challenges on wasm32 than on 64-bit: browser
+# proofs verified in the browser but not natively (a16z/jolt #1924). The Akita
+# crates pin the pre-fix rev and Cargo refuses a `[patch]` back onto the same
+# source, so the fix is taken from crates.io, where every release from 0.7.3
+# includes it (the 0xAndoroid/spongefish mirror that served it is gone).
+# Drop once LayerZero-Labs/akita bumps spongefish >= 0.7.3.
+[patch."https://github.com/arkworks-rs/spongefish"]
+spongefish = { version = "=0.7.4" }
+
+[lints.rust]
+# WASM mailbox and JS shared-memory views require unsafe blocks.
+unsafe_code = "allow"
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+# Pedantic baseline; priority -1 lets individual lints override.
+pedantic = { level = "warn", priority = -1 }
+
+case_sensitive_file_extension_comparisons = "allow"
+default_trait_access = "allow"
+doc_markdown = "allow"
+fn_params_excessive_bools = "allow"
+format_push_string = "allow"
+implicit_hasher = "allow"
+items_after_statements = "allow"
+manual_let_else = "allow"
+match_same_arms = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+needless_pass_by_value = "allow"
+no_effect_underscore_binding = "allow"
+redundant_closure_for_method_calls = "allow"
+ref_option = "allow"
+ref_option_ref = "allow"
+return_self_not_must_use = "allow"
+similar_names = "allow"
+struct_excessive_bools = "allow"
+too_many_lines = "allow"
+trivially_copy_pass_by_ref = "allow"
+uninlined_format_args = "allow"
+unnecessary_wraps = "allow"
+unused_async = "allow"
+used_underscore_binding = "allow"
+
+# Cast lints — many false positives where range is known.
+# Note: cast_lossless is NOT allowed — prefer From::from() for clarity.
+cast_possible_truncation = "allow"
+cast_possible_wrap = "allow"
+cast_precision_loss = "allow"
+cast_sign_loss = "allow"
+
+expect_used = "deny"
+panic = "deny"
+unwrap_used = "deny"
+
+allow_attributes = "deny"
+
+result_large_err = "allow"
+
+# Printing belongs only in the native CLI binaries.
+print_stdout = "deny"
+print_stderr = "deny"
+dbg_macro = "deny"
+todo = "deny"
+unimplemented = "deny"
+
+enum_variant_names = "allow"
+large_futures = "allow"
+significant_drop_tightening = "allow"
+
+[[bin]]
+name = "trace-equinox"
+path = "preprocessing/trace_equinox.rs"
+required-features = ["native"]
+
+[[bin]]
+name = "browser-fixture"
+path = "preprocessing/browser_fixture.rs"
+required-features = ["native"]

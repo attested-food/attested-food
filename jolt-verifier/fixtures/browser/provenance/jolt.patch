@@ -1,0 +1,419 @@
+diff --git a/crates/jolt-akita/src/adapters.rs b/crates/jolt-akita/src/adapters.rs
+index b4532ef..11ad018 100644
+--- a/crates/jolt-akita/src/adapters.rs
++++ b/crates/jolt-akita/src/adapters.rs
+@@ -189,6 +189,7 @@ const SCHEDULE_SELECTION_BYTES: usize = 32;
+ /// so oversizing costs virtual address space only.
+ const BACKEND_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
+ 
++#[cfg(any(not(target_arch = "wasm32"), feature = "profiling"))]
+ #[expect(
+     clippy::expect_used,
+     reason = "a pool that cannot spawn threads is an unrecoverable environment failure"
+@@ -205,6 +206,7 @@ fn build_backend_pool(name: &'static str, num_threads: Option<usize>) -> ThreadP
+         .expect("the Akita backend thread pool must build")
+ }
+ 
++#[cfg(not(target_arch = "wasm32"))]
+ fn backend_pool() -> &'static ThreadPool {
+     static POOL: OnceLock<ThreadPool> = OnceLock::new();
+     POOL.get_or_init(|| build_backend_pool("jolt-akita", None))
+@@ -297,7 +299,18 @@ pub(crate) fn with_backend_pool<R: Send>(f: impl FnOnce() -> R + Send) -> R {
+         }
+         ProfileBackendPool::Default => {}
+     }
+-    backend_pool().install(f)
++    // wasm32: the global rayon pool is the only pool that exists
++    // (wasm-bindgen-rayon workers); ThreadPoolBuilder::build() cannot spawn
++    // OS threads and panics. Its workers run on wasm-bindgen's default 2 MiB
++    // thread stack (wasm-bindgen-rayon passes no `thread_stack_size`).
++    #[cfg(target_arch = "wasm32")]
++    {
++        f()
++    }
++    #[cfg(not(target_arch = "wasm32"))]
++    {
++        backend_pool().install(f)
++    }
+ }
+ 
+ #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+diff --git a/crates/jolt-akita/src/lib.rs b/crates/jolt-akita/src/lib.rs
+index de3f80a..8af68a5 100644
+--- a/crates/jolt-akita/src/lib.rs
++++ b/crates/jolt-akita/src/lib.rs
+@@ -48,7 +48,10 @@ pub use native_batching::{
+ };
+ pub use schedule_registry::PrecommittedScheduleParams;
+ pub use scheme::{AkitaScheme, TraceOneHotCommitment};
+-pub use trace_onehot::{no_selected_row, TraceOneHotRows, TracePackedOneHot};
++pub use trace_onehot::{
++    no_selected_row, set_trace_commit_device, TraceCommitDevice, TraceCommitJob, TraceCommitShape,
++    TraceOneHotRows, TracePackedOneHot,
++};
+ 
+ /// Jolt↔Akita basis-order bridging, exposed so benchmarks measuring the raw
+ /// backend use the exact transform the adapter uses.
+diff --git a/crates/jolt-akita/src/native_batching.rs b/crates/jolt-akita/src/native_batching.rs
+index 0338e26..5c98425 100644
+--- a/crates/jolt-akita/src/native_batching.rs
++++ b/crates/jolt-akita/src/native_batching.rs
+@@ -413,6 +413,11 @@ impl AkitaNativeBatching {
+             ),
+             _ => unreachable!("one-hot K was validated by setup"),
+         }?;
++        if let Some(directory) = std::env::var_os("JOLT_BROWSER_FIXTURE_CAPTURE") {
++            let directory = std::path::PathBuf::from(directory);
++            std::fs::write(directory.join("pcs-decoded.txt"), format!("{backend_proof:#?}")).unwrap();
++            std::fs::write(directory.join("pcs-boundary.txt"), format!("point={backend_main_point:#?}\nevaluations={:#?}\ncommitment={:#?}", main.evaluations, main.commitment)).unwrap();
++        }
+         let mut akita_transcript =
+             bind_grouped_statement_transcripts(transcript, setup, selection, precommitted, main)?;
+         let mut group_claims = Vec::with_capacity(precommitted.len() + 1);
+diff --git a/crates/jolt-akita/src/trace_onehot/commit.rs b/crates/jolt-akita/src/trace_onehot/commit.rs
+index 1d2255f..68be7fb 100644
+--- a/crates/jolt-akita/src/trace_onehot/commit.rs
++++ b/crates/jolt-akita/src/trace_onehot/commit.rs
+@@ -4,6 +4,7 @@ use akita_prover::compute::CommitInnerPlan;
+ use akita_prover::{CommitInnerWitness, ComputeBackendSetup, CpuBackend};
+ use rayon::prelude::*;
+ 
++use super::device::{commit_on_device, TraceCommitDevice};
+ use super::source::TracePackedOneHot;
+ use super::traversal::{
+     flush_deferred_rank, flush_wide, row_is_committed, trace_block_part_range,
+@@ -19,6 +20,7 @@ pub(super) fn commit_packed<const D: usize>(
+     prepared: &<CpuBackend as ComputeBackendSetup<AkitaField>>::PreparedSetup,
+     source: &TracePackedOneHot,
+     plan: CommitInnerPlan,
++    device: Option<&dyn TraceCommitDevice>,
+ ) -> Result<CommitInnerWitness<AkitaField>, AkitaError> {
+     let _span = tracing::info_span!(
+         "TracePackedOneHot::commit_inner",
+@@ -48,10 +50,30 @@ pub(super) fn commit_packed<const D: usize>(
+         .shared_matrix()
+         .ring_view::<D>(plan.n_a, active_cols)?;
+     let a_rows = a_view.rows().collect::<Vec<_>>();
+-    let max_per_ring = (D / source.one_hot_k).max(1);
+     drop(_prepare_span);
++    commit_packed_rows::<D>(source, plan, &a_rows, segment_rings, num_blocks, device)
++}
++
++/// Commits `source` against the digit-zero setup rows `a_rows[a][position * num_digits_inner]`,
++/// on `device` when one is given and accepts the shape, else on the CPU kernels.
++pub(super) fn commit_packed_rows<const D: usize>(
++    source: &TracePackedOneHot,
++    plan: CommitInnerPlan,
++    a_rows: &[&[CyclotomicRing<AkitaField, D>]],
++    segment_rings: usize,
++    num_blocks: usize,
++    device: Option<&dyn TraceCommitDevice>,
++) -> Result<CommitInnerWitness<AkitaField>, AkitaError> {
++    let max_per_ring = (D / source.one_hot_k).max(1);
+ 
+     let rows = if segment_rings >= plan.num_positions_per_block {
++        if let Some(device) = device {
++            if let Some(rows) =
++                commit_on_device::<D>(device, source, plan, a_rows, segment_rings, num_blocks)?
++            {
++                return Ok(CommitInnerWitness::from_rows(rows));
++            }
++        }
+         let blocks_per_column = segment_rings / plan.num_positions_per_block;
+         debug_assert_eq!(
+             blocks_per_column * plan.num_positions_per_block,
+diff --git a/crates/jolt-akita/src/trace_onehot/kernels.rs b/crates/jolt-akita/src/trace_onehot/kernels.rs
+index 61b98ca..98f1758 100644
+--- a/crates/jolt-akita/src/trace_onehot/kernels.rs
++++ b/crates/jolt-akita/src/trace_onehot/kernels.rs
+@@ -23,6 +23,7 @@ use rayon::prelude::*;
+ 
+ use super::commit::commit_packed;
+ use super::decomposition::decompose_fold_packed;
++use super::device::installed_trace_commit_device;
+ use super::opening::opening_fold_packed;
+ use super::source::{TracePackedOneHot, TracePackedOneHotBatchView, TracePackedOneHotView};
+ use super::traversal::coefficient_packing_partials_packed;
+@@ -63,7 +64,13 @@ impl ExternalInnerCommitmentOperation<AkitaField> for TracePackedOneHotCommitOpe
+                 .par_iter()
+                 .map(|source| {
+                     let source = source.payload::<TracePackedOneHot>()?;
+-                    commit_packed::<D>(&CpuBackend::DEFAULT, prepared, source, *plan)
++                    commit_packed::<D>(
++                        &CpuBackend::DEFAULT,
++                        prepared,
++                        source,
++                        *plan,
++                        installed_trace_commit_device(),
++                    )
+                 })
+                 .collect()
+         )
+diff --git a/crates/jolt-akita/src/trace_onehot/mod.rs b/crates/jolt-akita/src/trace_onehot/mod.rs
+index 4aa88cf..58c5dcb 100644
+--- a/crates/jolt-akita/src/trace_onehot/mod.rs
++++ b/crates/jolt-akita/src/trace_onehot/mod.rs
+@@ -22,6 +22,7 @@ const _: () = assert!(K256_ROW_BATCH <= i16::MAX as usize);
+ 
+ mod commit;
+ mod decomposition;
++mod device;
+ mod kernels;
+ mod opening;
+ mod source;
+@@ -30,6 +31,7 @@ mod traversal;
+ #[cfg(test)]
+ mod tests;
+ 
++pub use device::{set_trace_commit_device, TraceCommitDevice, TraceCommitJob, TraceCommitShape};
+ pub use source::{no_selected_row, TraceOneHotRows, TracePackedOneHot};
+ 
+ #[cfg(test)]
+diff --git a/crates/jolt-akita/src/trace_onehot/tests.rs b/crates/jolt-akita/src/trace_onehot/tests.rs
+index 6188a99..fb72b28 100644
+--- a/crates/jolt-akita/src/trace_onehot/tests.rs
++++ b/crates/jolt-akita/src/trace_onehot/tests.rs
+@@ -21,8 +21,13 @@ use akita_types::{
+ use jolt_field::{One, Ring};
+ use std::sync::atomic::{AtomicUsize, Ordering};
+ 
++use super::commit::commit_packed_rows;
+ use super::source::{TracePackedOneHotBatchView, TracePackedOneHotView};
++use super::traversal::validate_block_geometry;
+ use crate::AkitaField;
++use akita_error::AkitaError;
++use akita_prover::compute::CommitInnerPlan;
++use jolt_field::{CanonicalEncoding, Zero};
+ 
+ #[derive(Debug)]
+ struct TestRows {
+@@ -532,3 +537,138 @@ fn coefficient_packing_rejects_invalid_selector() {
+     .expect_err("selector outside K must reject");
+     assert!(error.to_string().contains("outside K=16"));
+ }
++
++struct NaiveDevice {
++    decline: bool,
++}
++
++impl TraceCommitDevice for NaiveDevice {
++    fn commit_accumulate(&self, job: &TraceCommitJob<'_>) -> Option<Result<Vec<u32>, AkitaError>> {
++        if self.decline {
++            return None;
++        }
++        let shape = job.shape;
++        let d = shape.ring_dimension;
++        let rows_per_ring = d / shape.one_hot_k;
++        let mut out = vec![AkitaField::zero(); shape.num_blocks * shape.n_a * d];
++        for row in 0..shape.num_rows {
++            let ring = row / rows_per_ring;
++            let trace_block = ring / shape.positions_per_block;
++            let position = ring % shape.positions_per_block;
++            for column in 0..shape.num_columns {
++                let hot = job.hot[row * shape.num_columns + column];
++                if hot == 0 && job.masks[row] >> column & 1 == 0 {
++                    continue;
++                }
++                let shift = (row % rows_per_ring) * shape.one_hot_k + usize::from(hot);
++                let block = column * shape.blocks_per_column + trace_block;
++                for a in 0..shape.n_a {
++                    let a_base = (a * shape.positions_per_block + position) * d;
++                    let out = &mut out[(block * shape.n_a + a) * d..][..d];
++                    for (i, out) in out.iter_mut().enumerate() {
++                        let limbs = &job.a_plane[(a_base + (i + d - shift) % d) * 4..][..4];
++                        let value = AkitaField::from_u128_checked(
++                            u128::from(limbs[0])
++                                | u128::from(limbs[1]) << 32
++                                | u128::from(limbs[2]) << 64
++                                | u128::from(limbs[3]) << 96,
++                        )
++                        .unwrap();
++                        if i >= shift {
++                            *out += value;
++                        } else {
++                            *out -= value;
++                        }
++                    }
++                }
++            }
++        }
++        Some(Ok(out
++            .iter()
++            .flat_map(|coefficient| {
++                let [lo, hi] = coefficient.to_limbs();
++                [lo as u32, (lo >> 32) as u32, hi as u32, (hi >> 32) as u32]
++            })
++            .collect()))
++    }
++}
++
++struct TruncatingDevice;
++
++impl TraceCommitDevice for TruncatingDevice {
++    fn commit_accumulate(&self, _job: &TraceCommitJob<'_>) -> Option<Result<Vec<u32>, AkitaError>> {
++        Some(Ok(Vec::new()))
++    }
++}
++
++#[test]
++fn device_commit_matches_cpu_kernels() {
++    const D: usize = 512;
++    const POSITIONS: usize = 64;
++    let source = TracePackedOneHot::new(
++        16,
++        D,
++        8,
++        Arc::new(TestRows {
++            rows: 4096,
++            columns: 8,
++            k: 16,
++            committed_zero_column: Some(3),
++        }),
++    )
++    .unwrap();
++    let plan = CommitInnerPlan {
++        ring_dimension: D,
++        num_live_blocks: 16,
++        n_a: 2,
++        num_positions_per_block: POSITIONS,
++        num_digits_inner: 1,
++        log_basis_inner: 0,
++    };
++    let segment_rings = source.segment_ring_elems::<D>().unwrap();
++    let (_, num_blocks) = validate_block_geometry(segment_rings, 8, POSITIONS).unwrap();
++    let mut state = 0x9E37_79B9_7F4A_7C15u64;
++    let mut next = move || {
++        state ^= state << 13;
++        state ^= state >> 7;
++        state ^= state << 17;
++        state
++    };
++    let a_rows = (0..plan.n_a)
++        .map(|_| {
++            (0..POSITIONS)
++                .map(|_| {
++                    CyclotomicRing::<AkitaField, D>::from_coefficients(std::array::from_fn(|_| {
++                        AkitaField::from_u128_reduced(u128::from(next()) << 64 | u128::from(next()))
++                    }))
++                })
++                .collect::<Vec<_>>()
++        })
++        .collect::<Vec<_>>();
++    let a_rows = a_rows.iter().map(Vec::as_slice).collect::<Vec<_>>();
++    let commit = |device: Option<&dyn TraceCommitDevice>| {
++        commit_packed_rows::<D>(&source, plan, &a_rows, segment_rings, num_blocks, device)
++            .unwrap()
++            .inner_rows
++    };
++
++    let cpu = commit(None);
++    assert_eq!(cpu.coeffs().len(), num_blocks * plan.n_a * D);
++    assert!(cpu
++        .coeffs()
++        .iter()
++        .any(|coefficient| !coefficient.is_zero()));
++    assert_eq!(commit(Some(&NaiveDevice { decline: false })), cpu);
++    assert_eq!(commit(Some(&NaiveDevice { decline: true })), cpu);
++    assert!(matches!(
++        commit_packed_rows::<D>(
++            &source,
++            plan,
++            &a_rows,
++            segment_rings,
++            num_blocks,
++            Some(&TruncatingDevice)
++        ),
++        Err(AkitaError::InvalidSize { .. })
++    ));
++}
+diff --git a/crates/jolt-kernels/src/optimized/registers_read_write/sparse.rs b/crates/jolt-kernels/src/optimized/registers_read_write/sparse.rs
+index 3dd7837..c3bb152 100644
+--- a/crates/jolt-kernels/src/optimized/registers_read_write/sparse.rs
++++ b/crates/jolt-kernels/src/optimized/registers_read_write/sparse.rs
+@@ -32,7 +32,10 @@ impl<F: JoltField> CoeffLut<F> {
+ 
+     /// Whether one more bind would overflow the `u16` index domain.
+     pub(super) fn saturated(&self) -> bool {
+-        self.values.len() * self.values.len() > Self::MAX_VALUES
++        // u64 arithmetic: at the 65536-entry table the squared length is
++        // 2^32, which wraps to 0 on 32-bit targets (wasm32) and silently
++        // skips the switch to the direct representation.
++        (self.values.len() as u64) * (self.values.len() as u64) > Self::MAX_VALUES as u64
+     }
+ 
+     /// Apply `even + r·(odd − even)` to every value pair.
+diff --git a/crates/jolt-transcript/src/legacy.rs b/crates/jolt-transcript/src/legacy.rs
+index cb19565..6ac0d8c 100644
+--- a/crates/jolt-transcript/src/legacy.rs
++++ b/crates/jolt-transcript/src/legacy.rs
+@@ -256,6 +256,7 @@ where
+     type Challenge = F;
+ 
+     fn new(label: &'static [u8]) -> Self {
++        fixture_record("init", label);
+         assert!(
+             label.len() <= MAX_LABEL_LEN,
+             "label must be at most {MAX_LABEL_LEN} bytes",
+@@ -271,6 +272,7 @@ where
+     }
+ 
+     fn append_bytes(&mut self, bytes: &[u8]) {
++        fixture_record("absorb", bytes);
+         // 1-byte non-zero domain marker + 8-byte LE length + body.
+         //
+         // The marker sub-domain-separates legacy-facade `append_bytes` calls
+@@ -299,6 +301,7 @@ where
+         // surface this facade goes away and the inconsistency with it.
+         let mut buf = [0u8; 16];
+         let _ = self.sponge.squeeze(&mut buf);
++        fixture_record("challenge", &buf);
+         F::from_challenge_bytes(&buf)
+     }
+ 
+@@ -307,6 +310,7 @@ where
+         // squeeze width as `challenge`, but the non-optimized decoding path.
+         let mut buf = [0u8; 16];
+         let _ = self.sponge.squeeze(&mut buf);
++        fixture_record("challenge_scalar", &buf);
+         F::from_scalar_challenge_bytes(&buf)
+     }
+ 
+@@ -314,3 +318,14 @@ where
+         peek_state(&self.sponge)
+     }
+ }
++
++// Native fixture diagnostics only; does not alter transcript state.
++fn fixture_record(kind: &str, bytes: &[u8]) {
++    if let Some(directory) = std::env::var_os("JOLT_BROWSER_FIXTURE_CAPTURE") {
++        use std::io::Write;
++        let path = std::path::PathBuf::from(directory).join("jolt-transcript.tsv");
++        let mut file = std::fs::OpenOptions::new().create(true).append(true).open(path).unwrap();
++        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
++        writeln!(file, "{kind}\t{hex}").unwrap();
++    }
++}
+diff --git a/tracer/src/lib.rs b/tracer/src/lib.rs
+index 700806a..9ac17bb 100644
+--- a/tracer/src/lib.rs
++++ b/tracer/src/lib.rs
+@@ -44,10 +44,19 @@ use crate::emulator::{
+ /// 2^23-cycle proving scale without Vec regrowth (each doubling past the
+ /// hundreds of MB memcpys the whole trace). Reserved address space is only
+ /// faulted in as rows are pushed.
++#[cfg(not(target_arch = "wasm32"))]
+ fn trace_capacity_reserve() -> usize {
+     env_rows("JOLT_TRACER_CAPACITY_ROWS", parallel::DEFAULT_CAPACITY_ROWS)
+ }
+ 
++/// wasm32 starts at 2^18 rows (24 MiB) and lets the Vec grow: the reserve
++/// grows linear memory, which never shrinks, so the native 2^24-row reserve
++/// would raise the wasm high-water mark to over 1.5 GiB.
++#[cfg(target_arch = "wasm32")]
++fn trace_capacity_reserve() -> usize {
++    1 << 18
++}
++
+ /// Positive row-count env override; unset, unparsable, or zero falls back to
+ /// `default`.
+ fn env_rows(name: &str, default: usize) -> usize {

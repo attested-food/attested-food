@@ -1,0 +1,33 @@
+{
+  "artifacts_sha256": {
+    "input.bin": "f2977f2892fc41cad17291eca90fe68f035e0e83a8d6c2c8a727ec4d41c6ea91",
+    "outputs.bin": "4f8b42c22dd3729b519ba6f68d2da7cc5b2d606d05daed5ad5128cc03e6c6358",
+    "program-io.bin": "b027be8d0c82533646d6463dbc178b308c2552418897b1fe3d5db0d41281eb34",
+    "proof.bin": "1e0aa35c98c1f46975d581faa004564fcf940e842e0eecfb6d0c778825691e94",
+    "verifier-preprocessing.bin": "4f6f032ced9cff0b57d43b8f718c8a25d59af7a6b08471773329861eecf37fc0"
+  },
+  "assets_sha256": {
+    "akita_schedules.bin": "3b77984387a47f37300f2cdad4c9193d63793c0ab0b9f2e600d25f7525614568",
+    "equinox.elf": "96919dd0e25a51a613de7a53da6005b77e514b064d76326b7318b6f77770cc5b",
+    "equinox_program.bin": "d4adc63e6c338b120c0968b5cee8cebfaa02148c506536302162eb137c6a1f55"
+  },
+  "browser_execution": false,
+  "circuit_verification": "not-run",
+  "cycles": 5084,
+  "native_full_verification": true,
+  "outputs_hex": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  "padded_cycles": 8192,
+  "producer": "native-exact-browser-engine",
+  "schema": "website-jolt-akita-fixture-v1",
+  "tamper_rejections": {
+    "input": "verification failed: stage 1 sumcheck output does not match evaluated output claim",
+    "output": "verification failed: stage 1 sumcheck output does not match evaluated output claim",
+    "pcs": "verification failed: final opening proof verification failed: opening proof verification failed"
+  },
+  "tier": 21,
+  "timings_ms": {
+    "prove": 483.724365234375,
+    "setup": 25.927978515625,
+    "trace": 6.01904296875
+  }
+}

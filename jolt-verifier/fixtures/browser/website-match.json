@@ -1,0 +1,61 @@
+{
+  "assets": {
+    "akita_schedules.bin": {
+      "bytes": 1056743,
+      "sha256": "3b77984387a47f37300f2cdad4c9193d63793c0ab0b9f2e600d25f7525614568"
+    },
+    "equinox.elf": {
+      "bytes": 142112,
+      "sha256": "96919dd0e25a51a613de7a53da6005b77e514b064d76326b7318b6f77770cc5b"
+    },
+    "equinox_program.bin": {
+      "bytes": 2381161,
+      "sha256": "d4adc63e6c338b120c0968b5cee8cebfaa02148c506536302162eb137c6a1f55"
+    }
+  },
+  "installed_guest_sources_match_target": {
+    "core/src/eurekha.rs": {
+      "bytes": 29133,
+      "sha256": "9f7b1228d2b9eec394cebf2eb4d53735f6f96ff8965231b94ca1a3731bfd8c57"
+    },
+    "core/src/extract.rs": {
+      "bytes": 15058,
+      "sha256": "0cf1424575fbc69fa98f5694aca4791283c3d3474905a2a9c8994eb28b6f0ecc"
+    },
+    "core/src/inflate.rs": {
+      "bytes": 14011,
+      "sha256": "b56b7c11b3a7187f05235ca3cb7730c903adcc3059e9ea9aee5ca66343154ab9"
+    },
+    "core/src/lib.rs": {
+      "bytes": 2393,
+      "sha256": "7406e60d3b66e290cf9c54e8b6ab8ec36d4b1bfd2b3017e51f1ac2abd1bccf57"
+    },
+    "core/src/pdf.rs": {
+      "bytes": 14982,
+      "sha256": "80f1fb49e38eec3f1bf2da32b82bb0c5061bfc3cbc2619510b093b71329aba07"
+    },
+    "core/src/public.rs": {
+      "bytes": 4409,
+      "sha256": "197aa73e8cc2bf8947f06f76ab42ded5fdbf435bed5a3f594dc8592b833d8d6b"
+    },
+    "core/src/sha.rs": {
+      "bytes": 18902,
+      "sha256": "689f80a291ff99dd4a383517d5d09a27ecbfe89baee5f0859694dddf60e53c9d"
+    },
+    "core/src/text.rs": {
+      "bytes": 28276,
+      "sha256": "3df4edae7cdb5b2d1cfb987f44b89588a6f39546c76ad44cfb1d741d2405e646"
+    },
+    "core/src/tlsn.rs": {
+      "bytes": 18305,
+      "sha256": "c27b30e170ee4ab57421b2bfc680e852f44ab7af1fdabe9348ca5ccbe5ebafcf"
+    },
+    "guests/jolt/src/lib.rs": {
+      "bytes": 4353,
+      "sha256": "bdb669af62e7c6bcef8dcd5fc96806ec770c388bc6a49b13ded7a3898509db80"
+    }
+  },
+  "native_engine_only": true,
+  "schema": "website-jolt-asset-match-v1",
+  "website_head": "ea36c3884443207046ce54b9ba07cc63d7999508"
+}
