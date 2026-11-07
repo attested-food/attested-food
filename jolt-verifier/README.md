@@ -23,7 +23,8 @@ The initial tools under `tools/fixtures`, `tools/circuits` and the top-level sca
 ## Layout
 
 - `fixtures/browser/`, `tools/browser-fixtures/`: website-compatible proof fixtures and native generation/verification tooling.
-- `circuits/browser/`, `tools/browser-circuits/`: website protocol's Circom components and tools.
+- `circuits/browser/`, `tools/browser-circuits/`: canonical Fp128 arithmetic, Blake2b and raw outer Jolt digest-step components.
+- `circuits/browser-statement/`, `tools/browser-statement/`: constrained website postcard IO framing.
 - `website-target.json`, `tools/pin_website.py`: source and asset inventory.
 - `tests/`: circuit compilation, witness generation, R1CS checks and integration tests.
 - `tools/fixtures/`, `tools/circuits/`, top-level scalar/Poseidon circuits: historical Dory prototype, not the website verifier.
@@ -31,6 +32,8 @@ The initial tools under `tools/fixtures`, `tools/circuits` and the top-level sca
 ## Verified status (2026-11-07)
 
 - 28 harness, source-inventory, website IO codec and historical scalar-input schema tests passed.
+- 22 website Fp128, Blake2b and outer digest-step circuit tests passed, with no skips.
+- 7 website IO framing circuit tests passed, with no skips, including tier, length, empty-label and byte-range checks.
 - 18 historical scalar-generator, transcript and Poseidon component tests passed, with no skips.
 - 6 historical upstream source-patcher tests passed inside the disposable Linux VM.
 - The website's committed source and local asset inventory has been recorded; source-to-asset rebuild matching is not yet checked.
@@ -45,12 +48,14 @@ With the already installed Circom, Node and snarkjs, run from the project root:
 
 ```bash
 python3 -m unittest discover -s jolt-verifier/tests -v
+python3 -m unittest discover -s jolt-verifier/tools/browser-circuits -p 'test_*.py' -v
+python3 -m unittest discover -s jolt-verifier/tools/browser-statement -p 'test_*.py' -v
 python3 -m unittest discover -s jolt-verifier/tools/circuits -p test_ast_to_circom.py -v
 ```
 
 These tests validate the harness, input schema and circuit components. They are not Jolt verification tests. Successful circuit cases generate witnesses and explicitly run `snarkjs wtns check`; witness generation alone does not count as success.
 
-`tools/website_statement.py` is a strict reference codec for the website guest's postcard input/output bytes, supported tiers, empty labels list and serialized IO bounds. It does not verify proofs; these bindings also need circuit constraints.
+`tools/website_statement.py` is a strict reference codec for the website guest's postcard input/output bytes, supported tiers, empty labels list and serialized IO bounds. `BrowserWebsiteStatement(TIER, INPUT_LENGTH, OUTPUT_LENGTH)` constrains the same encoding for a fixed shape. Its payload and result inputs must be public or bound to an application statement, and its serialized outputs must feed the complete Jolt verifier. It does not enforce guest execution, guest identity or proof validity by itself.
 
 For historical upstream source-patcher tests, see [fixture tooling](tools/fixtures/README.md). `tools/scalar_inputs.py` maps that experiment's indexed scalar witness format to its scalar generator's named inputs, with strict field/schema validation and an explicit scalar-only acknowledgement.
 
