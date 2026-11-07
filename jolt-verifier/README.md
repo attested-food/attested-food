@@ -26,6 +26,8 @@ The initial tools under `tools/fixtures`, `tools/circuits` and the top-level sca
 - `circuits/browser/`, `tools/browser-circuits/`: canonical Fp128 arithmetic, Blake2b and raw outer Jolt digest-step components.
 - `circuits/browser-statement/`, `tools/browser-statement/`: constrained website postcard IO framing and zero-padded VM outputs.
 - `circuits/browser-scalar/`, `tools/browser-scalar/`: compressed sumcheck primitives with externally supplied challenges and relation values.
+- `circuits/browser-stage1/`, `tools/browser-stage1/`: RV64 stage-1 terminal relation and remainder sumcheck, without authenticated challenges or openings.
+- `circuits/browser-transcript/`, `tools/browser-transcript/`: initialized outer transcript replay and typed message framing; complete proof message wiring remains missing.
 - `circuits/browser-spongefish/`, `tools/browser-spongefish/`: nested Akita transcript hashing and framing primitives, not a complete replay or PCS verifier.
 - `website-target.json`, `tools/pin_website.py`: source and asset inventory.
 - `tests/`: circuit compilation, witness generation, R1CS checks and integration tests.
@@ -37,7 +39,8 @@ The initial tools under `tools/fixtures`, `tools/circuits` and the top-level sca
 - 22 website Fp128, Blake2b and outer digest-step circuit tests passed, with no skips.
 - 9 website IO framing circuit tests passed, with no skips, including the genuine pair's IO bytes, tier/length/empty-label/byte-range checks and output-word padding.
 - 6 scalar sumcheck component tests and 10 nested Spongefish component/reference tests passed, with no skips.
-- 4 browser fixture regression tests passed. Both corrected tier21 proofs passed native full verification and separate PCS/input/output mutation checks; their results match standard SHA-256.
+- 6 stage-1 relation tests and 8 initialized outer transcript component tests passed, with no skips.
+- 7 browser fixture regression tests passed. Both corrected tier21 proofs passed native full verification and separate PCS/input/output mutation checks; their results match standard SHA-256. Outer Jolt transcript captures independently replay and bind to the retained nested Akita sessions.
 - 18 historical scalar-generator, transcript and Poseidon component tests passed, with no skips.
 - 6 historical upstream source-patcher tests passed inside the disposable Linux VM.
 - The website's committed source and local asset inventory has been recorded; source-to-asset rebuild matching is not yet checked.
@@ -55,6 +58,8 @@ python3 -m unittest discover -s jolt-verifier/tests -v
 python3 -m unittest discover -s jolt-verifier/tools/browser-circuits -p 'test_*.py' -v
 python3 -m unittest discover -s jolt-verifier/tools/browser-statement -p 'test_*.py' -v
 python3 -m unittest discover -s jolt-verifier/tools/browser-scalar -p 'test_*.py' -v
+python3 -m unittest discover -s jolt-verifier/tools/browser-stage1 -p 'test_*.py' -v
+python3 -m unittest discover -s jolt-verifier/tools/browser-transcript -p 'test_*.py' -v
 python3 -m unittest discover -s jolt-verifier/tools/browser-spongefish -p 'test_*.py' -v
 python3 -m unittest discover -s jolt-verifier/tools/browser-fixtures -p 'test_*.py' -v
 python3 -m unittest discover -s jolt-verifier/tools/circuits -p test_ast_to_circom.py -v
