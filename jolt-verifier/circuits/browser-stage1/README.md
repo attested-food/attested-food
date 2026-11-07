@@ -1,6 +1,6 @@
-# Website stage-1 RV64 remainder
+# Website stage-1 RV64 scalar checks
 
-Partial clear-mode stage relation for the website `/prove` equinox guest, tiers 20/21/31/33. Uses the Solinas field `p = 2^128 - 2^32 + 22537` inside BN254 Fr. Not a complete stage-1 verifier or complete Jolt proof verifier. Transcript challenges, the uni-skip output and opening claims remain external signals. No host acceptance flags or challenge-dependent inversion hints are used.
+Clear-mode uni-skip and remainder scalar relations for the website `/prove` equinox guest, tiers 20/21/31/33. Uses the Solinas field `p = 2^128 - 2^32 + 22537` inside BN254 Fr. Not a complete stage-1 verifier or complete Jolt proof verifier. Transcript challenges and opening claims remain external signals. The uni-skip output is now checked against its full polynomial. No host acceptance flags or challenge-dependent inversion hints are used.
 
 ## Pinned source
 
@@ -70,13 +70,38 @@ DoNotUpdateUnexpandedPC, Advice, IsCompressed, IsFirstInSequence,
 IsLastInSequence
 ```
 
+## Uni-skip and complete scalar wiring
+
+`uniskip.circom` adds `BrowserStage1Uniskip(L)` with compile-time serialized coefficient count `0 <= L <= 28` (degree at most 27). Inputs are `coefficients[L]: Fp128` in ascending power order, `challenge: Fp128` and `outputClaim: Fp128`. Output `out: Fp128` equals both the polynomial evaluation and `outputClaim`. The round-sum constraint is `sum_k(coefficients[k] * sum_{node=-4}^5 node^k) == 0`. These integer power sums are compile-time constants, not witness-selected values. Empty full polynomials represent zero in native Jolt and are handled explicitly; unlike compressed rounds they need not be nonempty.
+
+`BrowserStage1Clear(LOG_T,L)` combines that check with `BrowserStage1Remainder(LOG_T)`. It has all remainder inputs plus `uniskipCoefficients[L]: Fp128`, and outputs `initialClaim`, `expectedFinal`, `openingPoint`. The same checked uni-skip value feeds the remainder input and the same challenge feeds its kernel. No equality is replaced by a host verification result.
+
+Additional pinned sources:
+
+- `crates/jolt-verifier/src/stages/uniskip.rs`: `UniskipParams::spartan_outer` and `verify_clear`, full one-round encoding, zero initial claim, degree 27, output equality before absorption.
+- `crates/jolt-sumcheck/src/domain.rs`: `CenteredIntegerDomain::round_sum_coefficients` calls `centered_power_sums`, then `check_round_sum` compares the coefficient linear combination with the initial claim.
+- `crates/jolt-poly/src/univariate.rs`: ascending full coefficients, stored degree `L-1`, empty polynomial degree/evaluation zero. `crates/jolt-sumcheck/src/round_proof.rs`: `LabeledRoundPoly` absorbs `LabelWithCount(uniskip_poly,L)` then full coefficients.
+
+The inspected `domain.rs` is identical across native CLI, Cargo d39 checkout and patched website source, SHA256 `f2e618c1f4973f9f87f01b9302c0e3751a118cb846d0a3d09550a9031371774f`. The native CLI and patched website `stages/uniskip.rs` match at `84c06e77de76f446dce157ecad25fb5df0e1547926ed58a65ae02c955942cc11`.
+
+## Native proof input export
+
+`tools/browser-stage1/inputs.py` reads actual `proof.json` serde output, selects transparent/Packed/Little protocol, validates trace shape, full uni-skip and cubic remainder lengths, checks all scalar byte encodings and exports 35 openings in native declaration order. It never synthesizes proof coefficients, output claims or challenges. Without a capture it emits proof data with an explicit list of missing challenge inputs.
+
+```sh
+python3 jolt-verifier/tools/browser-stage1/inputs.py \
+  jolt-verifier/fixtures/browser/tier21-abc/proof.json \
+  --trace jolt-verifier/fixtures/browser/tier21-abc/jolt-transcript.jsonl
+```
+
+The optional outer capture supplies tau, uni-skip challenge, singleton coefficient and remainder challenges. The reader checks the counted polynomial messages, claim absorptions and all 35 opening absorptions against the serialized proof. JSON fields use 16 little-endian bytes, transcript scalar absorptions use big-endian bytes, challenges decode little-endian. Capture decoding is checked against squeezed bytes. Hash-chain replay and in-circuit transcript binding belong to the parent transcript lane; this reader does not authenticate them. The returned envelope records provenance hashes, compile-time shape and explicit partial-verification flags; its `inputs` member is the circuit input object.
+
 ## Remaining exact wiring
 
-- Verify the separate full uni-skip polynomial over 10 centered integer nodes, degree at most 27, initial sum zero, evaluation at `uniskipChallenge` equal to `uniskipOutputClaim`.
-- Connect native transcript draws for tau (`LOG_T+2`), uni-skip and remainder challenges; absorb uni-skip output under `opening_claim` before the singleton coefficient draw. The batch also absorbs its input under `sumcheck_claim` before drawing that coefficient.
+- Connect native transcript draws for tau (`LOG_T+2`), uni-skip and remainder challenges; absorb counted full uni-skip coefficients, then its output under `opening_claim` before the singleton coefficient draw. The batch also absorbs its input under `sumcheck_claim` before drawing that coefficient.
 - Absorb counted compressed rounds and all 35 output claims in native order. Connect the parent transcript and fixed serialized lengths rather than trusting supplied challenges.
 - Authenticate all 35 openings through subsequent stages and Akita PCS at the derived opening point; bind statement, program/configuration and trace length.
-- Compare genuine website stage fixtures when the native lane exports them. These tests use authored consistent scalar data only. They deliberately solve for a last-round coefficient, which illustrates why externally supplied challenges are not proof verification.
+- Accepting scalar data extracted from a genuine native proof is not full Jolt verification. The older authored remainder tests deliberately solve for a last-round coefficient, illustrating why externally supplied challenges are not proof verification.
 
 ## Tests
 
@@ -84,4 +109,6 @@ IsLastInSequence
 python3 -m unittest discover -s jolt-verifier/tools/browser-stage1 -v
 ```
 
-Independent integer reference uses named row expressions and direct integer arithmetic, not the circuit's sparse coefficient tables. Tests cover basis-node identities, partition of unity, affine constants and subtraction bias, terminal values at grid and field boundaries, reversed opening points, integrated cubic rounds, zero batching coefficient, and mutations of claims, openings, challenges, coefficients and round messages. Every successful witness must pass `snarkjs wtns check`.
+Run just the bounded uni-skip/native integration additions with `-p test_uniskip.py`. `BROWSER_STAGE1_CAPTURE_ROOT` can point at the fixture lane's read-only snapshot until outer captures land in main; missing captures explicitly skip native integration tests, not substitute fabricated values.
+
+Independent integer reference uses named row expressions, direct polynomial powers and summation over all ten integer nodes, not the circuit's sparse matrix or power-sum tables. Existing remainder tests cover basis-node identities, affine constants, subtraction bias, terminal edges and mutations. Uni-skip tests cover empty/constant/low-degree/full-degree shapes, zero sums, evaluation mutations, noncanonical challenges, malformed serde and capture mismatches. Native integration tests run both tier21-abc and tier21-def through the same `BrowserStage1Clear(13,28)` circuit with actual serialized polynomials, opening claims and captured challenges, plus output-claim and last-round mutations. Every successful witness must pass `snarkjs wtns check`.

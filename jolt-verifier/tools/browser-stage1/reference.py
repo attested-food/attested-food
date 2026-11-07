@@ -126,6 +126,16 @@ def terminal(tau, uniskip, remainder, openings):
     return kernel * az * bz % P
 
 
+def uniskip_evaluate(coefficients, point):
+    if len(coefficients) > 28:
+        raise ValueError("uni-skip degree exceeds 27")
+    return sum(c * pow(point, i, P) for i, c in enumerate(coefficients)) % P
+
+
+def uniskip_sum(coefficients):
+    return sum(uniskip_evaluate(coefficients, node % P) for node in range(-4, 6)) % P
+
+
 def chain_final(initial, compressed, challenges):
     if len(compressed) != len(challenges):
         raise ValueError("wrong round count")
