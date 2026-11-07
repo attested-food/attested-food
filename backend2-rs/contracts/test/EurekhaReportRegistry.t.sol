@@ -22,8 +22,13 @@ contract EurekhaReportRegistryTest is Test {
     bytes proof;
     bytes signature;
 
+    /// @dev The artifact under test; overridden to run the same checks on another prover's proof.
+    function fixture() internal pure virtual returns (string memory) {
+        return "test/fixtures/sp1-groth16.json";
+    }
+
     function setUp() public {
-        string memory j = vm.readFile("test/fixtures/sp1-groth16.json");
+        string memory j = vm.readFile(fixture());
         publicValues = vm.parseJsonBytes(j, ".publicValues");
         proof = vm.parseJsonBytes(j, ".proof");
         signature = vm.parseJsonBytes(j, ".notarySignature");
@@ -123,5 +128,13 @@ contract EurekhaReportRegistryTest is Test {
         registry.addVerifier(bytes32("x"), IEurekhaProofVerifier(address(adapter)));
         vm.expectRevert(abi.encodeWithSelector(EurekhaReportRegistry.VerifierExists.selector, SP1));
         registry.addVerifier(SP1, adapter);
+    }
+}
+
+/// @notice The same checks on an artifact whose Groth16 proof snarkrs made on the GPU inside sp1-gpu-server
+///         (`sp1/gpu-server`, `SP1_GROTH16_PROVER=snarkrs`), from a live backend2 job on the same report.
+contract EurekhaReportRegistrySnarkrsTest is EurekhaReportRegistryTest {
+    function fixture() internal pure override returns (string memory) {
+        return "test/fixtures/sp1-groth16-snarkrs.json";
     }
 }

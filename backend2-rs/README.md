@@ -43,7 +43,7 @@ Stages: `queued`, `starting sp1 worker`, `waiting for prove lock`, `execute`, `k
 
 `sp1-groth16` returns two proofs. The compressed SP1 STARK appears under `partial["sp1-compressed"]` (`proof`: base64 bincode `SP1ProofWithPublicValues`, verifiable off-chain with sp1-sdk) as soon as it is verified, while the Groth16 proof for the contract is still being made; the job's `result.artifact` holds the Groth16 proof at the end. The SDK cannot wrap an existing compressed proof, so the Groth16 request proves core + compress again: seconds on the GPU, minutes on a CPU. `progress` is an estimate, since neither SDK reports a fraction done: working time so far over the working time of the last finished job of the same mode (queue and lock waits excluded); `null` until one has finished. Jobs live in memory for an hour after they finish. Responses never include the body blinder: with it, the public `body_commitment` and the redacted PDF, anyone could test guesses of the redacted customer fields offline.
 
-Both provers stay warm: OpenVM keygen runs at start and its keys stay in the prover thread; SP1 runs as one long-lived `eurekha-sp1 serve` child that sets up at start and, with `EUREKHA_SP1_WARM_RUN=<zktls run dir>`, proves once so gnark's Groth16 proving key is loaded before the first request. Locking (`server/src/lock.rs`): every heavy step takes the machine-wide lock right before it starts and drops it right after, and waits, never skips, while someone else holds it: OpenVM execute + keygen + prove + verify per job, SP1 start-up (and warm-up proof), each SP1 job. The lock is `/tmp/equinox-prove.lock.d`, or with `PROVE_FLOCK=<file>` an `flock` on that file in the GPU box's `heavy` protocol: the holder line (`backend2-rs job <id> <mode> pid= since=`) goes to the sibling `.holder` file, a waiting job registers in `waiting/<pid>` so `heavy status` lists it, and the job's stage reads `waiting for prove lock (held by <holder>)`. Boot-time OpenVM keygen runs only if the lock is free at that moment; otherwise the first job does it under its own lock.
+Both provers stay warm: OpenVM keygen runs at start and its keys stay in the prover thread; SP1 runs as one long-lived `eurekha-sp1 serve` child that sets up at start and, with `EUREKHA_SP1_WARM_RUN=<zktls run dir>`, proves once so the Groth16 prover's key is loaded before the first request. Locking (`server/src/lock.rs`): every heavy step takes the machine-wide lock right before it starts and drops it right after, and waits, never skips, while someone else holds it: OpenVM execute + keygen + prove + verify per job, SP1 start-up (and warm-up proof), each SP1 job. The lock is `/tmp/equinox-prove.lock.d`, or with `PROVE_FLOCK=<file>` an `flock` on that file in the GPU box's `heavy` protocol: the holder line (`backend2-rs job <id> <mode> pid= since=`) goes to the sibling `.holder` file, a waiting job registers in `waiting/<pid>` so `heavy status` lists it, and the job's stage reads `waiting for prove lock (held by <holder>)`. Boot-time OpenVM keygen runs only if the lock is free at that moment; otherwise the first job does it under its own lock.
 
 Before proving, the server runs the same extraction natively: a PDF the guest would reject fails in milliseconds, and a result that would publish PII is refused. `/prove` checks the guest revealed `sha256(publicValues)` and verifies the proof before returning it. `/verify` checks the proof against the pinned program and that it commits to the given public values (a flipped public-value byte is rejected).
 
@@ -72,6 +72,18 @@ Eurekha report (`format=eurekha`, `mock-pdfs/out/raw/choco-millet-muesli.pdf`, 9
 | `/prove?mode=stark` end to end | 42.4 s |
 
 Proof 534,601 B (aggregation output, independent of the guest run). Public values: 5 redaction spans, `redacted_sha256 0f3af67c...e426cc` (matches the `mock-pdfs` manifest), 22 key-value pairs, 11 result rows. `/verify` accepts it and rejects a one-byte change to the public values.
+
+GPU box (g6e.xlarge: L40S 46 GB, 4 vCPU, 30 GB), `mode=sp1-groth16`, `format=eurekha-attested`, the mock choco-millet-muesli report, warm, one job each. The Groth16 step runs inside `sp1-gpu-server` built from `sp1/gpu-server` (SP1 6.10.0 with the snarkrs patch); `SP1_GROTH16_PROVER` picks the prover:
+
+| Stage | gnark (job 5c3b6345) | snarkrs CUDA (job 35d7267e) |
+|---|---|---|
+| zktls fetch | 31.5 s | 22.1 s |
+| prove stark | 14.4 s | 3.5 s |
+| prove groth16 | 133.4 s | 11.6 s (solve 3.5 s, prove 1.85 s, rest SP1's GPU shrink-wrap) |
+| verify groth16 | 0.36 s | 0.33 s |
+| SP1 warm-up at start | 203-220 s | 28.6 s (snarkrs key to VRAM 8.4 s from page cache, about 57 s cold) |
+
+Both artifacts pass the registry tests (`contracts/test/EurekhaReportRegistry.t.sol`, fixtures `sp1-groth16.json` and `sp1-groth16-snarkrs.json`). snarkrs keeps the key in VRAM (about 14 GB, card total 21.6 GB with SP1 idle); gnark held its key in host RAM, which swapped the 30 GB box (Groth16 up to 344 s).
 
 Program (format-dispatch guest): `appExeCommit 0097bec6...3b3fee`, `appVmCommit 00773b10...ba0f93` (pinned by the guest toolchain and source).
 

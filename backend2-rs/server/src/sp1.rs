@@ -62,8 +62,16 @@ impl Proc {
             if self.stdout.read_line(&mut line).ok()? == 0 {
                 return None;
             }
-            if let Some(j) = line.trim_end().strip_prefix(REPLY) {
+            let l = line.trim_end();
+            if let Some(j) = l.strip_prefix(REPLY) {
                 return serde_json::from_str(j).ok();
+            }
+            // The GPU server's own log shares this stdout; its snarkrs Groth16 lines
+            // carry the solve/prove split.
+            if l.contains("snarkrs") {
+                tracing::info!("sp1-gpu-server: {l}");
+            } else if !l.is_empty() {
+                tracing::debug!("sp1-gpu-server: {l}");
             }
         }
     }
