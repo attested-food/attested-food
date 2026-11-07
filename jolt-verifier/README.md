@@ -30,7 +30,7 @@ The initial tools under `tools/fixtures`, `tools/circuits` and the top-level sca
 
 ## Verified status (2026-11-07)
 
-- 19 harness, source-inventory and historical scalar-input schema tests passed.
+- 28 harness, source-inventory, website IO codec and historical scalar-input schema tests passed.
 - 18 historical scalar-generator, transcript and Poseidon component tests passed, with no skips.
 - 6 historical upstream source-patcher tests passed inside the disposable Linux VM.
 - The website's committed source and local asset inventory has been recorded; source-to-asset rebuild matching is not yet checked.
@@ -50,7 +50,9 @@ python3 -m unittest discover -s jolt-verifier/tools/circuits -p test_ast_to_circ
 
 These tests validate the harness, input schema and circuit components. They are not Jolt verification tests. Successful circuit cases generate witnesses and explicitly run `snarkjs wtns check`; witness generation alone does not count as success.
 
-For upstream source-patcher tests and the pending two-proof generation workflow, see [fixture tooling](tools/fixtures/README.md). `tools/scalar_inputs.py` maps its indexed scalar witness format to the scalar generator's named inputs, with strict field/schema validation and an explicit scalar-only acknowledgement.
+`tools/website_statement.py` is a strict reference codec for the website guest's postcard input/output bytes, supported tiers, empty labels list and serialized IO bounds. It does not verify proofs; these bindings also need circuit constraints.
+
+For historical upstream source-patcher tests, see [fixture tooling](tools/fixtures/README.md). `tools/scalar_inputs.py` maps that experiment's indexed scalar witness format to its scalar generator's named inputs, with strict field/schema validation and an explicit scalar-only acknowledgement.
 
 ## Completion checks
 

@@ -13,6 +13,13 @@ import re
 import subprocess
 
 TIERS = {"shaChunk": 20, "shaFinish": 21, "extract": 31, "tls": 33}
+GUEST_CONFIG = {
+    "heap_size": 8388608,
+    "stack_size": 262144,
+    "max_input_size": 500000,
+    "max_output_size": 4096,
+    "max_trace_length": 2097152,
+}
 PAGE_FILES = (
     "frontend/src/lib/jolt.ts",
     "frontend/src/pages/Prove.tsx",
@@ -85,6 +92,15 @@ def pin(website, poc, page_ref):
     observed = dict(re.findall(r"(\w+)\s*:\s*(\d+)", match.group(1))) if match else {}
     if {name: int(value) for name, value in observed.items()} != TIERS:
         raise ValueError("Website Jolt tier configuration differs from this target")
+    guest = git(poc, "show", f"{poc_revision}:guests/jolt/src/lib.rs").decode()
+    attribute = re.search(r"#\[jolt::provable\((.*?)\)\]\s*fn equinox", guest, re.S)
+    configuration = (
+        dict(re.findall(r"(\w+)\s*=\s*(\d+)", attribute.group(1))) if attribute else {}
+    )
+    if {key: int(value) for key, value in configuration.items()} != GUEST_CONFIG:
+        raise ValueError(
+            "Website Jolt guest memory configuration differs from this target"
+        )
     paths = (
         git(
             poc,
@@ -118,7 +134,7 @@ def pin(website, poc, page_ref):
         "guest": {
             "name": "equinox",
             "allowed_tiers": TIERS,
-            "max_trace_length": 2097152,
+            "memory_configuration": GUEST_CONFIG,
         },
         "assets": inventory_assets(website / "frontend/static/vendor/jolt"),
         "verification": {

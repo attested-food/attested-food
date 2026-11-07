@@ -65,6 +65,11 @@ class WebsitePinTests(unittest.TestCase):
                 return b"const TIER = { shaChunk: 20, shaFinish: 21, extract: 31, tls: 33 };"
             if args[1].endswith("guests/jolt/FORK_REV"):
                 return b"abcdef0123456789abcdef0123456789abcdef01\n"
+            if args[1].endswith("guests/jolt/src/lib.rs"):
+                entries = ",".join(
+                    f"{key} = {value}" for key, value in MODULE.GUEST_CONFIG.items()
+                )
+                return f"#[jolt::provable({entries})]\nfn equinox".encode()
             return b"inventory-source-test-only"
         raise AssertionError(f"Unexpected command: {args}")
 
@@ -83,6 +88,19 @@ class WebsitePinTests(unittest.TestCase):
 
         with patch.object(MODULE, "git", side_effect=changed_git):
             with self.assertRaisesRegex(ValueError, "tier configuration differs"):
+                MODULE.pin(self.root, self.root, "HEAD")
+
+    def test_changed_guest_memory_rejected(self):
+        def changed_git(root, *args):
+            result = self.mock_git(root, *args)
+            if args[0] == "show" and args[1].endswith("guests/jolt/src/lib.rs"):
+                return result.replace(
+                    b"max_input_size = 500000", b"max_input_size = 900000"
+                )
+            return result
+
+        with patch.object(MODULE, "git", side_effect=changed_git):
+            with self.assertRaisesRegex(ValueError, "memory configuration differs"):
                 MODULE.pin(self.root, self.root, "HEAD")
 
 

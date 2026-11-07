@@ -206,7 +206,13 @@
       "shaFinish": 21,
       "tls": 33
     },
-    "max_trace_length": 2097152,
+    "memory_configuration": {
+      "heap_size": 8388608,
+      "max_input_size": 500000,
+      "max_output_size": 4096,
+      "max_trace_length": 2097152,
+      "stack_size": 262144
+    },
     "name": "equinox"
   },
   "schema": "website-jolt-target-v1",
