@@ -2,35 +2,42 @@
 
 Work in progress: genuine Jolt proof fixtures and a complete Circom verifier for a pinned protocol. This directory is not an onchain-ready wrapper.
 
-## Protocol target
+## Active target: the website `/prove` page
 
-- Jolt: `ad03c835f5f7e152b625543c488eec446e3206c0`.
-- Scalar field: BN254 Fr.
-- Commitment scheme: Dory, `dory-pcs` 0.3.0 from the pinned Jolt lockfile.
-- Transcript: the pinned Jolt Poseidon implementation.
-- Initial guest: Fibonacci, with a fixed verifier shape.
+Only the website's in-browser Jolt mode is in scope. Its implementation was found on the separate `jolt-webgpu-prove` worktree at page revision `7335214`, not the SP1-only page on the original `main` checkout.
 
-This historical revision retains Jolt's symbolic verifier exporter. Its stages 1 to 7 export is only a starting point: full acceptance also requires constrained stage-8 assembly and Dory verification. It does not support the current browser Akita proofs.
+- Prover fork: `0xAndoroid/jolt-wasm-prover`, revision `6d3bdeb4e3f42f1480f50220f546d64e9adb0058`, with the website guest/build patch.
+- Build source: `webgpu-zkvm-poc`, revision `c5d5b16c1fe55328b6148d16a56e44e272160fc1`.
+- Protocol: Jolt/Akita over the Solinas field `p = 2^128 - 2^32 + 22537`, with the fork's exact transcript and trimmed schedule catalogs.
+- Guest: `equinox`, with the compiled website program and its IO/memory configuration, at most `2^21` padded cycles.
+- Supported tier IDs: `20` SHA chunk, `21` SHA finish, `31` Eurekha extraction, `33` TLS attestation segment.
+
+[website-target.json](website-target.json) records SHA-256 hashes of the committed page sources, guest/build sources and local prover assets, including the ELF, program preprocessing, schedule catalog and wasm. It is an inventory, not evidence that the binary was rebuilt from those sources or that any proof was verified. Those checks remain explicit in its verification fields.
+
+The target is the individual Jolt segment proof and its approved guest/statement. Browser-side reassembly and equality checks are not themselves proof constraints and must not be mistaken for an aggregate report proof.
+
+## Historical prototype (not the active target)
+
+The initial tools under `tools/fixtures`, `tools/circuits` and the top-level scalar/Poseidon Circom files target historical Jolt `ad03c835f5f7e152b625543c488eec446e3206c0`, BN254 Fr, Poseidon and Dory 0.3.0. They remain separate component experiments. Their stages 1 to 7 export does not verify PCS and cannot verify the website's Akita proofs.
 
 ## Layout
 
-- `fixtures/`: genuine proofs, statements and their provenance.
-- `tools/fixtures/`: native proof generation, verification and export.
-- `circuits/`: Circom verifier components.
-- `tools/circuits/`: circuit generation tools.
+- `fixtures/browser/`, `tools/browser-fixtures/`: website-compatible proof fixtures and native generation/verification tooling.
+- `circuits/browser/`, `tools/browser-circuits/`: website protocol's Circom components and tools.
+- `website-target.json`, `tools/pin_website.py`: source and asset inventory.
 - `tests/`: circuit compilation, witness generation, R1CS checks and integration tests.
+- `tools/fixtures/`, `tools/circuits/`, top-level scalar/Poseidon circuits: historical Dory prototype, not the website verifier.
 
 ## Verified status (2026-11-07)
 
-- 13 harness and scalar-input schema tests passed.
-- 18 scalar-generator, transcript and Poseidon component tests passed, with no skips.
-- 6 upstream source-patcher tests passed inside the disposable Linux VM.
-- The source patch applied and Rust formatting parsed the exporter, but Rust type-checking has not completed.
-- Offline locked Cargo resolution stopped at a missing crates.io `ark-bn254` dependency through `dory-pcs` 0.3.0.
+- 19 harness, source-inventory and historical scalar-input schema tests passed.
+- 18 historical scalar-generator, transcript and Poseidon component tests passed, with no skips.
+- 6 historical upstream source-patcher tests passed inside the disposable Linux VM.
+- The website's committed source and local asset inventory has been recorded; source-to-asset rebuild matching is not yet checked.
 
-**No genuine Jolt fixtures have been generated yet. Full Dory PCS constraints and full Jolt acceptance tests are not implemented.** The generated scalar manifest explicitly records `pcs_verified: false` and `complete_jolt_verifier: false`.
+**No genuine website Jolt fixtures or complete Akita Circom verifier have been validated yet.** Component tests and source inventories do not establish full Jolt proof validity.
 
-Dependency downloads require approval. The proposed external pairing code also has an unresolved GPL-v3 license file versus ISC package-metadata conflict. It has not been vendored or executed. See [the circuit notes](circuits/README.md) and [the PCS boundary contract](circuits/pcs-boundary.md).
+Building and required dependency downloads inside the disposable VM were authorized on 2026-11-07. The previous Dory build/dependency problem and proposed pairing-library license conflict are not blockers for the new Akita target. No external pairing code was vendored or executed.
 
 ## Component tests
 
@@ -49,7 +56,7 @@ For upstream source-patcher tests and the pending two-proof generation workflow,
 
 - Generate at least two genuine proofs for the same program/configuration and validate them with the complete native Jolt verifier.
 - Export all data needed for both scalar and polynomial-commitment verification.
-- Constrain the exact transcript, sumchecks, stage-8 claim assembly and Dory verification in Circom.
+- Constrain the exact website transcript, Solinas-field sumchecks, stage-8 claim assembly and Akita verification in Circom.
 - Bind the approved program/configuration and application statement.
 - Accept both genuine proofs in the same circuit, without regenerating witness-dependent constants.
 - Reject modified statements, proof messages, commitments and PCS claims.

@@ -1,0 +1,240 @@
+{
+  "assets": {
+    "akita_schedules.bin": {
+      "bytes": 1056743,
+      "sha256": "3b77984387a47f37300f2cdad4c9193d63793c0ab0b9f2e600d25f7525614568"
+    },
+    "equinox.elf": {
+      "bytes": 142112,
+      "sha256": "96919dd0e25a51a613de7a53da6005b77e514b064d76326b7318b6f77770cc5b"
+    },
+    "equinox_program.bin": {
+      "bytes": 2381161,
+      "sha256": "d4adc63e6c338b120c0968b5cee8cebfaa02148c506536302162eb137c6a1f55"
+    },
+    "gpu-proxy.js": {
+      "bytes": 18318,
+      "sha256": "d24b43ea64925d1222d99fce3503f91359e8b60b7e39f7fc7e9cd29bc144e336"
+    },
+    "pkg/README.md": {
+      "bytes": 24236,
+      "sha256": "beb7ea0d29dfd77309eef339f68e41ff7b3afeb16b22b319d790787b15e60d4b"
+    },
+    "pkg/jolt_wasm_prover.d.ts": {
+      "bytes": 11034,
+      "sha256": "62d2d4f4a86034206ed6d38cddb238994e87c28b8b3267f341bebd3720bfb0ce"
+    },
+    "pkg/jolt_wasm_prover.js": {
+      "bytes": 45857,
+      "sha256": "b2dacf6fdef02914c493eb817ae390f4b281561ec8d479033bd5644a78bc24bc"
+    },
+    "pkg/jolt_wasm_prover_bg.wasm": {
+      "bytes": 24101645,
+      "sha256": "f9feaaf884bca69f98af6c7b8b0256aead51c5a69efa43109d3cbc896f48524d"
+    },
+    "pkg/jolt_wasm_prover_bg.wasm.d.ts": {
+      "bytes": 4609,
+      "sha256": "ca21cd90c762687472eca3c88aa03edaa30ca6e2b230e0fd5b7b73f6d83ff690"
+    },
+    "pkg/package.json": {
+      "bytes": 308,
+      "sha256": "a97165d02c7495a415d1141ed10f2f87f5b80202019ef8ad5316a6f238e5df4e"
+    },
+    "pkg/snippets/wasm-bindgen-rayon-38edf6e439f6d70d/src/workerHelpers.no-bundler.js": {
+      "bytes": 3177,
+      "sha256": "9d6c6329e12b65c34a8e5bb5924c030b020a02380b6f6b68db0608b2d623b94b"
+    },
+    "wgsl/commit/commit_accumulate.wgsl": {
+      "bytes": 4157,
+      "sha256": "3b6b5efe74e6922d7c945eab25749ca35d671504c619d0c7020742b0d2862824"
+    },
+    "wgsl/commit/common.wgsl": {
+      "bytes": 843,
+      "sha256": "89f59d979948d08bc442a609b111d51e415a19984ed63041c1dc380443810de3"
+    },
+    "wgsl/commit/prep.wgsl": {
+      "bytes": 1179,
+      "sha256": "7bfb9c28a8c458a5c3f3bd70c0fbe9de886f81d072474ced861d90b44e2753ac"
+    },
+    "wgsl/commit/reduce.wgsl": {
+      "bytes": 3913,
+      "sha256": "11783dc0481b4f70fdfa62e3188744e411324d60dbe16a8646a2ac3e0c7fdf00"
+    },
+    "wgsl/digit_range/common.wgsl": {
+      "bytes": 5765,
+      "sha256": "4d0a1c294cd3d2892047426b75b5227f54f80d1b08d65f0b53e409db3e6ea918"
+    },
+    "wgsl/digit_range/field.wgsl": {
+      "bytes": 1915,
+      "sha256": "fd7b94849c19a8442424a6b4ec1382b4c40d5733854ded157c05c0d567faf361"
+    },
+    "wgsl/digit_range/lut.wgsl": {
+      "bytes": 1085,
+      "sha256": "e473bf451794f1c96a9e40cf7ebee54516c166caed0f3bec6973fdfe684dde9f"
+    },
+    "wgsl/digit_range/reduce.wgsl": {
+      "bytes": 850,
+      "sha256": "45ae39cfdd8a0b0ccbffc06f84259b5988f1cec0b30823feb4c178ca250506de"
+    },
+    "wgsl/digit_range/round0.wgsl": {
+      "bytes": 1812,
+      "sha256": "a0585064f0c2190f4d951fd0065596ed2e85476aea5475bc08331d77ee74eee5"
+    },
+    "wgsl/digit_range/round1.wgsl": {
+      "bytes": 2111,
+      "sha256": "824fc39bf858d0adcc9ec23e72d58d2cc95a144828e6f02025636d8648dae553"
+    },
+    "wgsl/fp128.wgsl": {
+      "bytes": 7407,
+      "sha256": "ed84123c86925cb87501a2668e39d9feb53baea7e4d73c56b76afaa929bad9e2"
+    },
+    "wgsl/fp128_ops.wgsl": {
+      "bytes": 894,
+      "sha256": "d3ad9586c2062c7e9ba55717e78b4d7f269b4f9a2855d2852a5eb69e8abbbecf"
+    },
+    "wgsl/stage2/additional.wgsl": {
+      "bytes": 2079,
+      "sha256": "36e326367bbabaad2d6e1537b255702234a1ceb88090d8fe6fc2d6d53ea03a9c"
+    },
+    "wgsl/stage2/common.wgsl": {
+      "bytes": 4596,
+      "sha256": "020dc1d7a7bc7be5bc02fe6d56b838a6e69f62bf0a8817d217f693f585865671"
+    },
+    "wgsl/stage2/reduce.wgsl": {
+      "bytes": 1226,
+      "sha256": "e8bb1a53663fad0360dc37d4b6413670acd28fe37a4e22eb132f51b386efc205"
+    },
+    "wgsl/stage2/round.wgsl": {
+      "bytes": 4815,
+      "sha256": "57184a69dd05946169540cc0b99e6b5f5a42b316372e932021272003de11794c"
+    },
+    "worker.js": {
+      "bytes": 12154,
+      "sha256": "3f1d1097f6d13d3fe08a673330c0a86d834ec6212ef78e8c458ba983378d3703"
+    }
+  },
+  "build_sources": {
+    "poc_commit": "c5d5b16c1fe55328b6148d16a56e44e272160fc1",
+    "sources": {
+      "core/Cargo.toml": {
+        "bytes": 1092,
+        "sha256": "e955894a76d1d8df05505e5188d8c6f242c733a923a824dc7044d6c09b6072fd"
+      },
+      "core/UPSTREAM_PATCH": {
+        "bytes": 27818,
+        "sha256": "dcc86e9d250a975bb260b0ea55ed61d25228f7e2cc62852dd118acec3b7f4066"
+      },
+      "core/UPSTREAM_REV": {
+        "bytes": 8,
+        "sha256": "b6ff4e0509026dc11905168e4b43d0e13b8f5a2dcfe32a5c3271e30a63ce7b92"
+      },
+      "core/src/eurekha.rs": {
+        "bytes": 29133,
+        "sha256": "9f7b1228d2b9eec394cebf2eb4d53735f6f96ff8965231b94ca1a3731bfd8c57"
+      },
+      "core/src/extract.rs": {
+        "bytes": 15058,
+        "sha256": "0cf1424575fbc69fa98f5694aca4791283c3d3474905a2a9c8994eb28b6f0ecc"
+      },
+      "core/src/inflate.rs": {
+        "bytes": 14011,
+        "sha256": "b56b7c11b3a7187f05235ca3cb7730c903adcc3059e9ea9aee5ca66343154ab9"
+      },
+      "core/src/lib.rs": {
+        "bytes": 2393,
+        "sha256": "7406e60d3b66e290cf9c54e8b6ab8ec36d4b1bfd2b3017e51f1ac2abd1bccf57"
+      },
+      "core/src/pdf.rs": {
+        "bytes": 14982,
+        "sha256": "80f1fb49e38eec3f1bf2da32b82bb0c5061bfc3cbc2619510b093b71329aba07"
+      },
+      "core/src/public.rs": {
+        "bytes": 4409,
+        "sha256": "197aa73e8cc2bf8947f06f76ab42ded5fdbf435bed5a3f594dc8592b833d8d6b"
+      },
+      "core/src/sha.rs": {
+        "bytes": 18902,
+        "sha256": "689f80a291ff99dd4a383517d5d09a27ecbfe89baee5f0859694dddf60e53c9d"
+      },
+      "core/src/text.rs": {
+        "bytes": 28276,
+        "sha256": "3df4edae7cdb5b2d1cfb987f44b89588a6f39546c76ad44cfb1d741d2405e646"
+      },
+      "core/src/tlsn.rs": {
+        "bytes": 18305,
+        "sha256": "c27b30e170ee4ab57421b2bfc680e852f44ab7af1fdabe9348ca5ccbe5ebafcf"
+      },
+      "extractor/Cargo.toml": {
+        "bytes": 636,
+        "sha256": "516ce069b96ab461a1f570a4a32f22fa9f08f82ec183d2697d37a172cb3ee7de"
+      },
+      "extractor/src/lib.rs": {
+        "bytes": 11667,
+        "sha256": "f67330856287b9b5813cef1181cbbbaac0345f0e2a6fd144376d76dcea362971"
+      },
+      "guests/jolt/Cargo.toml": {
+        "bytes": 916,
+        "sha256": "d3e1dbe2647c9482b30c0d45d2103574334b29242702ede6e151d49322220c89"
+      },
+      "guests/jolt/FORK_REV": {
+        "bytes": 41,
+        "sha256": "ca16407988f7b3f8cc4d385063cf9d3649afa8d72e729fccb1eff7956a8f18a7"
+      },
+      "guests/jolt/fork.patch": {
+        "bytes": 13480,
+        "sha256": "cd1703c006defacd4996f50d064d4aa55c346c1f712e86b800fc7f47a08238f6"
+      },
+      "guests/jolt/src/lib.rs": {
+        "bytes": 4353,
+        "sha256": "bdb669af62e7c6bcef8dcd5fc96806ec770c388bc6a49b13ded7a3898509db80"
+      },
+      "guests/jolt/src/main.rs": {
+        "bytes": 100,
+        "sha256": "f5a78669bec1d5f912300b978e1777328ae9bfb6798896389c9554b22fa8c450"
+      },
+      "scripts/install-core.sh": {
+        "bytes": 875,
+        "sha256": "37e6b6ab2f741c3d789e727bd0949cb478b642d5832e98ef214b8dd1a5270d95"
+      }
+    },
+    "wasm_prover_fork_commit": "6d3bdeb4e3f42f1480f50220f546d64e9adb0058"
+  },
+  "guest": {
+    "allowed_tiers": {
+      "extract": 31,
+      "shaChunk": 20,
+      "shaFinish": 21,
+      "tls": 33
+    },
+    "max_trace_length": 2097152,
+    "name": "equinox"
+  },
+  "schema": "website-jolt-target-v1",
+  "scope": "Individual Jolt segment proofs produced by the website /prove page",
+  "verification": {
+    "complete_circom_verifier": false,
+    "native_fixtures_checked": false,
+    "source_to_asset_rebuild_checked": false
+  },
+  "website": {
+    "commit": "7335214d56d1c865a41deda2c1492f3facd8571c",
+    "sources": {
+      "frontend/scripts/vendor-jolt.sh": {
+        "bytes": 536,
+        "sha256": "ea0f1d956e7e50dee83767c73c6622d23f65fe7df80f6250a7da9af7c1eed488"
+      },
+      "frontend/src/lib/jolt.ts": {
+        "bytes": 19092,
+        "sha256": "ae1652c59f154acb60cc144a3597ff8180630eed0e13c62fa22b2d5752d5ad1b"
+      },
+      "frontend/src/pages/Prove.tsx": {
+        "bytes": 9196,
+        "sha256": "2226fdd89187f99eab069dbc090e6e95cc6d7e482ea2889e1c527a770c3fef4f"
+      },
+      "frontend/static/vendor/prove-worker.js": {
+        "bytes": 577,
+        "sha256": "30c5e91c8f2db6ff59eff7434b06477467a57b03b823ff2898f0b84f5711c4d2"
+      }
+    }
+  }
+}
