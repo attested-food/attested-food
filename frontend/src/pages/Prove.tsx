@@ -51,7 +51,14 @@ export default function Prove() {
 				<p className="muted">
 					Job {job.id}: {job.status}, stage <strong>{job.stage}</strong>, {Math.round(job.elapsedMs / 1000)} s
 					{job.progress?.fraction != null && job.status !== 'done' && <> · ~{Math.round(job.progress.fraction * 100)}%</>}
-					{'sp1-compressed' in (job.partial ?? {}) && <> · STARK ready</>}
+					{job.partial?.['sp1-compressed'] && (
+						<>
+							{' · '}
+							<a href={`${PROVER_URL}${job.partial['sp1-compressed'].proofUrl}`} target="_blank" rel="noreferrer">
+								STARK ready
+							</a>
+						</>
+					)}
 					{job.result?.artifact != null && <> · Groth16 ready</>}
 				</p>
 			)}
