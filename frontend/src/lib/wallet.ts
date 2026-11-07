@@ -97,9 +97,10 @@ export const FUND_STAKE = 110_000_000n;
 
 export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
-async function attachProvider(provider: EIP1193Provider) {
+async function attachProvider(provider: EIP1193Provider, silent = false) {
 	const client = createWalletClient({ chain, transport: custom(provider) });
-	const [address] = await client.requestAddresses();
+	const [address] = silent ? await client.getAddresses() : await client.requestAddresses();
+	if (!address) throw new Error('Wallet is not connected to this site.');
 	try {
 		await client.switchChain({ id: chain.id });
 	} catch {
@@ -107,12 +108,13 @@ async function attachProvider(provider: EIP1193Provider) {
 	}
 	provider.on?.('accountsChanged', (accounts: string[]) => {
 		const next = (accounts[0] as Address) ?? null;
+		if (!next) forget();
 		setWallet(next ? { ...wallet, address: next } : { address: null, client: null });
 	});
 	setWallet({ address, client });
 }
 
-type Announced = { info: { uuid: string; name: string; icon: string }; provider: EIP1193Provider };
+type Announced = { info: { uuid: string; name: string; icon: string; rdns?: string }; provider: EIP1193Provider };
 
 /** Browser wallets that announced themselves via EIP-6963, so MetaMask isn't confused with other extensions. */
 export let injected: Announced[] = [];
@@ -132,23 +134,65 @@ if (typeof window !== 'undefined') {
 /** Use any EIP-1193 provider as the signed-in wallet (e.g. Privy's embedded wallet). */
 export const connectProvider = (provider: EIP1193Provider) => attachProvider(provider);
 
+// Which wallet to reconnect after a reload: the browser wallet's EIP-6963 rdns (e.g. io.metamask) or
+// WalletConnect. Never a key; private-key sign-in stays in memory only.
+type Remembered = { kind: 'injected'; rdns: string | null } | { kind: 'walletconnect' };
+const REMEMBER = 'wallet:last';
+function remember(r: Remembered) {
+	try { localStorage.setItem(REMEMBER, JSON.stringify(r)); } catch { /* storage unavailable: no reconnect after reload */ }
+}
+function forget() {
+	try { localStorage.removeItem(REMEMBER); } catch { /* storage unavailable */ }
+}
+
 export async function connectInjected(provider?: EIP1193Provider) {
 	const eth = provider ?? (window as { ethereum?: EIP1193Provider }).ethereum;
 	if (!eth) throw new Error('No browser wallet found. Install MetaMask.');
 	await attachProvider(eth);
+	remember({ kind: 'injected', rdns: injected.find((w) => w.provider === eth)?.info.rdns ?? null });
 }
 
-export async function connectWalletConnect() {
+async function walletConnectProvider() {
 	// Loaded on demand: the WalletConnect SDK is large and most visitors never use it.
 	const { default: EthereumProvider } = await import('@walletconnect/ethereum-provider');
-	const provider = await EthereumProvider.init({
+	return EthereumProvider.init({
 		projectId: wcProjectId!,
 		optionalChains: [chain.id],
 		rpcMap: { [chain.id]: rpc },
 		showQrModal: true
 	});
+}
+
+export async function connectWalletConnect() {
+	const provider = await walletConnectProvider();
 	await provider.connect();
 	await attachProvider(provider as unknown as EIP1193Provider);
+	remember({ kind: 'walletconnect' });
+}
+
+/** After a reload, quietly reconnect the wallet used last time if it still trusts this site. */
+async function reconnect() {
+	let r: Remembered | null = null;
+	try { r = JSON.parse(localStorage.getItem(REMEMBER) ?? 'null'); } catch { return; }
+	if (!r || wallet.address) return;
+	try {
+		if (r.kind === 'walletconnect') {
+			if (!wcProjectId) return forget();
+			const provider = await walletConnectProvider();
+			if (!provider.session) return forget();
+			await attachProvider(provider as unknown as EIP1193Provider, true);
+		} else {
+			const rdns = r.rdns;
+			// Extensions announce themselves right after load; give them a moment.
+			await new Promise((res) => setTimeout(res, 300));
+			const eth = (rdns && injected.find((w) => w.info.rdns === rdns)?.provider) || (window as { ethereum?: EIP1193Provider }).ethereum;
+			if (!eth) return;
+			await attachProvider(eth, true);
+		}
+	} catch (e) {
+		console.warn('[wallet] could not reconnect', e);
+		forget();
+	}
 }
 
 export function connectPrivateKey(key: string) {
@@ -157,8 +201,11 @@ export function connectPrivateKey(key: string) {
 }
 
 export function disconnect() {
+	forget();
 	setWallet({ address: null, client: null });
 }
+
+if (typeof window !== 'undefined') reconnect();
 
 type Call = { address: Address; abi: typeof fundAbi | typeof usdAbi; functionName: string; args: readonly unknown[] };
 
